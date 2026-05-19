@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { INITIAL_STATE, signInWithEmail } from "@/lib/actions/auth";
+import { signInWithEmail } from "@/lib/actions/auth";
 
 const INPUT_CLS =
   "w-full rounded-lg border border-zinc-300 px-4 py-3 text-base outline-none transition-colors focus:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-zinc-100";
@@ -10,10 +10,10 @@ const BUTTON_CLS =
   "w-full rounded-lg bg-zinc-900 px-4 py-3 text-base font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900";
 
 export function SignInForm({ next }: { next?: string }) {
-  const [state, action, pending] = useActionState(
-    signInWithEmail,
-    INITIAL_STATE,
-  );
+  const [state, action, pending] = useActionState(signInWithEmail, {
+    error: null,
+    notice: null,
+  });
 
   return (
     <form action={action} className="space-y-3">

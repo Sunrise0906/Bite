@@ -9,8 +9,6 @@ export type PlaceFormState = {
   error: string | null;
 };
 
-export const INITIAL_STATE: PlaceFormState = { error: null };
-
 const VALID_STATUS: PlaceStatus[] = ["want_to_go", "visited", "archived"];
 const VALID_PRICE: PlacePrice[] = ["$", "$$", "$$$", "$$$$"];
 

@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import {
-  INITIAL_STATE,
-  createPlace,
-  updatePlace,
-} from "@/lib/actions/places";
+import { createPlace, updatePlace } from "@/lib/actions/places";
 import type { Place } from "@/lib/db/types";
 
 const INPUT_CLS =
@@ -21,7 +17,7 @@ type Mode =
 
 export function PlaceForm(props: Mode) {
   const action = props.mode === "create" ? createPlace : updatePlace;
-  const [state, formAction, pending] = useActionState(action, INITIAL_STATE);
+  const [state, formAction, pending] = useActionState(action, { error: null });
 
   const place = props.place;
   const ownReason =

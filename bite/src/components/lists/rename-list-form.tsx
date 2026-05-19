@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { INITIAL_STATE, renameList } from "@/lib/actions/lists";
+import { renameList } from "@/lib/actions/lists";
 
 export function RenameListForm({
   id,
@@ -11,7 +11,7 @@ export function RenameListForm({
   currentName: string;
 }) {
   const [editing, setEditing] = useState(false);
-  const [state, action, pending] = useActionState(renameList, INITIAL_STATE);
+  const [state, action, pending] = useActionState(renameList, { error: null });
 
   if (!editing) {
     return (

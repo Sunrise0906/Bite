@@ -1,10 +1,10 @@
 "use client";
 
 import { useActionState, useRef } from "react";
-import { createList, INITIAL_STATE } from "@/lib/actions/lists";
+import { createList } from "@/lib/actions/lists";
 
 export function CreateListForm() {
-  const [state, action, pending] = useActionState(createList, INITIAL_STATE);
+  const [state, action, pending] = useActionState(createList, { error: null });
   const formRef = useRef<HTMLFormElement>(null);
 
   return (

@@ -8,10 +8,6 @@ export type ListFormState = {
   error: string | null;
 };
 
-const INITIAL_STATE: ListFormState = { error: null };
-
-export { INITIAL_STATE };
-
 // ---- 新建 list -----------------------------------------------------------
 export async function createList(
   _prev: ListFormState,

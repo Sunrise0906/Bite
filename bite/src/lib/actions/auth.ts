@@ -9,8 +9,6 @@ export type AuthFormState = {
   notice: string | null;
 };
 
-const INITIAL_STATE: AuthFormState = { error: null, notice: null };
-
 function appUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 }
@@ -152,5 +150,3 @@ function translateError(msg: string): string {
   if (m.includes("for security purposes")) return "请求过于频繁，请稍候再试";
   return msg;
 }
-
-export { INITIAL_STATE };
