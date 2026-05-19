@@ -1,0 +1,41 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files (子目录的 .gitignore 也会覆盖；此处兜底)
+.env
+.env.local
+.env.*.local
+
+# 个人凭据 / 草稿笔记（**绝不提交**，常含 API key）
+note
+notes
+notes.*
+scratch.*
+credentials.*
+secrets.*
+
+# Node（防止未来在 workspace 根加脚本时遗漏）
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build outputs (兜底)
+build/
+dist/
+
+# Vercel
+.vercel
