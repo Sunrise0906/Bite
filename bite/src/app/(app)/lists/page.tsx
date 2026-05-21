@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CreateListForm } from "@/components/lists/create-list-form";
-import { QuickAddPlaceholder } from "@/components/places/quick-add-placeholder";
+import { QuickAddInput } from "@/components/places/quick-add-input";
 import { createClient, requireUser } from "@/lib/supabase/server";
 
 type ListWithCount = {
@@ -35,7 +35,7 @@ export default async function ListsPage() {
       </header>
 
       <div className="mb-5">
-        <QuickAddPlaceholder />
+        <QuickAddInput />
       </div>
 
       <div className="mb-6">
