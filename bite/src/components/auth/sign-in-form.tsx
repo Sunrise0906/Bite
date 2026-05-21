@@ -3,12 +3,6 @@
 import { useActionState } from "react";
 import { signInWithEmail } from "@/lib/actions/auth";
 
-const INPUT_CLS =
-  "w-full rounded-lg border border-zinc-300 px-4 py-3 text-base outline-none transition-colors focus:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-zinc-100";
-
-const BUTTON_CLS =
-  "w-full rounded-lg bg-zinc-900 px-4 py-3 text-base font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900";
-
 export function SignInForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(signInWithEmail, {
     error: null,
@@ -23,7 +17,7 @@ export function SignInForm({ next }: { next?: string }) {
         placeholder="邮箱"
         required
         autoComplete="email"
-        className={INPUT_CLS}
+        className="field-input"
       />
       <input
         type="password"
@@ -32,15 +26,19 @@ export function SignInForm({ next }: { next?: string }) {
         required
         autoComplete="current-password"
         minLength={6}
-        className={INPUT_CLS}
+        className="field-input"
       />
       <input type="hidden" name="next" value={next ?? ""} />
       {state.error && (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+        <p role="alert" className="text-sm text-red-700 dark:text-red-300">
           {state.error}
         </p>
       )}
-      <button type="submit" disabled={pending} className={BUTTON_CLS}>
+      <button
+        type="submit"
+        disabled={pending}
+        className="btn-primary w-full py-3 text-base"
+      >
         {pending ? "登录中…" : "登录"}
       </button>
     </form>

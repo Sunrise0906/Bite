@@ -25,7 +25,7 @@ export function DeleteListButton({
       <input type="hidden" name="id" value={id} />
       <button
         type="submit"
-        className="text-sm text-red-600 hover:underline dark:text-red-400"
+        className="text-sm text-red-700 hover:underline dark:text-red-400"
       >
         删除 list
       </button>

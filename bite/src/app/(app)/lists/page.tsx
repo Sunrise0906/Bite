@@ -27,9 +27,9 @@ export default async function ListsPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">我的 list</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+      <header className="mb-7">
+        <h1 className="heading-display text-3xl sm:text-4xl">我的 list</h1>
+        <p className="mt-1.5 text-sm text-zinc-500">
           按用途分组管理你的餐厅收藏
         </p>
       </header>
@@ -43,20 +43,15 @@ export default async function ListsPage() {
       </div>
 
       {error && (
-        <p
-          role="alert"
-          className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300"
-        >
+        <p role="alert" className="mb-4 alert-error">
           加载失败：{error.message}
         </p>
       )}
 
       {lists.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-300 px-4 py-12 text-center text-sm text-zinc-500 dark:border-zinc-700">
-          还没有 list。新建一个开始吧 👆
-        </div>
+        <EmptyState />
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {lists.map((list) => {
             const count = list.places[0]?.count ?? 0;
             const isShared = list.owner_id !== user.id;
@@ -64,24 +59,24 @@ export default async function ListsPage() {
               <li key={list.id}>
                 <Link
                   href={`/lists/${list.id}`}
-                  className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600 dark:hover:bg-zinc-900"
+                  className="card card-interactive flex items-center justify-between px-4 py-3.5"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-base font-medium">
+                      <span className="truncate text-base font-medium text-[var(--text-strong)]">
                         {list.name}
                       </span>
                       {isShared && (
-                        <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                          共享
-                        </span>
+                        <span className="chip chip-neutral">共享</span>
                       )}
                     </div>
                     <p className="mt-0.5 text-xs text-zinc-500">
                       {count} 家店
                     </p>
                   </div>
-                  <span className="ml-3 text-zinc-400">›</span>
+                  <span aria-hidden="true" className="ml-3 text-zinc-400">
+                    ›
+                  </span>
                 </Link>
               </li>
             );
@@ -89,5 +84,31 @@ export default async function ListsPage() {
         </ul>
       )}
     </main>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="card flex flex-col items-center px-6 py-14 text-center">
+      <svg
+        aria-hidden="true"
+        width="56"
+        height="56"
+        viewBox="0 0 64 64"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        className="mb-4 text-[var(--primary)]"
+      >
+        <circle cx="32" cy="32" r="22" />
+        <circle cx="32" cy="32" r="15" strokeDasharray="2 3" opacity="0.5" />
+        <path d="M22 28c0-2.5 2-4 4-4M42 28c0-2.5-2-4-4-4" strokeLinecap="round" />
+        <path d="M28 38c1.5 1.5 4 2 4 2s2.5-.5 4-2" strokeLinecap="round" />
+      </svg>
+      <p className="text-sm text-zinc-600">还没有 list</p>
+      <p className="mt-1 text-xs text-zinc-500">
+        在上面输入一个名字，比如 "Irvine 想吃的"
+      </p>
+    </div>
   );
 }

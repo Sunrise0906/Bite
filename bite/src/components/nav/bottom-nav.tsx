@@ -37,7 +37,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="主导航"
-      className="sticky bottom-0 left-0 right-0 z-30 mt-auto border-t border-zinc-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/75 dark:border-zinc-800 dark:bg-zinc-950/95 dark:supports-[backdrop-filter]:bg-zinc-950/75"
+      className="sticky bottom-0 left-0 right-0 z-30 mt-auto border-t border-[var(--border-subtle)] bg-[var(--background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/75"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <ul className="mx-auto flex max-w-2xl items-stretch">
@@ -47,15 +47,17 @@ export function BottomNav() {
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
-                className={`flex flex-col items-center gap-0.5 py-2 text-xs transition-colors ${
+                className={`flex flex-col items-center gap-1 py-2.5 text-xs transition-colors ${
                   active
-                    ? "text-zinc-900 dark:text-zinc-100"
-                    : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                    ? "text-[var(--primary)]"
+                    : "text-zinc-500 hover:text-[var(--text-strong)]"
                 }`}
                 aria-current={active ? "page" : undefined}
               >
                 <span aria-hidden="true">{item.icon}</span>
-                <span>{item.label}</span>
+                <span className={active ? "font-medium" : ""}>
+                  {item.label}
+                </span>
               </Link>
             </li>
           );
@@ -73,16 +75,16 @@ function ListIcon() {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.75"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
       <line x1="8" y1="6" x2="21" y2="6" />
       <line x1="8" y1="12" x2="21" y2="12" />
       <line x1="8" y1="18" x2="21" y2="18" />
-      <line x1="3" y1="6" x2="3.01" y2="6" />
-      <line x1="3" y1="12" x2="3.01" y2="12" />
-      <line x1="3" y1="18" x2="3.01" y2="18" />
+      <circle cx="3.5" cy="6" r="1" fill="currentColor" stroke="none" />
+      <circle cx="3.5" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="3.5" cy="18" r="1" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -95,11 +97,11 @@ function ChatIcon() {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.75"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <path d="M21 12a9 9 0 1 1-3.5-7.1L21 4l-1.1 3.5A8.96 8.96 0 0 1 21 12z" />
     </svg>
   );
 }
@@ -112,7 +114,7 @@ function ProfileIcon() {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.75"
       strokeLinecap="round"
       strokeLinejoin="round"
     >

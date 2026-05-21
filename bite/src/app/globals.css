@@ -1,33 +1,337 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================================
+   Bite Design System · Warm Food
+   Palette: terracotta + cream + warm grays
+   ============================================================================ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+:root {
+  /* Surface */
+  --background: #faf5ef;
+  --foreground: #1f1a14;
+  --surface-elevated: #ffffff;
+  --surface-muted: #f1eae0;
+  --surface-sunken: #ebe2d3;
+
+  /* Border */
+  --border-subtle: #ebe2d3;
+  --border-default: #e0d3bc;
+  --border-strong: #c9b89b;
+
+  /* Text */
+  --text-strong: #1f1a14;
+  --text-default: #3f392e;
+  --text-muted: #7d7363;
+  --text-faint: #a89c84;
+
+  /* Brand · terracotta */
+  --primary: #d97757;
+  --primary-hover: #c56240;
+  --primary-active: #ad5230;
+  --primary-foreground: #ffffff;
+  --primary-soft: #fce9de;
+  --primary-soft-text: #8c3b14;
+
+  /* Status: warm-leaning */
+  --status-want-bg: #fef3c7;
+  --status-want-text: #92400e;
+  --status-want-dot: #f59e0b;
+
+  --status-visited-bg: #d1fae5;
+  --status-visited-text: #065f46;
+  --status-visited-dot: #059669;
+
+  --status-archived-bg: #e4daca;
+  --status-archived-text: #5e5547;
+  --status-archived-dot: #a89c84;
+
+  /* Feedback */
+  --danger: #b91c1c;
+  --danger-bg: #fee2e2;
+  --danger-text: #7f1d1d;
+  --success: #059669;
+  --success-bg: #d1fae5;
+  --success-text: #065f46;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #1a1612;
+    --foreground: #f1eae0;
+    --surface-elevated: #261f18;
+    --surface-muted: #221b15;
+    --surface-sunken: #14110d;
+
+    --border-subtle: #2e2620;
+    --border-default: #3f3530;
+    --border-strong: #5e5547;
+
+    --text-strong: #faf5ef;
+    --text-default: #e4daca;
+    --text-muted: #a89c84;
+    --text-faint: #7d7363;
+
+    --primary: #e89074;
+    --primary-hover: #f4a88e;
+    --primary-active: #fdbfa6;
+    --primary-foreground: #1f1a14;
+    --primary-soft: #3f2b23;
+    --primary-soft-text: #fce9de;
+
+    --status-want-bg: #3d2f12;
+    --status-want-text: #fcd34d;
+    --status-want-dot: #f59e0b;
+
+    --status-visited-bg: #0d3f2e;
+    --status-visited-text: #6ee7b7;
+    --status-visited-dot: #34d399;
+
+    --status-archived-bg: #2a251e;
+    --status-archived-text: #cfc1aa;
+    --status-archived-dot: #7d7363;
+
+    --danger: #f87171;
+    --danger-bg: #3a1f1f;
+    --danger-text: #fca5a5;
+    --success: #34d399;
+    --success-bg: #0d3f2e;
+    --success-text: #6ee7b7;
   }
 }
 
-html,
-body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-}
+/* ============================================================================
+   Tailwind theme inline — 把 zinc 整个色板替换为暖灰，使现有 zinc-* 类自动升级
+   并暴露 brand / status / 语义颜色给 Tailwind 工具类
+   ============================================================================ */
+@theme inline {
+  /* Warm gray palette (覆盖 zinc) */
+  --color-zinc-50: #faf5ef;
+  --color-zinc-100: #f1eae0;
+  --color-zinc-200: #e0d3bc;
+  --color-zinc-300: #c9b89b;
+  --color-zinc-400: #a89c84;
+  --color-zinc-500: #7d7363;
+  --color-zinc-600: #5e5547;
+  --color-zinc-700: #3f3530;
+  --color-zinc-800: #261f18;
+  --color-zinc-900: #1f1a14;
+  --color-zinc-950: #14110d;
 
-body {
-  font-family:
+  /* Brand */
+  --color-brand: var(--primary);
+  --color-brand-hover: var(--primary-hover);
+  --color-brand-active: var(--primary-active);
+  --color-brand-foreground: var(--primary-foreground);
+  --color-brand-soft: var(--primary-soft);
+  --color-brand-soft-foreground: var(--primary-soft-text);
+
+  /* Surfaces */
+  --color-surface: var(--background);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-sunken: var(--surface-sunken);
+
+  /* Borders */
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+
+  /* Text */
+  --color-text-strong: var(--text-strong);
+  --color-text-default: var(--text-default);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+
+  /* Status */
+  --color-status-want-bg: var(--status-want-bg);
+  --color-status-want-text: var(--status-want-text);
+  --color-status-visited-bg: var(--status-visited-bg);
+  --color-status-visited-text: var(--status-visited-text);
+  --color-status-archived-bg: var(--status-archived-bg);
+  --color-status-archived-text: var(--status-archived-text);
+
+  /* Fonts */
+  --font-serif: var(--font-fraunces), ui-serif, Georgia, "Songti SC",
+    "STSong", serif;
+  --font-sans:
     ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue",
     Arial, sans-serif;
+}
+
+/* ============================================================================
+   Base
+   ============================================================================ */
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   text-rendering: optimizeLegibility;
+  font-feature-settings: "kern", "liga", "calt";
+}
+
+/* ============================================================================
+   Component utilities
+   ============================================================================ */
+@layer components {
+  /* 品牌字标 */
+  .brand-mark {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    font-feature-settings: "ss01", "ss02";
+  }
+
+  /* 展示标题（serif 装饰） */
+  .heading-display {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  /* 主按钮 */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-weight: 500;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    transition:
+      background-color 0.15s ease,
+      transform 0.05s ease;
+  }
+  .btn-primary:hover {
+    background: var(--primary-hover);
+  }
+  .btn-primary:active {
+    background: var(--primary-active);
+    transform: scale(0.99);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* 次级按钮（描边） */
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--text-strong);
+    font-weight: 500;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-default);
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+  }
+  .btn-secondary:hover {
+    background: var(--surface-muted);
+    border-color: var(--border-strong);
+  }
+
+  /* 输入框 */
+  .field-input {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-default);
+    background: var(--surface-elevated);
+    color: var(--text-strong);
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  .field-input::placeholder {
+    color: var(--text-faint);
+  }
+  .field-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+  }
+
+  /* 卡片 */
+  .card {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 1rem;
+    box-shadow:
+      0 1px 2px rgba(31, 26, 20, 0.04),
+      0 1px 3px rgba(31, 26, 20, 0.06);
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease,
+      transform 0.05s ease;
+  }
+  .card-interactive {
+    cursor: pointer;
+  }
+  .card-interactive:hover {
+    border-color: var(--border-strong);
+    box-shadow:
+      0 2px 4px rgba(31, 26, 20, 0.05),
+      0 4px 12px rgba(31, 26, 20, 0.08);
+  }
+  .card-interactive:active {
+    transform: scale(0.997);
+  }
+
+  /* 状态徽章 */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.25;
+  }
+  .chip-want {
+    background: var(--status-want-bg);
+    color: var(--status-want-text);
+  }
+  .chip-visited {
+    background: var(--status-visited-bg);
+    color: var(--status-visited-text);
+  }
+  .chip-archived {
+    background: var(--status-archived-bg);
+    color: var(--status-archived-text);
+  }
+  .chip-neutral {
+    background: var(--surface-muted);
+    color: var(--text-muted);
+  }
+
+  /* 通知条 */
+  .alert-error {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
+    border-radius: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+  }
+  .alert-success {
+    background: var(--success-bg);
+    color: var(--success-text);
+    border: 1px solid color-mix(in srgb, var(--success) 25%, transparent);
+    border-radius: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+  }
 }

@@ -18,10 +18,13 @@ export function RenameListForm({
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="text-2xl font-semibold tracking-tight outline-none hover:opacity-70"
+        className="heading-display group inline-flex items-baseline gap-2 text-3xl text-[var(--text-strong)] outline-none hover:opacity-80"
       >
         {currentName}
-        <span className="ml-2 align-middle text-sm font-normal text-zinc-400">
+        <span
+          aria-hidden="true"
+          className="text-sm font-sans font-normal text-zinc-400 group-hover:text-[var(--primary)]"
+        >
           ✎
         </span>
       </button>
@@ -45,25 +48,25 @@ export function RenameListForm({
           autoFocus
           required
           maxLength={80}
-          className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-base outline-none focus:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-zinc-100"
+          className="field-input flex-1"
         />
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+          className="btn-primary shrink-0 px-3 py-2 text-sm"
         >
-          {pending ? "保存中…" : "保存"}
+          {pending ? "保存中" : "保存"}
         </button>
         <button
           type="button"
           onClick={() => setEditing(false)}
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700"
+          className="btn-secondary shrink-0 px-3 py-2 text-sm"
         >
           取消
         </button>
       </div>
       {state.error && (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+        <p role="alert" className="text-sm text-red-700 dark:text-red-300">
           {state.error}
         </p>
       )}

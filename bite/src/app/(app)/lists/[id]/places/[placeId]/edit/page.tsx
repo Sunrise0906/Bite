@@ -26,13 +26,11 @@ export default async function EditPlacePage({ params }: { params: Params }) {
     <main className="mx-auto w-full max-w-xl px-4 py-6 sm:py-10">
       <Link
         href={`/lists/${listId}`}
-        className="mb-4 inline-flex items-center text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+        className="mb-5 inline-flex items-center text-sm text-zinc-500 transition-colors hover:text-[var(--text-strong)]"
       >
         ‹ 返回所在 list
       </Link>
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">
-        编辑店铺
-      </h1>
+      <h1 className="heading-display mb-6 text-3xl">编辑店铺</h1>
       <PlaceForm
         mode="edit"
         listId={listId}
@@ -40,8 +38,10 @@ export default async function EditPlacePage({ params }: { params: Params }) {
         currentUserId={user.id}
       />
 
-      <div className="mt-10 border-t border-zinc-200 pt-6 dark:border-zinc-800">
-        <h2 className="mb-3 text-sm font-medium text-zinc-500">危险操作</h2>
+      <div className="mt-12 border-t border-[var(--border-subtle)] pt-6">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          危险操作
+        </h2>
         <DeletePlaceButton
           placeId={place.id}
           listId={listId}

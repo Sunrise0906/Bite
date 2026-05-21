@@ -5,11 +5,9 @@ import { useActionState } from "react";
 import { createPlace, updatePlace } from "@/lib/actions/places";
 import type { Place } from "@/lib/db/types";
 
-const INPUT_CLS =
-  "w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-base outline-none focus:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-zinc-100";
-
-const LABEL_CLS = "block text-sm font-medium text-zinc-700 dark:text-zinc-300";
-const HELP_CLS = "mt-1 text-xs text-zinc-500";
+const LABEL_CLS =
+  "block text-sm font-medium text-[var(--text-default)]";
+const HELP_CLS = "mt-1.5 text-xs text-zinc-500";
 
 type Mode =
   | { mode: "create"; listId: string; place?: undefined; currentUserId: string }
@@ -30,7 +28,7 @@ export function PlaceForm(props: Mode) {
 
       <div>
         <label htmlFor="p-name" className={LABEL_CLS}>
-          店名 <span className="text-red-500">*</span>
+          店名 <span className="text-[var(--primary)]">*</span>
         </label>
         <input
           id="p-name"
@@ -39,13 +37,13 @@ export function PlaceForm(props: Mode) {
           required
           maxLength={120}
           defaultValue={place?.name ?? ""}
-          className={`${INPUT_CLS} mt-1`}
+          className="field-input mt-1.5"
         />
       </div>
 
       <div>
         <label htmlFor="p-address" className={LABEL_CLS}>
-          地址 <span className="text-red-500">*</span>
+          地址 <span className="text-[var(--primary)]">*</span>
         </label>
         <input
           id="p-address"
@@ -53,14 +51,14 @@ export function PlaceForm(props: Mode) {
           name="address"
           required
           defaultValue={place?.address ?? ""}
-          className={`${INPUT_CLS} mt-1`}
+          className="field-input mt-1.5"
         />
         <p className={HELP_CLS}>Phase 2 会接 Google Places 自动补全</p>
       </div>
 
       <div>
         <label htmlFor="p-cuisine" className={LABEL_CLS}>
-          菜系 <span className="text-red-500">*</span>
+          菜系 <span className="text-[var(--primary)]">*</span>
         </label>
         <input
           id="p-cuisine"
@@ -68,8 +66,8 @@ export function PlaceForm(props: Mode) {
           name="cuisine"
           required
           defaultValue={place?.cuisine.join(", ") ?? ""}
-          placeholder="例如：川菜、火锅"
-          className={`${INPUT_CLS} mt-1`}
+          placeholder="川菜、火锅"
+          className="field-input mt-1.5"
         />
         <p className={HELP_CLS}>多个用逗号 / 空格分隔</p>
       </div>
@@ -83,7 +81,7 @@ export function PlaceForm(props: Mode) {
             id="p-status"
             name="status"
             defaultValue={place?.status ?? "want_to_go"}
-            className={`${INPUT_CLS} mt-1`}
+            className="field-input mt-1.5"
           >
             <option value="want_to_go">想去</option>
             <option value="visited">已去过</option>
@@ -98,7 +96,7 @@ export function PlaceForm(props: Mode) {
             id="p-price"
             name="price_range"
             defaultValue={place?.price_range ?? ""}
-            className={`${INPUT_CLS} mt-1`}
+            className="field-input mt-1.5"
           >
             <option value="">未填</option>
             <option value="$">$ · 人均 &lt; $15</option>
@@ -118,10 +116,9 @@ export function PlaceForm(props: Mode) {
           type="text"
           name="occasions"
           defaultValue={place?.occasions.join(", ") ?? ""}
-          placeholder="例如：约会、聚会、招待长辈"
-          className={`${INPUT_CLS} mt-1`}
+          placeholder="约会、聚会、招待长辈"
+          className="field-input mt-1.5"
         />
-        <p className={HELP_CLS}>多个用逗号分隔</p>
       </div>
 
       <div>
@@ -133,8 +130,8 @@ export function PlaceForm(props: Mode) {
           type="text"
           name="tags"
           defaultValue={place?.tags.join(", ") ?? ""}
-          placeholder="例如：排队长、有露台、可带宠物"
-          className={`${INPUT_CLS} mt-1`}
+          placeholder="排队长、有露台、可带宠物"
+          className="field-input mt-1.5"
         />
       </div>
 
@@ -148,7 +145,7 @@ export function PlaceForm(props: Mode) {
           name="recommended_by"
           defaultValue={place?.recommended_by ?? ""}
           placeholder="朋友、XHS 博主、自己…"
-          className={`${INPUT_CLS} mt-1`}
+          className="field-input mt-1.5"
         />
       </div>
 
@@ -162,30 +159,27 @@ export function PlaceForm(props: Mode) {
           rows={3}
           defaultValue={ownReason}
           placeholder="为啥想去？以后 AI 推荐会引用这里"
-          className={`${INPUT_CLS} mt-1 resize-y`}
+          className="field-input mt-1.5 resize-y"
         />
       </div>
 
       {state.error && (
-        <p
-          role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300"
-        >
+        <p role="alert" className="alert-error">
           {state.error}
         </p>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 pt-2">
         <Link
           href={`/lists/${props.listId}`}
-          className="flex-1 rounded-lg border border-zinc-300 px-4 py-3 text-center text-base font-medium dark:border-zinc-700"
+          className="btn-secondary flex-1 py-3 text-base"
         >
           取消
         </Link>
         <button
           type="submit"
           disabled={pending}
-          className="flex-1 rounded-lg bg-zinc-900 px-4 py-3 text-base font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+          className="btn-primary flex-1 py-3 text-base"
         >
           {pending
             ? "保存中…"

@@ -24,7 +24,7 @@ export function DeletePlaceButton({
       <input type="hidden" name="list_id" value={listId} />
       <button
         type="submit"
-        className="text-sm text-red-600 hover:underline dark:text-red-400"
+        className="text-sm text-red-700 hover:underline dark:text-red-400"
       >
         删除店铺
       </button>

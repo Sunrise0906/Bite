@@ -4,13 +4,13 @@
 export function QuickAddPlaceholder() {
   return (
     <div className="relative">
-      <div className="pointer-events-none flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900/40">
+      <div className="pointer-events-none flex items-center gap-2.5 rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface-muted)]/60 px-4 py-3.5 text-zinc-500">
         <SparkleIcon />
         <span className="flex-1 truncate text-sm">
           粘贴小红书链接、写几句话、或搜店名…
         </span>
       </div>
-      <span className="absolute -top-2 right-3 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+      <span className="absolute -top-2 right-3 rounded-full bg-[var(--primary-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--primary-soft-text)]">
         Phase 2
       </span>
     </div>
@@ -26,11 +26,14 @@ function SparkleIcon() {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
+      className="text-[var(--primary)]"
     >
-      <path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4" />
+      <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z" />
+      <path d="M18 17l.75 2.25L21 20l-2.25.75L18 23l-.75-2.25L15 20l2.25-.75z" />
+      <path d="M5 16l.5 1.5L7 18l-1.5.5L5 20l-.5-1.5L3 18l1.5-.5z" />
     </svg>
   );
 }

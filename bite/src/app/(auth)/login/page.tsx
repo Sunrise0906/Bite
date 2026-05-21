@@ -15,15 +15,12 @@ export default async function LoginPage({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">登录</h1>
-        <p className="mt-1 text-sm text-zinc-500">回到你的餐厅 list</p>
+        <h1 className="heading-display text-3xl">欢迎回来</h1>
+        <p className="mt-2 text-sm text-zinc-500">登录你的 Bite 账号</p>
       </div>
 
       {error && (
-        <p
-          role="alert"
-          className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300"
-        >
+        <p role="alert" className="alert-error">
           {decodeURIComponent(error)}
         </p>
       )}
@@ -42,9 +39,9 @@ export default async function LoginPage({
         还没有账号？{" "}
         <Link
           href="/signup"
-          className="font-medium text-zinc-900 underline dark:text-zinc-100"
+          className="font-medium text-[var(--text-strong)] underline underline-offset-2 decoration-zinc-300"
         >
-          注册
+          创建账号
         </Link>
       </p>
     </div>
@@ -54,9 +51,9 @@ export default async function LoginPage({
 function Divider({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 text-xs text-zinc-400">
-      <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+      <div className="h-px flex-1 bg-zinc-200" />
       <span>{children}</span>
-      <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+      <div className="h-px flex-1 bg-zinc-200" />
     </div>
   );
 }

@@ -7,12 +7,10 @@ const STATUS_LABEL: Record<Place["status"], string> = {
   archived: "归档",
 };
 
-const STATUS_BADGE: Record<Place["status"], string> = {
-  want_to_go:
-    "bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200",
-  visited:
-    "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200",
-  archived: "bg-zinc-100 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400",
+const STATUS_CHIP: Record<Place["status"], string> = {
+  want_to_go: "chip chip-want",
+  visited: "chip chip-visited",
+  archived: "chip chip-archived",
 };
 
 export function PlaceCard({
@@ -27,34 +25,33 @@ export function PlaceCard({
   return (
     <Link
       href={`/lists/${place.list_id}/places/${place.id}/edit`}
-      className="block rounded-xl border border-zinc-200 bg-white p-4 transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600 dark:hover:bg-zinc-900"
+      className="card card-interactive block p-4"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-base font-medium">{place.name}</h3>
+          <h3 className="truncate text-base font-medium text-[var(--text-strong)]">
+            {place.name}
+          </h3>
           <p className="mt-0.5 truncate text-sm text-zinc-500">
             {place.address}
           </p>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[place.status]}`}
-          >
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <span className={STATUS_CHIP[place.status]}>
             {STATUS_LABEL[place.status]}
           </span>
           {place.price_range && (
-            <span className="text-xs text-zinc-500">{place.price_range}</span>
+            <span className="text-xs font-medium text-zinc-500">
+              {place.price_range}
+            </span>
           )}
         </div>
       </div>
 
       {place.cuisine.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
+        <div className="mt-2.5 flex flex-wrap gap-1">
           {place.cuisine.map((c) => (
-            <span
-              key={c}
-              className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-            >
+            <span key={c} className="chip chip-neutral">
               {c}
             </span>
           ))}
@@ -62,8 +59,10 @@ export function PlaceCard({
       )}
 
       {myReason && (
-        <p className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">
-          “{myReason}”
+        <p className="mt-2.5 line-clamp-2 text-sm text-zinc-600">
+          <span className="text-[var(--primary)]">“</span>
+          {myReason}
+          <span className="text-[var(--primary)]">”</span>
         </p>
       )}
     </Link>

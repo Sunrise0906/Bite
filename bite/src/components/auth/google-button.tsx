@@ -6,7 +6,7 @@ export function GoogleButton({ next }: { next?: string }) {
       <input type="hidden" name="next" value={next ?? ""} />
       <button
         type="submit"
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base font-medium text-zinc-900 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+        className="btn-secondary w-full gap-2 py-3 text-base"
       >
         <GoogleIcon />
         <span>使用 Google 登录</span>

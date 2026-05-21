@@ -23,18 +23,12 @@ export default async function NewPlacePage({ params }: { params: Params }) {
     <main className="mx-auto w-full max-w-xl px-4 py-6 sm:py-10">
       <Link
         href={`/lists/${listId}`}
-        className="mb-4 inline-flex items-center text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+        className="mb-5 inline-flex items-center text-sm text-zinc-500 transition-colors hover:text-[var(--text-strong)]"
       >
         ‹ 返回 “{list.name}”
       </Link>
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">
-        新增店铺
-      </h1>
-      <PlaceForm
-        mode="create"
-        listId={listId}
-        currentUserId={user.id}
-      />
+      <h1 className="heading-display mb-6 text-3xl">新增店铺</h1>
+      <PlaceForm mode="create" listId={listId} currentUserId={user.id} />
     </main>
   );
 }
