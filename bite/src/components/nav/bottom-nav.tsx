@@ -18,6 +18,12 @@ const ITEMS: Item[] = [
     match: (p) => p === "/lists" || p.startsWith("/lists/"),
   },
   {
+    href: "/map",
+    label: "地图",
+    icon: <MapIcon />,
+    match: (p) => p === "/map" || p.startsWith("/map/"),
+  },
+  {
     href: "/chat",
     label: "聊天",
     icon: <ChatIcon />,
@@ -102,6 +108,25 @@ function ChatIcon() {
       strokeLinejoin="round"
     >
       <path d="M21 12a9 9 0 1 1-3.5-7.1L21 4l-1.1 3.5A8.96 8.96 0 0 1 21 12z" />
+    </svg>
+  );
+}
+
+function MapIcon() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 4l-6 2v14l6-2 6 2 6-2V4l-6 2-6-2z" />
+      <line x1="9" y1="4" x2="9" y2="18" />
+      <line x1="15" y1="6" x2="15" y2="20" />
     </svg>
   );
 }

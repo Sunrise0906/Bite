@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Place, PlacePrice } from "@/lib/db/types";
 import { StatusQuickToggle } from "./status-quick-toggle";
 import { PlaceCardMenu } from "./place-card-menu";
+import { VisitLogButton } from "@/components/visits/visit-log-button";
 
 const STATUS_LABEL: Record<Place["status"], string> = {
   want_to_go: "想去",
@@ -84,6 +85,7 @@ export function PlaceCard({
                   placeName={place.name}
                 />
               </div>
+              <VisitLogButton placeId={place.id} variant="chip" />
               {place.price_range && (
                 <span
                   className="text-xs font-medium text-zinc-500"

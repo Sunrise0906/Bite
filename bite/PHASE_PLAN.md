@@ -27,14 +27,14 @@
 
 ### B. Phase 4 — VisitLog + 我去了 + 地图
 
-- [ ] **B1. SQL 0008** — 暂不需要（visit_logs 表已在 0001）
-- [ ] **B2. visit server actions** — log / update / delete，写在 lib/actions/visits.ts
-- [ ] **B3. 「我去了」按钮组件** — VisitLogButton.tsx：用在 PlaceCard 状态 chip 旁 + place edit 顶部
-- [ ] **B4. VisitLog 表单 modal** — 日期 / sentiment / 星级 / note / 同行者
-- [ ] **B5. 首次 log 自动 flip status** — want_to_go → visited（已在 B2 内）
-- [ ] **B6. PlaceEdit 页 visit history 区** — 按日期倒序，可编辑/删除
-- [ ] **B7. 扩 chat tools** — search_my_list 返回 visit_count + last_sentiment；check_place_details 含完整 visit 历史
-- [ ] **B8. /map 页面** — Google Maps embed，显示用户所有 lat/lng places + 状态色码（暂用 react-google-maps 或原生 iframe）
+- [x] B1. SQL 0008 — 不需要（visit_logs 表已在 0001，含 RLS）
+- [x] B2. visit server actions — log / update / delete in lib/actions/visits.ts
+- [x] B3. VisitLogButton — 嵌入 PlaceCard（chip 样式）+ place edit 页（btn 样式）
+- [x] B4. VisitLogForm modal — sentiment / star / date / companions / note
+- [x] B5. 首次 log 自动 flip status — want_to_go → visited（在 logVisit 内）
+- [x] B6. PlaceEdit 页 VisitHistory 区 — 倒序时间线 + 编辑/删除按钮
+- [x] B7. chat tools 加 visit signals — search_my_list 返回 visit_count + last_visit + last_sentiment；check_place_details 加最近 10 条 logs；system prompt 教 LLM 用这些信号
+- [x] B8. /map 页面 — 原生 Maps JS API（已有 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY）+ 状态色圆点 marker + 点击 InfoWindow，加入 bottom-nav
 
 ### C. Phase 5 — 部署 + PWA + 协作 + 推荐
 
@@ -73,6 +73,16 @@
   - 链接化只在用户回到 /chat 后渲染时生效；流式期间 «店名» 是普通文本，结束后页面 router.refresh 会重渲染并打链接（验证：是否真触发了 refresh 让 placeMap 渲染。理论上 refresh 后 ChatView 用 key 重挂或 React 重渲染，但 ChatView 用 key=activeId 不会重挂）—— BLOCKED 需测试
   - 用量统计依赖 provider 真返回 usage；Gemini OpenAI-compat 可能不支持 stream_options.include_usage，需用户测试确认
   - regenerate 删 DB 记录是 hard delete，没回滚机制——可接受，用户不该期待 undo
-- 下一步：iter-2 进 Phase 4 (VisitLog 核心)
+- commit: 3ddee7f
+
+### iter-2 [Phase 4 全部]
+- ✓ B2-B8 全部完成（VisitLog actions / UI / 历史 / chat 信号 / 地图）
+- typecheck + build 全绿
+- PM review：
+  - VisitLog photos 字段没启用（设计文档里有但 Phase 4 Day 1 跳过；要 Supabase Storage 集成）—— 列入 D 杂项
+  - Place edit 页的 VisitHistory section 在表单下方；用户改完 place 后才能滚到，长 form 时不便。考虑加锚点或顶部 TOC ——次优化
+  - 地图 marker 用 SymbolPath.CIRCLE 是老 API；如果 Maps JS 切到 AdvancedMarkerElement 这个写法 deprecated。当前还能用，先记录
+  - chat tools 现在每次 search 都额外查 visit_logs 一次；候选 10 家 = 11 个查询。可接受
+- 下一步：iter-3 进 Phase 5 部署 / PWA / 协作
 
 ---

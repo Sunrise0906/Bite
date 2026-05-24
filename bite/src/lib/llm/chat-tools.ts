@@ -9,8 +9,9 @@ export const CHAT_TOOLS: LlmTool[] = [
     name: "search_my_list",
     description:
       "查询当前用户的餐厅库。可按状态 / 菜系 / 价位 / 关键词过滤。" +
-      "返回 name, address, cuisine, price_range, status, tags, reason, notes（AI 备注）。" +
-      "用于给用户推荐时找候选店。",
+      "返回每家店的：name, address, cuisine, price_range, status, tags, reason, notes（AI 备注）、" +
+      "visit_count（去过几次）、last_visit（最近一次日期）、last_sentiment（最近一次评价：will_return/okay/wont_return）。" +
+      "用于给用户推荐时找候选店——优先推 will_return 的店，避免 wont_return 的店。",
     inputSchema: {
       type: "object",
       properties: {
@@ -45,8 +46,8 @@ export const CHAT_TOOLS: LlmTool[] = [
   {
     name: "check_place_details",
     description:
-      "拿到某家店的完整信息（name, address, all photos, all reasons, full notes, occasions, tags, lat/lng）。" +
-      "在 search_my_list 拿到候选后，需要深入了解某家店时用。",
+      "拿到某家店的完整信息：基础字段 + 最近 10 条 visit logs（date / sentiment / star / note / companions）。" +
+      "在 search_my_list 拿到候选后，想深入了解用户最近去得怎么样、点了啥、跟谁去时用。",
     inputSchema: {
       type: "object",
       properties: {
@@ -173,23 +174,74 @@ async function searchMyList(input: unknown, ctx: ToolContext) {
   const { data, error } = await q.limit(limit);
   if (error) return { error: `查询失败：${error.message}` };
 
-  // 把 reasons 压缩成 text 数组（只取当前用户能看见的）
-  const places = (data ?? []).map((p) => ({
-    id: p.id,
-    list_id: p.list_id,
-    name: p.name,
-    address: p.address,
-    cuisine: p.cuisine,
-    price_range: p.price_range,
-    status: p.status,
-    tags: p.tags ?? [],
-    occasions: p.occasions ?? [],
-    reasons: (p.reasons ?? []).map((r: { text: string }) => r.text),
-    notes: p.notes,
-    has_photos: (p.photo_urls ?? []).length > 0,
-  }));
+  const rows = data ?? [];
+  // 一次拿所有候选店的 visit signals（last sentiment + visit count），减少回数
+  const placeIds = rows.map((p) => p.id);
+  const visitsByPlace = await summarizeVisits(ctx, placeIds);
+
+  const places = rows.map((p) => {
+    const v = visitsByPlace.get(p.id);
+    return {
+      id: p.id,
+      list_id: p.list_id,
+      name: p.name,
+      address: p.address,
+      cuisine: p.cuisine,
+      price_range: p.price_range,
+      status: p.status,
+      tags: p.tags ?? [],
+      occasions: p.occasions ?? [],
+      reasons: (p.reasons ?? []).map((r: { text: string }) => r.text),
+      notes: p.notes,
+      has_photos: (p.photo_urls ?? []).length > 0,
+      visit_count: v?.count ?? 0,
+      last_visit: v?.lastVisit ?? null,
+      last_sentiment: v?.lastSentiment ?? null,
+    };
+  });
 
   return { count: places.length, places };
+}
+
+// 一次性算多个 place 的 visit 信号
+async function summarizeVisits(
+  ctx: ToolContext,
+  placeIds: string[],
+): Promise<
+  Map<
+    string,
+    {
+      count: number;
+      lastVisit: string | null;
+      lastSentiment: string | null;
+    }
+  >
+> {
+  const result = new Map<
+    string,
+    { count: number; lastVisit: string | null; lastSentiment: string | null }
+  >();
+  if (placeIds.length === 0) return result;
+
+  const { data } = await ctx.supabase
+    .from("visit_logs")
+    .select("place_id, visited_at, sentiment")
+    .in("place_id", placeIds)
+    .order("visited_at", { ascending: false });
+
+  for (const log of data ?? []) {
+    const cur = result.get(log.place_id);
+    if (!cur) {
+      result.set(log.place_id, {
+        count: 1,
+        lastVisit: log.visited_at,
+        lastSentiment: log.sentiment,
+      });
+    } else {
+      cur.count += 1;
+    }
+  }
+  return result;
 }
 
 type DetailsInput = { place_id?: string };
@@ -198,11 +250,15 @@ async function checkPlaceDetails(input: unknown, ctx: ToolContext) {
   const args = (input ?? {}) as DetailsInput;
   if (!args.place_id) return { error: "缺少 place_id" };
 
-  const { data, error } = await ctx.supabase
-    .from("places")
-    .select("*")
-    .eq("id", args.place_id)
-    .maybeSingle();
+  const [{ data, error }, { data: logs }] = await Promise.all([
+    ctx.supabase.from("places").select("*").eq("id", args.place_id).maybeSingle(),
+    ctx.supabase
+      .from("visit_logs")
+      .select("visited_at, sentiment, star_rating, note, companions")
+      .eq("place_id", args.place_id)
+      .order("visited_at", { ascending: false })
+      .limit(10),
+  ]);
 
   if (error) return { error: `查询失败：${error.message}` };
   if (!data) return { error: "找不到这家店" };
@@ -225,6 +281,13 @@ async function checkPlaceDetails(input: unknown, ctx: ToolContext) {
     lat: data.lat,
     lng: data.lng,
     photo_count: (data.photo_urls ?? []).length,
+    visits: (logs ?? []).map((l) => ({
+      date: typeof l.visited_at === "string" ? l.visited_at.slice(0, 10) : null,
+      sentiment: l.sentiment,
+      star: l.star_rating,
+      note: l.note,
+      companions: l.companions,
+    })),
   };
 }
 
