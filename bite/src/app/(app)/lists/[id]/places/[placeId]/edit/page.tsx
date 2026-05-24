@@ -5,6 +5,7 @@ import type { Place, VisitLog } from "@/lib/db/types";
 import { PlaceForm } from "@/components/places/place-form";
 import { DeletePlaceButton } from "@/components/places/delete-place-button";
 import { VisitHistory } from "@/components/visits/visit-history";
+import { RecommendButton } from "@/components/recommendations/recommend-button";
 
 type Params = Promise<{ id: string; placeId: string }>;
 
@@ -39,7 +40,10 @@ export default async function EditPlacePage({ params }: { params: Params }) {
       >
         ‹ 返回所在 list
       </Link>
-      <h1 className="heading-display mb-6 text-3xl">编辑店铺</h1>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <h1 className="heading-display text-3xl">编辑店铺</h1>
+        <RecommendButton placeId={place.id} placeName={place.name} />
+      </div>
       <PlaceForm
         mode="edit"
         listId={listId}

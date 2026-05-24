@@ -153,6 +153,23 @@ export default async function ProfilePage() {
 
       <section className="mb-8">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          其他
+        </h2>
+        <a
+          href="/recommendations"
+          className="card-interactive flex items-center justify-between rounded-xl px-4 py-3 text-sm"
+        >
+          <span className="flex items-center gap-2">
+            <span>📬</span>
+            <span className="font-medium text-[var(--text-strong)]">收件箱</span>
+            <span className="text-zinc-500">朋友推荐的店</span>
+          </span>
+          <span className="text-zinc-400">›</span>
+        </a>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
           即将上线
         </h2>
         <ul className="space-y-2 text-sm text-zinc-600">

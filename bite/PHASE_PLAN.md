@@ -41,7 +41,7 @@
 - [x] **C1. README** — env vars / Supabase migration 顺序 / Vercel 部署步骤 / 项目结构 / phase 进度
 - [x] **C2. PWA 基础** — manifest.webmanifest + 简易 SVG icon + 最小 service worker（生产 only 注册）+ layout 关联
 - [x] **C3. List 共享 / co-owner** — SQL 0008 list_invites + createListInvite/acceptListInvite/revoke actions + /invite/[token] 页 + list 页 InviteButton modal（角色选 co_owner/viewer + 7 天 token + 复制链接）
-- [ ] **C4. Recommendations inbox** — 朋友推荐的店 pending → accept/decline
+- [x] **C4. Recommendations inbox** — actions（send/accept/decline/withdraw）+ /recommendations 三段（待处理收件 / 已处理收件 / 我发出的）+ RecommendButton 嵌入 place edit 顶部 + 邮箱查 profile + 接受时选目标 list
 - [ ] **C5. /map 共享 list overlay** — co-owner 的地图视图（共享 list 已经会被 map page 拉进来，因为 listIds 含 member）
 
 ### D. 杂项 / 修补
@@ -109,5 +109,19 @@
   - invite token 是 uuid v4（122 bits 熵），跟 URL 一起算合理安全；7 天过期是默认值
   - revokeListInvite 写了但没接 UI，list owner 看不到自己历史发的邀请—— 列入 polish
   - viewer 角色：现在 RLS 在 places 表上没区分 co_owner vs viewer 的写权限，viewer 加入后仍能改 places —— BLOCKED 需新 migration 加 list_members.role 校验进 places RLS
+- commit: 9187600
+
+### iter-5 [C4 Recommendations]
+- ✓ recommendations actions：sendRecommendation（按邮箱查 profiles + snapshot place + 防重复 pending）/ acceptRecommendation（校验 owner|co_owner + 插 places + 标 accepted）/ declineRecommendation / withdrawRecommendation
+- ✓ /recommendations 页：三段（待处理收件 + 已处理收件 + 我发出的）+ 空状态
+- ✓ RecommendationCard：含店名/地址/菜系 chip/留言/AI notes + 接受时下拉选 list 子表单 / 拒绝 / 撤回
+- ✓ RecommendButton modal 嵌入 place edit 顶部（邮箱输入 + 一句话理由）
+- ✓ /profile 加「📬 收件箱」入口
+- PM review：
+  - 推荐流程依赖 profiles.email 公开 select；新用户必须先注册 Bite 才能收到推荐
+  - place 是按 snapshot 复制（不是 reference）——后续 owner 改源 place 不会同步给接收者；可接受（隔离更安全）
+  - 防重复用 `place_data->>name` + status=pending 做 unique；如果同名不同地址会被误判 —— 极少见，接受
+  - 缺 inbox 数字 badge（导航上看不到有几条待处理）—— polish
+  - 没接 email 通知（朋友不主动来 inbox 就看不到）—— BLOCKED 需要 Resend 集成
 
 ---
