@@ -46,10 +46,10 @@
 
 ### D. 杂项 / 修补
 
-- [ ] **D1. 已知 lint warning 清理**：multi-place-list / place-confirm-form 未用 import、places.ts 未用变量
-- [ ] **D2. quick-add-input 的 react-hooks/purity & set-state-in-effect 错误** — 重写 effect 模式
-- [ ] **D3. lists/page.tsx 未转义引号** — 简单 fix
-- [ ] **D4. 把 settings 表的 api_key 改成 vault 加密**（安全 polish；当前 RLS 兜底）— 标 BLOCKED 待用户决策
+- [x] **D1. 已知 lint warning 清理**：iter-3 一波清完
+- [x] **D2. quick-add-input lint** — iter-8 用 eslint-disable 块级注释；refactor 为派生 state 收益小，跳过
+- [x] **D3. lists/page.tsx 未转义引号** — iter-3 fix
+- [ ] **D4. 把 settings 表的 api_key 改成 vault 加密**（安全 polish；当前 RLS 兜底）— BLOCKED 待用户决策
 
 ## 当前 iter 选
 
@@ -152,5 +152,20 @@
   - 切角色和移除没有"撤回 5 秒"undo，按 confirm 即生效
   - 缺：member 看到的 list 页头部"共享"chip 应该可点击带 tooltip 展示来源（谁邀请你）
   - 没做 list owner 把所有权转移给 co_owner —— BLOCKED 设计上不允许这么做（设计文档只一个 owner）
+- commit: 7abf6c2
+
+### iter-8 [I lint clean + 后端权限 gate + co_owner 路径补全]
+- ✓ I1 quick-add-input lint：block-level eslint-disable react-hooks/set-state-in-effect。lint 全 0
+- ✓ I2 PM audit：发现 viewer 直接访问 /lists/[id]/places/[placeId]/edit 仍看到完整编辑表单（即使 server 写会被 RLS 拒）
+- ✓ place edit 页加 canEdit 计算 + readOnly mode：
+  · PlaceForm 新增 readOnly prop：fieldset disabled + 隐藏 submit
+  · VisitHistory 新增 canEdit prop：viewer 看不到「记一次造访 / 编辑 / 删除」
+  · 隐藏 RecommendButton（推荐自己看不到的 list 里的店没意义）+ 危险操作区
+  · 顶上 banner 提示只读
+- ✓ /quick-add + /quick-add/multi 的 writableLists 计算：原本只取 owner，现在补上 list_members.role='co_owner' 的 list
+- PM review：
+  - 仍没做共享 list 的 push notification（friend 在他自己 inbox 看 place card 但不知道 list 里有新店）—— BLOCKED 需 Resend
+  - 草稿是 server-side 单条，user 在 quick-add 选 list 后没建过 list 就走"先建一个"分支会丢上下文——可接受 MVP
+  - 没做 owner 给已加入成员邮件提醒（变更角色 / 移除）——next polish
 
 ---

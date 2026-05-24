@@ -96,6 +96,9 @@ export function QuickAddInput() {
   }, [text]);
 
   // 短文本时实时调 Google Places autocomplete
+  // 这里在 effect 同步 reset 到 idle 是 deliberate（reset 是对输入条件的 immediate 反馈），
+  // 重写成派生 state 会让组件结构复杂化、收益小，因此局部禁用 lint。
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (detected.kind !== "place_name" || !apiKey) {
       setStatus({ phase: "idle" });
@@ -133,8 +136,8 @@ export function QuickAddInput() {
       controller.abort();
       clearTimeout(handle);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, detected.kind, apiKey, sessionToken]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function pickSuggestion(s: PlaceSuggestion) {
     setText("");

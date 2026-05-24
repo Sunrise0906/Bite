@@ -14,16 +14,31 @@ export default async function QuickAddMultiPage() {
   if (draft.kind !== "multi") redirect("/quick-add");
 
   const supabase = await createClient();
-  const { data: listsRows } = await supabase
-    .from("lists")
-    .select("id, name, owner_id")
-    .order("created_at", { ascending: true });
+  const [{ data: listsRows }, { data: memberships }] = await Promise.all([
+    supabase
+      .from("lists")
+      .select("id, name, owner_id")
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("list_members")
+      .select("list_id, role")
+      .eq("user_id", user.id),
+  ]);
 
   type ListRow = { id: string; name: string; owner_id: string };
   const allLists = (listsRows ?? []) as ListRow[];
+  const coOwnerListIds = new Set(
+    (memberships ?? [])
+      .filter((m) => m.role === "co_owner")
+      .map((m) => m.list_id),
+  );
   const writableLists: ListOption[] = allLists
-    .filter((l) => l.owner_id === user.id)
-    .map((l) => ({ id: l.id, name: l.name, isOwner: true }));
+    .filter((l) => l.owner_id === user.id || coOwnerListIds.has(l.id))
+    .map((l) => ({
+      id: l.id,
+      name: l.name,
+      isOwner: l.owner_id === user.id,
+    }));
 
   if (writableLists.length === 0) {
     return (

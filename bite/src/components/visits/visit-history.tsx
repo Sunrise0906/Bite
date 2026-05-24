@@ -26,9 +26,11 @@ function fmtDate(iso: string): string {
 export function VisitHistory({
   placeId,
   logs,
+  canEdit = true,
 }: {
   placeId: string;
   logs: VisitLog[];
+  canEdit?: boolean;
 }) {
   const [editingLog, setEditingLog] = useState<VisitLog | null>(null);
 
@@ -38,7 +40,7 @@ export function VisitHistory({
         <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
           造访记录 {logs.length > 0 && `· ${logs.length}`}
         </h2>
-        <VisitLogButton placeId={placeId} variant="btn" />
+        {canEdit && <VisitLogButton placeId={placeId} variant="btn" />}
       </div>
 
       {logs.length === 0 ? (
@@ -78,16 +80,18 @@ export function VisitHistory({
                     </p>
                   )}
                 </div>
-                <div className="flex shrink-0 gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setEditingLog(log)}
-                    className="rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)]"
-                  >
-                    ✎
-                  </button>
-                  <DeleteVisitButton logId={log.id} />
-                </div>
+                {canEdit && (
+                  <div className="flex shrink-0 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditingLog(log)}
+                      className="rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)]"
+                    >
+                      ✎
+                    </button>
+                    <DeleteVisitButton logId={log.id} />
+                  </div>
+                )}
               </div>
             </li>
           ))}

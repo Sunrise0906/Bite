@@ -11,8 +11,20 @@ const LABEL_CLS =
 const HELP_CLS = "mt-1.5 text-xs text-zinc-500";
 
 type Mode =
-  | { mode: "create"; listId: string; place?: undefined; currentUserId: string }
-  | { mode: "edit"; listId: string; place: Place; currentUserId: string };
+  | {
+      mode: "create";
+      listId: string;
+      place?: undefined;
+      currentUserId: string;
+      readOnly?: boolean;
+    }
+  | {
+      mode: "edit";
+      listId: string;
+      place: Place;
+      currentUserId: string;
+      readOnly?: boolean;
+    };
 
 export function PlaceForm(props: Mode) {
   const action = props.mode === "create" ? createPlace : updatePlace;
@@ -21,9 +33,11 @@ export function PlaceForm(props: Mode) {
   const place = props.place;
   const ownReason =
     place?.reasons.find((r) => r.user_id === props.currentUserId)?.text ?? "";
+  const readOnly = props.readOnly === true;
 
   return (
     <form action={formAction} className="space-y-5">
+      <fieldset disabled={readOnly} className="space-y-5">
       <input type="hidden" name="list_id" value={props.listId} />
       {place && <input type="hidden" name="place_id" value={place.id} />}
 
@@ -210,20 +224,23 @@ export function PlaceForm(props: Mode) {
           href={`/lists/${props.listId}`}
           className="btn-secondary flex-1 py-3 text-base"
         >
-          取消
+          {readOnly ? "返回" : "取消"}
         </Link>
-        <button
-          type="submit"
-          disabled={pending}
-          className="btn-primary flex-1 py-3 text-base"
-        >
-          {pending
-            ? "保存中…"
-            : props.mode === "create"
-              ? "保存"
-              : "更新"}
-        </button>
+        {!readOnly && (
+          <button
+            type="submit"
+            disabled={pending}
+            className="btn-primary flex-1 py-3 text-base"
+          >
+            {pending
+              ? "保存中…"
+              : props.mode === "create"
+                ? "保存"
+                : "更新"}
+          </button>
+        )}
       </div>
+      </fieldset>
     </form>
   );
 }
