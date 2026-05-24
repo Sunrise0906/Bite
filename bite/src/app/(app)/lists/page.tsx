@@ -68,6 +68,23 @@ export default async function ListsPage() {
     .slice()
     .sort((a, b) => maxActivity(b).localeCompare(maxActivity(a)));
 
+  // 拉共享 list 的 owner 名字（不是当前用户 owns 的就需要）
+  const sharedOwnerIds = Array.from(
+    new Set(
+      lists.filter((l) => l.owner_id !== user.id).map((l) => l.owner_id),
+    ),
+  );
+  const ownerNames: Record<string, string> = {};
+  if (sharedOwnerIds.length > 0) {
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("id, name, email")
+      .in("id", sharedOwnerIds);
+    for (const p of profs ?? []) {
+      ownerNames[p.id] = p.name ?? p.email.split("@")[0] ?? "（未知）";
+    }
+  }
+
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">
       <header className="mb-7">
@@ -97,7 +114,15 @@ export default async function ListsPage() {
         <ul className="space-y-2.5">
           {lists.map((list) => (
             <li key={list.id}>
-              <ListCard list={list} currentUserId={user.id} />
+              <ListCard
+                list={list}
+                currentUserId={user.id}
+                ownerName={
+                  list.owner_id === user.id
+                    ? null
+                    : (ownerNames[list.owner_id] ?? null)
+                }
+              />
             </li>
           ))}
         </ul>
@@ -109,9 +134,11 @@ export default async function ListsPage() {
 function ListCard({
   list,
   currentUserId,
+  ownerName,
 }: {
   list: ListRow;
   currentUserId: string;
+  ownerName: string | null;
 }) {
   const places = list.places ?? [];
   const total = places.length;
@@ -155,7 +182,14 @@ function ListCard({
             <span className="truncate text-base font-medium text-[var(--text-strong)]">
               {list.name}
             </span>
-            {isShared && <span className="chip chip-neutral">共享</span>}
+            {isShared && (
+              <span
+                className="chip chip-neutral"
+                title={ownerName ? `这个 list 属于 @${ownerName}` : undefined}
+              >
+                {ownerName ? `共享 · by @${ownerName}` : "共享"}
+              </span>
+            )}
           </div>
           <p className="mt-0.5 text-xs text-zinc-500">
             {total === 0 ? (

@@ -97,6 +97,7 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 ### R. 共享 list 来源可见性
 
 - [x] **R1. 共享 list 头部显示 owner 名字** — 之前 viewer 看到「共享 · 只读」chip 但不知道是谁的 list（点哪儿都没暗示）。把 list.owner_id 加进 profilesMap lookup（已有 reason authors 的 query 顺便加），头部 chip 旁边显示「by @owner」+ chip title tooltip
+- [x] **R2. /lists 主页 ListCard 共享 chip 显示 owner** — 在用户进 detail 页前就让 ta 知道哪个是朋友的 list。/lists page 一次查所有共享 list owner profiles，chip 文案改为「共享 · by @owner」+ tooltip
 
 ## 当前 iter 选
 
