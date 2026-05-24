@@ -68,7 +68,10 @@ export function RecommendationCard({
         target_list_id: targetListId,
       });
       if ("error" in r) setError(r.error);
-      else router.push(`/lists/${r.list_id}?toast=place_added`);
+      else {
+        const toast = r.merged ? "place_merged" : "place_added";
+        router.push(`/lists/${r.list_id}?toast=${toast}`);
+      }
     });
   }
 

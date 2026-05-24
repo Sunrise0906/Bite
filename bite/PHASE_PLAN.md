@@ -90,6 +90,10 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 - [x] **P1. PlaceCard 显示所有 reasons 带作者** — 之前 PlaceCard 只显示 currentUserId 匹配的 reason，共享 list 上看不到朋友写的理由。修：list 页 collect 非当前用户的 reason user_ids，一次拉 profiles map，传给 PlaceCard。卡片现在先显示我的 reason，然后显示其他 user 的 reasons（最多 2 条 + 「还有 N 条」），每条带 @作者 chip
 - [x] **P2. VisitHistory 显示作者标签** — 共享 list 上多人记录的造访前面没标谁记的，看不出"Alice 8 月去过 ❤️ vs Bob 8 月去过 👎"。修：place edit 页拉 visit user_ids → profiles，VisitHistory 渲染时非己 log 加 @作者 chip。同时收紧编辑/删除只对自己的 log 生效——不能改朋友的记录（DB RLS 也兜底）
 
+### Q. 数据完整性 bug fix
+
+- [x] **Q1. acceptRecommendation 防 dup + smart merge** — bug：朋友推荐的店如果接收者目标 list 里已有同名店，会插重复行。修：先查 (list_id, name)，命中则合并（reasons 去重 append、tags/cuisine/occasions/photo_urls union dedup、notes 保留已有非空），返回 merged:true。UI 区分"已添加 / 已合并"toast
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）

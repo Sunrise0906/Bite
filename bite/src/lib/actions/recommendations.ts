@@ -124,7 +124,7 @@ export async function sendRecommendation(args: {
 }
 
 export type AcceptRecResult =
-  | { ok: true; place_id: string; list_id: string }
+  | { ok: true; place_id: string; list_id: string; merged: boolean }
   | { error: string };
 
 export async function acceptRecommendation(args: {
@@ -171,44 +171,97 @@ export async function acceptRecommendation(args: {
     }
   }
 
-  // 3. 把 snapshot 插入 places
+  // 3. 把 snapshot 插入 / merge 进 places
   const snap = rec.place_data;
   // reasons[] 是"接收者想去的理由"——存接收者的 user_id，前缀标注来源。
   // 这样 PlaceCard 渲染 myReason 时（按 currentUserId 匹配）能正常显示。
-  const reasons = snap.message
-    ? [
-        {
-          user_id: user.id,
-          text: `朋友推荐：${snap.message}`,
-        },
-      ]
-    : [];
+  const newReason = snap.message
+    ? { user_id: user.id, text: `朋友推荐：${snap.message}` }
+    : null;
 
-  const { data: newPlace, error: insErr } = await supabase
+  // 防 dup：目标 list 里已有同名 place → 合并 reason / union 数组字段，不重复插
+  const { data: existing } = await supabase
     .from("places")
-    .insert({
-      list_id: args.target_list_id,
-      name: snap.name,
-      address: snap.address,
-      cuisine: snap.cuisine,
-      price_range: snap.price_range,
-      occasions: snap.occasions,
-      tags: snap.tags,
-      recommended_by: snap.recommended_by,
-      notes: snap.notes,
-      source: snap.source,
-      source_url: snap.source_url,
-      photo_urls: snap.photo_urls,
-      lat: snap.lat,
-      lng: snap.lng,
-      google_place_id: snap.google_place_id,
-      reasons,
-      status: "want_to_go",
-      created_by: user.id,
-    })
-    .select("id")
-    .single<{ id: string }>();
-  if (insErr) return { error: `加入失败：${insErr.message}` };
+    .select(
+      "id, reasons, tags, cuisine, occasions, photo_urls, notes",
+    )
+    .eq("list_id", args.target_list_id)
+    .eq("name", snap.name)
+    .maybeSingle<{
+      id: string;
+      reasons: Array<{ user_id: string; text: string }> | null;
+      tags: string[] | null;
+      cuisine: string[] | null;
+      occasions: string[] | null;
+      photo_urls: string[] | null;
+      notes: string | null;
+    }>();
+
+  let placeId: string;
+  let merged = false;
+
+  if (existing) {
+    merged = true;
+    // reasons：避免重复，按 (user_id, text) 去重
+    const existingReasons = existing.reasons ?? [];
+    const reasons = [...existingReasons];
+    if (
+      newReason &&
+      !existingReasons.some(
+        (r) => r.user_id === newReason.user_id && r.text === newReason.text,
+      )
+    ) {
+      reasons.push(newReason);
+    }
+    // 数组 union dedup
+    const unionDedup = (a: string[] | null, b: string[]): string[] =>
+      Array.from(new Set([...(a ?? []), ...b]));
+
+    const { error: updErr } = await supabase
+      .from("places")
+      .update({
+        reasons,
+        tags: unionDedup(existing.tags, snap.tags),
+        cuisine: unionDedup(existing.cuisine, snap.cuisine),
+        occasions: unionDedup(existing.occasions, snap.occasions),
+        photo_urls: unionDedup(existing.photo_urls, snap.photo_urls),
+        // notes 保留原有的（用户可能改过），空时才接朋友 snapshot 的
+        notes: existing.notes && existing.notes.trim() !== ""
+          ? existing.notes
+          : snap.notes,
+      })
+      .eq("id", existing.id);
+    if (updErr) return { error: `合并失败：${updErr.message}` };
+    placeId = existing.id;
+  } else {
+    const reasons = newReason ? [newReason] : [];
+    const { data: newPlace, error: insErr } = await supabase
+      .from("places")
+      .insert({
+        list_id: args.target_list_id,
+        name: snap.name,
+        address: snap.address,
+        cuisine: snap.cuisine,
+        price_range: snap.price_range,
+        occasions: snap.occasions,
+        tags: snap.tags,
+        recommended_by: snap.recommended_by,
+        notes: snap.notes,
+        source: snap.source,
+        source_url: snap.source_url,
+        photo_urls: snap.photo_urls,
+        lat: snap.lat,
+        lng: snap.lng,
+        google_place_id: snap.google_place_id,
+        reasons,
+        status: "want_to_go",
+        created_by: user.id,
+      })
+      .select("id")
+      .single<{ id: string }>();
+    if (insErr) return { error: `加入失败：${insErr.message}` };
+    placeId = newPlace.id;
+  }
 
   // 4. 标推荐 accepted
   await supabase
@@ -218,7 +271,12 @@ export async function acceptRecommendation(args: {
 
   revalidatePath("/recommendations");
   revalidatePath(`/lists/${args.target_list_id}`);
-  return { ok: true, place_id: newPlace.id, list_id: args.target_list_id };
+  return {
+    ok: true,
+    place_id: placeId,
+    list_id: args.target_list_id,
+    merged,
+  };
 }
 
 export async function declineRecommendation(
