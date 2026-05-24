@@ -35,12 +35,32 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [lastFailedText, setLastFailedText] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // 自动滚到底
+  // 智能 auto-scroll：只在用户已经在底部时跟随
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (stickToBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
   }, [messages]);
+
+  // textarea 自适应高度
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+  }, [input]);
+
+  function onScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    const atBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    stickToBottomRef.current = atBottom;
+  }
 
   function stop() {
     abortRef.current?.abort();
@@ -53,6 +73,8 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
     setSending(true);
     setError(null);
     setLastFailedText(null);
+    // 用户发送时强制贴底
+    stickToBottomRef.current = true;
 
     const ac = new AbortController();
     abortRef.current = ac;
@@ -132,19 +154,19 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
         return next;
       });
 
-      if (newConvoId && newConvoId !== conversationId) {
-        setConversationId(newConvoId);
-        router.replace(`/chat?c=${newConvoId}`);
-        router.refresh();
-      } else {
-        router.refresh();
-      }
+      // URL 已在 meta 事件时更新过；这里只做 router.refresh 触发侧栏重载
+      router.refresh();
 
       // ---- 事件分发 ----
       function handleEvent(ev: { type: string; [k: string]: unknown }) {
         switch (ev.type) {
           case "meta": {
             newConvoId = (ev.conversation_id as string) ?? null;
+            // 第一时间把 URL 切到带 c=<id>，避免用户中途刷新丢上下文
+            if (newConvoId && newConvoId !== conversationId) {
+              setConversationId(newConvoId);
+              router.replace(`/chat?c=${newConvoId}`);
+            }
             break;
           }
           case "text": {
@@ -255,7 +277,11 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
   return (
     <div className="flex h-[calc(100dvh-128px)] flex-col sm:h-[calc(100dvh-72px)]">
       {/* ---- 消息列表 ---- */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div
+        ref={scrollContainerRef}
+        onScroll={onScroll}
+        className="flex-1 overflow-y-auto px-4 py-4"
+      >
         <div className="mx-auto flex max-w-2xl flex-col gap-4">
           {messages.length === 0 && (
             <EmptyState
@@ -296,6 +322,7 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
             className="flex items-end gap-2"
           >
             <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -307,8 +334,8 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
               placeholder="今晚和女朋友吃啥？想要日料、200 块以内…"
               rows={1}
               disabled={sending}
-              className="field-input flex-1 resize-none py-2.5 leading-relaxed"
-              style={{ maxHeight: 120 }}
+              className="field-input flex-1 resize-none overflow-y-auto py-2.5 leading-relaxed"
+              style={{ maxHeight: 160 }}
             />
             {sending ? (
               <button
@@ -443,11 +470,14 @@ function ToolCallCard({
   use: Extract<LlmContentBlock, { type: "tool_use" }>;
   result?: Extract<LlmContentBlock, { type: "tool_result" }>;
 }) {
-  const [expanded, setExpanded] = useState(false);
-
   const status = summarizeToolResult(use.name, result?.content);
   const isRunning = !result;
   const isError = result && status.kind === "error";
+  // 错误时默认展开，让用户看到详情
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => {
+    if (isError) setExpanded(true);
+  }, [isError]);
 
   return (
     <div className="my-1.5 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-subtle)] text-xs">

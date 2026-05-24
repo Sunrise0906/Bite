@@ -1,6 +1,12 @@
 "use client";
 
-import { useActionState, useRef, useState, useTransition } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   deleteConversationAction,
   renameConversationAction,
@@ -23,6 +29,13 @@ export function ConvoMenu({
     RenameConvoState,
     FormData
   >(renameConversationAction, { error: null });
+
+  // 重命名成功（version 递增）就关 modal
+  useEffect(() => {
+    if (renameState.ok && renameState.version) {
+      setRenaming(false);
+    }
+  }, [renameState.ok, renameState.version]);
 
   function trigger(e: React.MouseEvent) {
     e.preventDefault();
@@ -103,10 +116,7 @@ export function ConvoMenu({
           onClick={() => setRenaming(false)}
         >
           <form
-            action={async (fd) => {
-              await renameAction(fd);
-              if (!renameState.error) setRenaming(false);
-            }}
+            action={renameAction}
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl"
           >

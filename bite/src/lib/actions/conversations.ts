@@ -25,10 +25,15 @@ export async function deleteConversationAction(formData: FormData): Promise<void
 }
 
 // ---- 重命名会话 ----------------------------------------------------------
-export type RenameConvoState = { error: string | null };
+// ok / version 用于让前端 useEffect 检测"刚成功"——每次返回 ok:true 都自增 version
+export type RenameConvoState = {
+  error: string | null;
+  ok?: boolean;
+  version?: number;
+};
 
 export async function renameConversationAction(
-  _prev: RenameConvoState,
+  prev: RenameConvoState,
   formData: FormData,
 ): Promise<RenameConvoState> {
   const user = await requireUser();
@@ -52,5 +57,5 @@ export async function renameConversationAction(
   if (error) return { error: `重命名失败：${error.message}` };
 
   revalidatePath("/chat");
-  return { error: null };
+  return { error: null, ok: true, version: (prev.version ?? 0) + 1 };
 }

@@ -105,10 +105,10 @@ export default async function ChatPage(props: {
               {conversations.map((c) => {
                 const isActive = c.id === activeId;
                 return (
-                  <li key={c.id} className="shrink-0">
+                  <li key={c.id} className="relative shrink-0">
                     <Link
                       href={`/chat?c=${c.id}`}
-                      className={`block max-w-[140px] truncate rounded-full px-3 py-1 text-xs ${
+                      className={`block max-w-[160px] truncate rounded-full py-1 pl-3 pr-7 text-xs ${
                         isActive
                           ? "bg-[var(--primary-soft)] text-[var(--primary-soft-text)]"
                           : "bg-white text-zinc-600"
@@ -116,6 +116,12 @@ export default async function ChatPage(props: {
                     >
                       {c.title ?? "新对话"}
                     </Link>
+                    <div className="absolute right-0.5 top-1/2 -translate-y-1/2">
+                      <ConvoMenu
+                        conversationId={c.id}
+                        currentTitle={c.title}
+                      />
+                    </div>
                   </li>
                 );
               })}

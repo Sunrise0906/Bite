@@ -156,11 +156,18 @@ async function searchMyList(input: unknown, ctx: ToolContext) {
   if (args.price_range && args.price_range.length > 0)
     q = q.in("price_range", args.price_range);
   if (args.query && args.query.trim()) {
-    const t = args.query.trim();
-    // 简单模糊匹配几个文本字段
-    q = q.or(
-      `name.ilike.%${t}%,address.ilike.%${t}%,notes.ilike.%${t}%`,
-    );
+    // PostgREST or() 用 , 和 () 分隔，原始 query 含这些字符会破坏过滤语法。
+    // 安全做法：剥掉控制字符 + 用 % 通配。% 和 _ 是 LIKE 通配符，本来就当 fuzzy 用。
+    const t = args.query
+      .trim()
+      .replace(/[,()\\*]/g, " ")
+      .replace(/\s+/g, " ")
+      .slice(0, 80);
+    if (t) {
+      q = q.or(
+        `name.ilike.%${t}%,address.ilike.%${t}%,notes.ilike.%${t}%`,
+      );
+    }
   }
 
   const { data, error } = await q.limit(limit);
