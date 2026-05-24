@@ -2,6 +2,7 @@ import { signOut } from "@/lib/actions/auth";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/db/types";
 import { LlmSettingsForm } from "@/components/profile/llm-settings-form";
+import { ProfileEditForm } from "@/components/profile/profile-edit-form";
 import { PROVIDER_PRESETS, type ProviderId } from "@/lib/llm/types";
 import type { UserLlmSettings } from "@/lib/llm/router";
 
@@ -59,9 +60,6 @@ export default async function ProfilePage() {
       .eq("status", "pending"),
   ]);
 
-  const displayName =
-    profile?.name ?? user.email?.split("@")[0] ?? "未命名用户";
-
   // 汇总 token 用量（全部 + 本月）
   type UsageRow = {
     usage: { input_tokens?: number; output_tokens?: number } | null;
@@ -104,26 +102,11 @@ export default async function ProfilePage() {
       </header>
 
       <section className="card mb-8 p-5">
-        <div className="flex items-center gap-4">
-          {profile?.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.avatar_url}
-              alt=""
-              className="h-14 w-14 rounded-full"
-            />
-          ) : (
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--primary-soft)] text-xl font-semibold text-[var(--primary-soft-text)]">
-              {displayName.slice(0, 1).toUpperCase()}
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-base font-medium text-[var(--text-strong)]">
-              {displayName}
-            </p>
-            <p className="truncate text-sm text-zinc-500">{user.email}</p>
-          </div>
-        </div>
+        <ProfileEditForm
+          initialName={profile?.name ?? null}
+          initialAvatarUrl={profile?.avatar_url ?? null}
+          email={user.email ?? ""}
+        />
       </section>
 
       {/* ---- AI 用量 ---- */}

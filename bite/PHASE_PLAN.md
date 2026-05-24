@@ -63,6 +63,11 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 - [x] **D3. lists/page.tsx 未转义引号** — iter-3 fix
 - [ ] **D4. 把 settings 表的 api_key 改成 vault 加密**（安全 polish；当前 RLS 兜底）— BLOCKED 待用户决策
 
+### J. 持续 polish（plan 主线 done 后发现）
+
+- [x] **J1. /profile 编辑 name + avatar URL** — 之前用户没法改自己的 display name，朋友 / 共享 list 里看到的全是 email 前缀。新增 updateProfile action + ProfileEditForm 组件（在 read view 和 edit 模式间切换）
+- [x] **J2. 自定义 404 页** — 之前 Next.js 默认黑底英文 404 跟设计语言不符。改成中文 + terracotta 配色 + 回 list / chat 的 CTA
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）
@@ -165,6 +170,24 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
   - 缺：member 看到的 list 页头部"共享"chip 应该可点击带 tooltip 展示来源（谁邀请你）
   - 没做 list owner 把所有权转移给 co_owner —— BLOCKED 设计上不允许这么做（设计文档只一个 owner）
 - commit: 7abf6c2
+
+### iter-9 [rec reasons fix]
+- ✓ acceptRecommendation reasons.user_id 从 from_user_id 改成接收者 user.id，文本加前缀「朋友推荐：」。这样 PlaceCard 渲染 myReason 时能命中
+- ✓ PHASE_PLAN 标 DONE 待用户测
+- commit: 71f6256
+
+### iter-10 [J 持续 polish — profile 编辑 + 404 页]
+- ✓ J1 ProfileEditForm：之前用户没法改 display name / avatar
+  · 新增 updateProfile action（normalize + url 协议校验 + 名字长度 60）
+  · /profile 顶部卡片切到 ProfileEditForm 组件，read view 默认 + 「✎ 编辑」切到 form
+  · 头像 URL 用外链（Phase 5 没做 Supabase Storage 上传）
+- ✓ J2 not-found.tsx：替换默认黑底 404，改 terracotta 配色 + 中文 + 回 list/chat CTA
+- typecheck + lint + build 全绿
+- PM review：
+  - profile edit 没做"撤销"undo，按保存即生效；可接受（用户能再编辑）
+  - 头像外链不支持本地上传——next polish 是接 Supabase Storage
+  - 404 页是全局 not-found，所有路由 notFound() 都会用；好
+  - profile 编辑组件用 useTransition 直接 await action，遵循 iter-3/8 修正过的模式（不用 useActionState + useEffect 闭包）
 
 ### iter-8 [I lint clean + 后端权限 gate + co_owner 路径补全]
 - ✓ I1 quick-add-input lint：block-level eslint-disable react-hooks/set-state-in-effect。lint 全 0
