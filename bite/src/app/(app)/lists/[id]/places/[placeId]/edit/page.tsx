@@ -64,6 +64,25 @@ export default async function EditPlacePage({ params }: { params: Params }) {
     canEdit = member?.role === "co_owner";
   }
 
+  // 共享 list 上的造访记录可能来自多个用户。拉非当前用户的 profiles 做名字映射。
+  const otherVisitUserIds = new Set<string>();
+  for (const log of logs) {
+    if (log.user_id && log.user_id !== user.id) otherVisitUserIds.add(log.user_id);
+  }
+  let visitAuthors: Record<string, string> = {};
+  if (otherVisitUserIds.size > 0) {
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("id, name, email")
+      .in("id", Array.from(otherVisitUserIds));
+    visitAuthors = Object.fromEntries(
+      (profs ?? []).map((p) => [
+        p.id,
+        p.name ?? p.email.split("@")[0] ?? "（未知）",
+      ]),
+    );
+  }
+
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-6 sm:py-10">
       <Link
@@ -96,7 +115,13 @@ export default async function EditPlacePage({ params }: { params: Params }) {
       />
 
       <div className="mt-10 border-t border-[var(--border-subtle)] pt-6">
-        <VisitHistory placeId={place.id} logs={logs} canEdit={canEdit} />
+        <VisitHistory
+          placeId={place.id}
+          logs={logs}
+          canEdit={canEdit}
+          currentUserId={user.id}
+          visitAuthors={visitAuthors}
+        />
       </div>
 
       {canEdit && (

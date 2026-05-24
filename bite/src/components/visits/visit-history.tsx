@@ -27,10 +27,16 @@ export function VisitHistory({
   placeId,
   logs,
   canEdit = true,
+  currentUserId,
+  visitAuthors = {},
 }: {
   placeId: string;
   logs: VisitLog[];
   canEdit?: boolean;
+  /** 当前用户的 id，用来判断每条记录是不是 ta 自己的 */
+  currentUserId?: string;
+  /** user_id → display name，用来显示别人的记录作者 */
+  visitAuthors?: Record<string, string>;
 }) {
   const [editingLog, setEditingLog] = useState<VisitLog | null>(null);
 
@@ -49,52 +55,62 @@ export function VisitHistory({
         </p>
       ) : (
         <ul className="space-y-2.5">
-          {logs.map((log) => (
-            <li key={log.id} className="card p-3.5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-                    <span className="text-sm font-medium text-[var(--text-strong)]">
-                      {fmtDate(log.visited_at)}
-                    </span>
-                    <span className="text-xs text-zinc-500">
-                      {SENTIMENT_LABEL[log.sentiment]}
-                    </span>
-                    {log.star_rating !== null && (
-                      <span className="text-xs text-amber-500">
-                        {"★".repeat(log.star_rating)}
-                        <span className="text-zinc-300">
-                          {"★".repeat(5 - log.star_rating)}
+          {logs.map((log) => {
+            const isOwn = currentUserId && log.user_id === currentUserId;
+            const authorLabel = isOwn ? null : visitAuthors[log.user_id] ?? "朋友";
+            return (
+              <li key={log.id} className="card p-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+                      {authorLabel && (
+                        <span className="inline-flex items-baseline rounded-full bg-[var(--surface-subtle)] px-1.5 py-0.5 text-[10px] font-medium text-zinc-700">
+                          @{authorLabel}
                         </span>
+                      )}
+                      <span className="text-sm font-medium text-[var(--text-strong)]">
+                        {fmtDate(log.visited_at)}
                       </span>
+                      <span className="text-xs text-zinc-500">
+                        {SENTIMENT_LABEL[log.sentiment]}
+                      </span>
+                      {log.star_rating !== null && (
+                        <span className="text-xs text-amber-500">
+                          {"★".repeat(log.star_rating)}
+                          <span className="text-zinc-300">
+                            {"★".repeat(5 - log.star_rating)}
+                          </span>
+                        </span>
+                      )}
+                    </div>
+                    {log.companions && (
+                      <p className="mt-0.5 text-xs text-zinc-500">
+                        和 {log.companions}
+                      </p>
+                    )}
+                    {log.note && (
+                      <p className="mt-1.5 whitespace-pre-wrap text-sm text-zinc-700">
+                        {log.note}
+                      </p>
                     )}
                   </div>
-                  {log.companions && (
-                    <p className="mt-0.5 text-xs text-zinc-500">
-                      和 {log.companions}
-                    </p>
-                  )}
-                  {log.note && (
-                    <p className="mt-1.5 whitespace-pre-wrap text-sm text-zinc-700">
-                      {log.note}
-                    </p>
+                  {/* 编辑/删除仅 own log + canEdit 时；不能改朋友的记录 */}
+                  {canEdit && isOwn && (
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditingLog(log)}
+                        className="rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)]"
+                      >
+                        ✎
+                      </button>
+                      <DeleteVisitButton logId={log.id} />
+                    </div>
                   )}
                 </div>
-                {canEdit && (
-                  <div className="flex shrink-0 gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setEditingLog(log)}
-                      className="rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)]"
-                    >
-                      ✎
-                    </button>
-                    <DeleteVisitButton logId={log.id} />
-                  </div>
-                )}
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
 
