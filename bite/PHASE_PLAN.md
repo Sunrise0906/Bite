@@ -108,7 +108,7 @@
   - 邀请页路径在 /invite/[token]，需要登录才能 accept；未登录用户被跳到 /login（next-auth flow），登录后回 invite 页 —— 假设 proxy.ts 处理；可能要测一下
   - invite token 是 uuid v4（122 bits 熵），跟 URL 一起算合理安全；7 天过期是默认值
   - revokeListInvite 写了但没接 UI，list owner 看不到自己历史发的邀请—— 列入 polish
-  - viewer 角色：现在 RLS 在 places 表上没区分 co_owner vs viewer 的写权限，viewer 加入后仍能改 places —— BLOCKED 需新 migration 加 list_members.role 校验进 places RLS
+  - viewer 角色：~~RLS 在 places 表上没区分~~ 更正：can_write_list 函数已经 require role='co_owner'，DB 层没问题，是 UI 没 gate（iter-7 修）
 - commit: 9187600
 
 ### iter-5 [C4 Recommendations]
@@ -134,5 +134,23 @@
   - 截断时塞的提示文是 user-role，因为 system 在 /api/chat 里是单独的 param；可能不如真正改 system prompt 自然
   - inbox badge 只在 /profile 页内；bottom-nav 没有「收件箱」入口（已经满了），用户得绕一步进 profile
   - active invites 没显示发给谁——因为 token 没绑定接收者邮箱，发出后任何人持链接都能用
+- commit: 93e890c
+
+### iter-7 [F 权限 + 成员管理]
+- 🔍 audit: 发现之前 PHASE_PLAN 里说的"viewer 仍能改 places" 其实是误记——can_write_list 函数已经 require role='co_owner'，DB 层 RLS 正确。问题在 UI 没 gate。
+- ✓ F2 UI gating：list 页 page.tsx 计算 canEdit（owner 或 list_members.role='co_owner'）
+  · viewer 看不到「+ 新增店铺」「重命名」「邀请」按钮
+  · viewer 看到状态 chip 是静态的（不可点切换）
+  · viewer 没有「我去了」按钮 / Place 卡片菜单
+  · 头部 chip 显示「共享 · 共同所有者 / 只读」区分
+- ✓ F3 list members management：list-members.ts actions（changeMemberRole / removeMember / leaveList）
+  · MembersPanel 客户端组件，owner 看到成员列表 + 点角色 chip 切换 + 移除
+  · LeaveListButton 给非 owner 主动离开
+  · UI optimistic 更新
+- PM review：
+  - viewer/co_owner UI 区分依赖 server-side query 拿 memberRole，每次进 list 页多一个 db round trip；可接受
+  - 切角色和移除没有"撤回 5 秒"undo，按 confirm 即生效
+  - 缺：member 看到的 list 页头部"共享"chip 应该可点击带 tooltip 展示来源（谁邀请你）
+  - 没做 list owner 把所有权转移给 co_owner —— BLOCKED 设计上不允许这么做（设计文档只一个 owner）
 
 ---

@@ -24,9 +24,11 @@ type StatusFilter = "all" | PlaceStatus;
 export function PlacesView({
   places,
   currentUserId,
+  canEdit = true,
 }: {
   places: Place[];
   currentUserId: string;
+  canEdit?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -228,7 +230,11 @@ export function PlacesView({
                 <ul className="space-y-2.5">
                   {items.map((p) => (
                     <li key={p.id}>
-                      <PlaceCard place={p} currentUserId={currentUserId} />
+                      <PlaceCard
+                        place={p}
+                        currentUserId={currentUserId}
+                        canEdit={canEdit}
+                      />
                     </li>
                   ))}
                 </ul>

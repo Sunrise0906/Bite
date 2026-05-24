@@ -20,9 +20,11 @@ const PRICE_RANGE: Record<PlacePrice, string> = {
 export function PlaceCard({
   place,
   currentUserId,
+  canEdit = true,
 }: {
   place: Place;
   currentUserId: string;
+  canEdit?: boolean;
 }) {
   const myReason = place.reasons.find((r) => r.user_id === currentUserId)?.text;
   const photos = place.photo_urls ?? [];
@@ -65,20 +67,30 @@ export function PlaceCard({
               </p>
             </Link>
             <div className="flex shrink-0 flex-col items-end gap-1.5">
-              <div className="flex items-center gap-1">
-                <StatusQuickToggle
-                  placeId={place.id}
-                  listId={place.list_id}
-                  currentStatus={place.status}
-                  chipClass={STATUS_CHIP[place.status]}
-                />
-                <PlaceCardMenu
-                  placeId={place.id}
-                  listId={place.list_id}
-                  placeName={place.name}
-                />
-              </div>
-              <VisitLogButton placeId={place.id} variant="chip" />
+              {canEdit ? (
+                <div className="flex items-center gap-1">
+                  <StatusQuickToggle
+                    placeId={place.id}
+                    listId={place.list_id}
+                    currentStatus={place.status}
+                    chipClass={STATUS_CHIP[place.status]}
+                  />
+                  <PlaceCardMenu
+                    placeId={place.id}
+                    listId={place.list_id}
+                    placeName={place.name}
+                  />
+                </div>
+              ) : (
+                <span className={STATUS_CHIP[place.status]}>
+                  {place.status === "want_to_go"
+                    ? "想去"
+                    : place.status === "visited"
+                      ? "已去过"
+                      : "归档"}
+                </span>
+              )}
+              {canEdit && <VisitLogButton placeId={place.id} variant="chip" />}
               {place.price_range && (
                 <span
                   className="text-xs font-medium text-zinc-500"

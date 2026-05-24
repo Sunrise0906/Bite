@@ -10,6 +10,11 @@ import {
   ActiveInvitesPanel,
   type ActiveInvite,
 } from "@/components/invites/active-invites";
+import {
+  MembersPanel,
+  type MemberDisplay,
+} from "@/components/lists/members-panel";
+import { LeaveListButton } from "@/components/lists/leave-list-button";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ error?: string; toast?: string }>;
@@ -45,17 +50,59 @@ export default async function ListDetailPage({
   const places = (placesData ?? []) as Place[];
   const isOwner = list.owner_id === user.id;
 
-  // owner 看自己发的活跃邀请（未用 + 未过期）
-  let activeInvites: ActiveInvite[] = [];
-  if (isOwner) {
-    const { data } = await supabase
-      .from("list_invites")
-      .select("token, role, expires_at")
+  // 不是 owner 时查 list_members 里的角色
+  let memberRole: "co_owner" | "viewer" | null = null;
+  if (!isOwner) {
+    const { data: member } = await supabase
+      .from("list_members")
+      .select("role")
       .eq("list_id", id)
-      .is("used_at", null)
-      .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false });
-    activeInvites = (data ?? []) as ActiveInvite[];
+      .eq("user_id", user.id)
+      .maybeSingle<{ role: "co_owner" | "viewer" }>();
+    memberRole = member?.role ?? null;
+  }
+  // 能编辑 = owner 或 co_owner
+  const canEdit = isOwner || memberRole === "co_owner";
+
+  // owner 看自己发的活跃邀请（未用 + 未过期）+ 当前成员列表
+  let activeInvites: ActiveInvite[] = [];
+  let members: MemberDisplay[] = [];
+  if (isOwner) {
+    const [{ data: invitesData }, { data: membersData }] = await Promise.all([
+      supabase
+        .from("list_invites")
+        .select("token, role, expires_at")
+        .eq("list_id", id)
+        .is("used_at", null)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("list_members")
+        .select("user_id, role")
+        .eq("list_id", id),
+    ]);
+    activeInvites = (invitesData ?? []) as ActiveInvite[];
+
+    // 拉 profiles 做名字映射
+    const memberUserIds = (membersData ?? []).map((m) => m.user_id);
+    let profilesMap = new Map<string, { name: string | null; email: string }>();
+    if (memberUserIds.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, name, email")
+        .in("id", memberUserIds);
+      profilesMap = new Map(
+        (profs ?? []).map((p) => [p.id, { name: p.name, email: p.email }]),
+      );
+    }
+    members = (membersData ?? []).map((m) => {
+      const p = profilesMap.get(m.user_id);
+      return {
+        user_id: m.user_id,
+        role: m.role as "co_owner" | "viewer",
+        display_name: p?.name ?? p?.email.split("@")[0] ?? "（未知）",
+      };
+    });
   }
 
   return (
@@ -69,12 +116,22 @@ export default async function ListDetailPage({
 
       <header className="mb-6">
         <div className="flex items-start justify-between gap-3">
-          <RenameListForm id={list.id} currentName={list.name} />
+          {isOwner ? (
+            <RenameListForm id={list.id} currentName={list.name} />
+          ) : (
+            <h1 className="heading-display text-3xl text-[var(--text-strong)]">
+              {list.name}
+            </h1>
+          )}
           {isOwner && <InviteButton listId={list.id} />}
         </div>
         <div className="mt-2 flex items-center gap-2 text-sm text-zinc-500">
           <span>{places.length} 家店</span>
-          {!isOwner && <span className="chip chip-neutral">共享 list</span>}
+          {!isOwner && (
+            <span className="chip chip-neutral">
+              {memberRole === "co_owner" ? "共享 · 共同所有者" : "共享 · 只读"}
+            </span>
+          )}
         </div>
       </header>
 
@@ -84,14 +141,20 @@ export default async function ListDetailPage({
         </p>
       )}
 
-      <div className="mb-6">
-        <Link
-          href={`/lists/${list.id}/places/new`}
-          className="btn-primary w-full py-3 text-base"
-        >
-          + 新增店铺
-        </Link>
-      </div>
+      {canEdit && (
+        <div className="mb-6">
+          <Link
+            href={`/lists/${list.id}/places/new`}
+            className="btn-primary w-full py-3 text-base"
+          >
+            + 新增店铺
+          </Link>
+        </div>
+      )}
+
+      {isOwner && members.length > 0 && (
+        <MembersPanel listId={list.id} members={members} />
+      )}
 
       {isOwner && activeInvites.length > 0 && (
         <ActiveInvitesPanel invites={activeInvites} />
@@ -100,10 +163,14 @@ export default async function ListDetailPage({
       {places.length === 0 ? (
         <EmptyPlaces />
       ) : (
-        <PlacesView places={places} currentUserId={user.id} />
+        <PlacesView
+          places={places}
+          currentUserId={user.id}
+          canEdit={canEdit}
+        />
       )}
 
-      {isOwner && (
+      {isOwner ? (
         <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             设置
@@ -111,6 +178,16 @@ export default async function ListDetailPage({
           <div className="flex items-center justify-between">
             <span className="text-sm text-zinc-500">危险操作</span>
             <DeleteListButton id={list.id} name={list.name} />
+          </div>
+        </section>
+      ) : (
+        <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            成员操作
+          </h3>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-zinc-500">不再关注</span>
+            <LeaveListButton listId={list.id} listName={list.name} />
           </div>
         </section>
       )}
