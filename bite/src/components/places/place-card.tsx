@@ -45,13 +45,17 @@ export function PlaceCard({
   currentUserId,
   canEdit = true,
   visitSummary = null,
+  reasonAuthors = {},
 }: {
   place: Place;
   currentUserId: string;
   canEdit?: boolean;
   visitSummary?: PlaceVisitSummary | null;
+  reasonAuthors?: Record<string, string>;
 }) {
-  const myReason = place.reasons.find((r) => r.user_id === currentUserId)?.text;
+  const reasons = place.reasons ?? [];
+  const myReason = reasons.find((r) => r.user_id === currentUserId)?.text;
+  const otherReasons = reasons.filter((r) => r.user_id !== currentUserId);
   const photos = place.photo_urls ?? [];
   const cover = photos[0];
 
@@ -145,6 +149,29 @@ export function PlaceCard({
               <span className="text-[var(--primary)]">“</span>
               {myReason}
               <span className="text-[var(--primary)]">”</span>
+            </p>
+          )}
+
+          {otherReasons.length > 0 &&
+            otherReasons.slice(0, 2).map((r, i) => {
+              const author = reasonAuthors[r.user_id] ?? "朋友";
+              return (
+                <p
+                  key={`${r.user_id}-${i}`}
+                  className="mt-1.5 line-clamp-2 text-sm text-zinc-600"
+                >
+                  <span className="mr-1 inline-flex items-baseline rounded-full bg-[var(--surface-subtle)] px-1.5 py-0.5 text-[10px] font-medium text-zinc-700">
+                    @{author}
+                  </span>
+                  <span className="text-[var(--primary)]">“</span>
+                  {r.text}
+                  <span className="text-[var(--primary)]">”</span>
+                </p>
+              );
+            })}
+          {otherReasons.length > 2 && (
+            <p className="mt-0.5 text-[11px] text-zinc-400">
+              还有 {otherReasons.length - 2} 条 reason
             </p>
           )}
 

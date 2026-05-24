@@ -62,6 +62,29 @@ export default async function ListDetailPage({
 
   const places = (placesData ?? []) as Place[];
 
+  // 共享 list 才有意义 fetch profiles：personal list 上所有 reasons 都是 owner 自己的，
+  // 不显示作者标签更简洁。memberRole != null 或 owner 有共同所有者 / 查看者时才查。
+  // 简化：所有非空 reasons 的 user_id 都查一次（cost 低）。
+  const reasonUserIds = new Set<string>();
+  for (const p of places) {
+    for (const r of p.reasons ?? []) {
+      if (r.user_id && r.user_id !== user.id) reasonUserIds.add(r.user_id);
+    }
+  }
+  let reasonAuthors = new Map<string, string>();
+  if (reasonUserIds.size > 0) {
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("id, name, email")
+      .in("id", Array.from(reasonUserIds));
+    reasonAuthors = new Map(
+      (profs ?? []).map((p) => [
+        p.id,
+        p.name ?? p.email.split("@")[0] ?? "（未知）",
+      ]),
+    );
+  }
+
   // 拉这些 places 的 visit_logs 摘要：count + last sentiment + last date + avg star
   type VisitSummary = {
     count: number;
@@ -228,6 +251,7 @@ export default async function ListDetailPage({
           currentUserId={user.id}
           canEdit={canEdit}
           visitsByPlace={Object.fromEntries(visitsByPlace)}
+          reasonAuthors={Object.fromEntries(reasonAuthors)}
         />
       )}
 

@@ -85,6 +85,10 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 
 - [x] **O3. /quick-add 空 list 内联创建** — 之前用户粘 XHS link、LLM 抽取完发现没有可写 list 只能"返回 lists"重新走一遍流程（草稿虽然存了但体验割裂）。新加 createListInPlace action（不 redirect，返回 id）+ InlineCreateList 客户端组件，原地建 list 后 router.refresh，自动接续 confirm 表单
 
+### P. 协作可见性 polish
+
+- [x] **P1. PlaceCard 显示所有 reasons 带作者** — 之前 PlaceCard 只显示 currentUserId 匹配的 reason，共享 list 上看不到朋友写的理由。修：list 页 collect 非当前用户的 reason user_ids，一次拉 profiles map，传给 PlaceCard。卡片现在先显示我的 reason，然后显示其他 user 的 reasons（最多 2 条 + 「还有 N 条」），每条带 @作者 chip
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）

@@ -33,11 +33,14 @@ export function PlacesView({
   currentUserId,
   canEdit = true,
   visitsByPlace = {},
+  reasonAuthors = {},
 }: {
   places: Place[];
   currentUserId: string;
   canEdit?: boolean;
   visitsByPlace?: Record<string, PlaceVisitSummary>;
+  /** user_id → display name，给 PlaceCard 显示别人的 reasons */
+  reasonAuthors?: Record<string, string>;
 }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -244,6 +247,7 @@ export function PlacesView({
                         currentUserId={currentUserId}
                         canEdit={canEdit}
                         visitSummary={visitsByPlace[p.id] ?? null}
+                        reasonAuthors={reasonAuthors}
                       />
                     </li>
                   ))}
