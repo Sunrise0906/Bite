@@ -94,6 +94,10 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 
 - [x] **Q1. acceptRecommendation 防 dup + smart merge** — bug：朋友推荐的店如果接收者目标 list 里已有同名店，会插重复行。修：先查 (list_id, name)，命中则合并（reasons 去重 append、tags/cuisine/occasions/photo_urls union dedup、notes 保留已有非空），返回 merged:true。UI 区分"已添加 / 已合并"toast
 
+### R. 共享 list 来源可见性
+
+- [x] **R1. 共享 list 头部显示 owner 名字** — 之前 viewer 看到「共享 · 只读」chip 但不知道是谁的 list（点哪儿都没暗示）。把 list.owner_id 加进 profilesMap lookup（已有 reason authors 的 query 顺便加），头部 chip 旁边显示「by @owner」+ chip title tooltip
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）

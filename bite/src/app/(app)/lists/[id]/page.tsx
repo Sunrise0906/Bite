@@ -65,25 +65,30 @@ export default async function ListDetailPage({
   // 共享 list 才有意义 fetch profiles：personal list 上所有 reasons 都是 owner 自己的，
   // 不显示作者标签更简洁。memberRole != null 或 owner 有共同所有者 / 查看者时才查。
   // 简化：所有非空 reasons 的 user_id 都查一次（cost 低）。
-  const reasonUserIds = new Set<string>();
+  // 同时把 list owner 加进 lookup（用于显示 "by @owner" 给非 owner 用户看）。
+  const profileLookupIds = new Set<string>();
   for (const p of places) {
     for (const r of p.reasons ?? []) {
-      if (r.user_id && r.user_id !== user.id) reasonUserIds.add(r.user_id);
+      if (r.user_id && r.user_id !== user.id) profileLookupIds.add(r.user_id);
     }
   }
-  let reasonAuthors = new Map<string, string>();
-  if (reasonUserIds.size > 0) {
+  if (list.owner_id !== user.id) profileLookupIds.add(list.owner_id);
+
+  const profilesMap = new Map<string, string>();
+  if (profileLookupIds.size > 0) {
     const { data: profs } = await supabase
       .from("profiles")
       .select("id, name, email")
-      .in("id", Array.from(reasonUserIds));
-    reasonAuthors = new Map(
-      (profs ?? []).map((p) => [
+      .in("id", Array.from(profileLookupIds));
+    for (const p of profs ?? []) {
+      profilesMap.set(
         p.id,
         p.name ?? p.email.split("@")[0] ?? "（未知）",
-      ]),
-    );
+      );
+    }
   }
+  const reasonAuthors = profilesMap;
+  const ownerName = profilesMap.get(list.owner_id) ?? null;
 
   // 拉这些 places 的 visit_logs 摘要：count + last sentiment + last date + avg star
   type VisitSummary = {
@@ -208,12 +213,22 @@ export default async function ListDetailPage({
           )}
           {isOwner && <InviteButton listId={list.id} />}
         </div>
-        <div className="mt-2 flex items-center gap-2 text-sm text-zinc-500">
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
           <span>{places.length} 家店</span>
           {!isOwner && (
-            <span className="chip chip-neutral">
-              {memberRole === "co_owner" ? "共享 · 共同所有者" : "共享 · 只读"}
-            </span>
+            <>
+              <span
+                className="chip chip-neutral"
+                title={ownerName ? `这个 list 属于 @${ownerName}` : ""}
+              >
+                {memberRole === "co_owner" ? "共享 · 共同所有者" : "共享 · 只读"}
+              </span>
+              {ownerName && (
+                <span className="text-xs text-zinc-500">
+                  by <span className="font-medium text-[var(--text-default)]">@{ownerName}</span>
+                </span>
+              )}
+            </>
           )}
         </div>
       </header>
