@@ -19,6 +19,19 @@ import { LeaveListButton } from "@/components/lists/leave-list-button";
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ error?: string; toast?: string }>;
 
+export async function generateMetadata(props: { params: Params }) {
+  const { id } = await props.params;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("lists")
+    .select("name")
+    .eq("id", id)
+    .maybeSingle<{ name: string }>();
+  return {
+    title: data?.name ? `${data.name} · Bite` : "List · Bite",
+  };
+}
+
 export default async function ListDetailPage({
   params,
   searchParams,

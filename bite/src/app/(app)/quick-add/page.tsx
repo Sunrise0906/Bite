@@ -11,6 +11,10 @@ import {
 import { RetryExtract } from "@/components/places/retry-extract";
 import type { ExtractedPlace } from "@/lib/llm/extract-place";
 
+export const metadata = {
+  title: "确认店铺 · Bite",
+};
+
 type SearchParams = Promise<{
   placeId?: string;
   sessionToken?: string;

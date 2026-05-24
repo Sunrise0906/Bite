@@ -2,6 +2,10 @@ import Link from "next/link";
 import { loadInvitePreview } from "@/lib/actions/invites";
 import { AcceptInviteForm } from "@/components/invites/accept-invite-form";
 
+export const metadata = {
+  title: "邀请 · Bite",
+};
+
 type Params = Promise<{ token: string }>;
 
 export default async function InvitePage({ params }: { params: Params }) {

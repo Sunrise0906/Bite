@@ -77,6 +77,10 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 - [x] **L1. /lists 按"最近活动"排序** — 之前 ORDER BY created_at desc，添了新店那个 list 还在原位。改成 server fetch 后 JS 排序 max(list.updated_at, max(places[].updated_at))。新店加进哪个 list 就把那个 list 顶到前
 - [x] **L2. mobile 端 chat 消息时间戳/复制按钮可见** — 之前 opacity-0 group-hover:opacity-100 在 touch 设备上永远透明。改成 mobile 默认显示，sm+ 才走 hover-only 模式
 
+### N. metadata / SEO polish
+
+- [x] **N1. 每个页面 metadata.title** — 之前所有 tab 都显示「Bite · 餐厅记录」（layout 默认）。给 /lists、/chat（动态拉对话标题）、/profile、/recommendations、/quick-add、/quick-add/multi、/invite/[token]、/lists/[id]（动态拉 list 名）、/lists/[id]/places/new、/lists/[id]/places/[placeId]/edit（动态拉 place 名）都加了 metadata 或 generateMetadata
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）

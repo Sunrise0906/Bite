@@ -5,6 +5,10 @@ import { PlaceForm } from "@/components/places/place-form";
 
 type Params = Promise<{ id: string }>;
 
+export const metadata = {
+  title: "新增店铺 · Bite",
+};
+
 export default async function NewPlacePage({ params }: { params: Params }) {
   const { id: listId } = await params;
 

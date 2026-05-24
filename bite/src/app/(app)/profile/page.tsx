@@ -6,6 +6,10 @@ import { ProfileEditForm } from "@/components/profile/profile-edit-form";
 import { PROVIDER_PRESETS, type ProviderId } from "@/lib/llm/types";
 import type { UserLlmSettings } from "@/lib/llm/router";
 
+export const metadata = {
+  title: "我的 · Bite",
+};
+
 function UsageBox({
   label,
   inTok,

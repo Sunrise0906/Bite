@@ -4,6 +4,10 @@ import { ListCardMenu } from "@/components/lists/list-card-menu";
 import { QuickAddInput } from "@/components/places/quick-add-input";
 import { createClient, requireUser } from "@/lib/supabase/server";
 
+export const metadata = {
+  title: "我的 list · Bite",
+};
+
 type ListRow = {
   id: string;
   name: string;

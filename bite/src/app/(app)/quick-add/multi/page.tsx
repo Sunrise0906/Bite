@@ -6,6 +6,10 @@ import { MultiPlaceList } from "@/components/places/multi-place-list";
 import { RetryExtract } from "@/components/places/retry-extract";
 import type { ListOption } from "@/components/places/place-confirm-form";
 
+export const metadata = {
+  title: "合集帖 · Bite",
+};
+
 export default async function QuickAddMultiPage() {
   const user = await requireUser();
   const draft = await readDraft();

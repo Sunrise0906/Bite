@@ -3,6 +3,10 @@ import { createClient, requireUser } from "@/lib/supabase/server";
 import { RecommendationCard } from "@/components/recommendations/recommendation-card";
 import type { SnapshottedPlace } from "@/lib/actions/recommendations";
 
+export const metadata = {
+  title: "收件箱 · Bite",
+};
+
 type RecRow = {
   id: string;
   from_user_id: string;

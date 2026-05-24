@@ -6,6 +6,24 @@ import { ConvoMenu } from "@/components/chat/convo-menu";
 import { loadUserLlmSettings, resolveConfig } from "@/lib/llm/router";
 import { PROVIDER_LABELS, type LlmContentBlock } from "@/lib/llm/types";
 
+type SearchParamsForMeta = Promise<{ c?: string }>;
+
+export async function generateMetadata(props: {
+  searchParams: SearchParamsForMeta;
+}) {
+  const { c: activeId } = await props.searchParams;
+  if (!activeId) return { title: "聊天 · Bite" };
+  // 拉对话标题
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("conversations")
+    .select("title")
+    .eq("id", activeId)
+    .maybeSingle<{ title: string | null }>();
+  const t = data?.title?.trim();
+  return { title: t ? `${t} · 聊天 · Bite` : "聊天 · Bite" };
+}
+
 type SearchParams = { c?: string };
 
 export default async function ChatPage(props: {

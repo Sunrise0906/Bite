@@ -9,6 +9,20 @@ import { RecommendButton } from "@/components/recommendations/recommend-button";
 
 type Params = Promise<{ id: string; placeId: string }>;
 
+export async function generateMetadata(props: { params: Params }) {
+  const { id: listId, placeId } = await props.params;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("places")
+    .select("name")
+    .eq("id", placeId)
+    .eq("list_id", listId)
+    .maybeSingle<{ name: string }>();
+  return {
+    title: data?.name ? `${data.name} · Bite` : "店铺 · Bite",
+  };
+}
+
 export default async function EditPlacePage({ params }: { params: Params }) {
   const { id: listId, placeId } = await params;
 
