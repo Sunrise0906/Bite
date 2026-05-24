@@ -173,8 +173,15 @@ export async function acceptRecommendation(args: {
 
   // 3. 把 snapshot 插入 places
   const snap = rec.place_data;
+  // reasons[] 是"接收者想去的理由"——存接收者的 user_id，前缀标注来源。
+  // 这样 PlaceCard 渲染 myReason 时（按 currentUserId 匹配）能正常显示。
   const reasons = snap.message
-    ? [{ user_id: snap.from_user_id, text: snap.message }]
+    ? [
+        {
+          user_id: user.id,
+          text: `朋友推荐：${snap.message}`,
+        },
+      ]
     : [];
 
   const { data: newPlace, error: insErr } = await supabase

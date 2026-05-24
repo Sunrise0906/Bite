@@ -2,12 +2,24 @@
 
 > 用户离开 10h，我自主续干。每半小时一个 /loop iteration。
 
-## 当前状态
+## 当前状态：✅ DONE — 待用户测试
 
 - 启动 commit: `e96cd84` (phase-3-polish-r3)
-- 已交付：phase 1（auth/lists）→ phase 2（quick-add + AI 抽取 + XHS）→ phase 3（多 provider + /chat + tool calling），3 轮 polish
-- 用户已 run 0001-0007 SQL，配置了 GEMINI_API_KEY
-- 待用户回来：测 Phase 3，run 后续 migration（如有）
+- 自主开发 9 个 iter，10 个 commit 推进到当前 HEAD
+- Phase 1-5 全部主线功能完成
+- typecheck / lint / build 全绿
+- 待用户回来：
+  1. 跑 SQL 0008（list_invites）
+  2. 真机测：/chat（Gemini）/ /map / 「我去了」 / /recommendations / 邀请链接
+  3. 检查 PR / push
+
+## 待用户跑的 SQL migrations
+
+按顺序在 Supabase SQL Editor 跑（前 7 个用户已跑）：
+
+```text
+sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
+```
 
 ## 硬约束（不能做的事）
 
