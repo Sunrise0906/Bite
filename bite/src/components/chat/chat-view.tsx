@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { LlmContentBlock } from "@/lib/llm/types";
 
@@ -16,6 +16,13 @@ type Props = {
   initialMessages: DisplayMessage[];
 };
 
+const QUICK_PROMPTS = [
+  "今晚一个人吃啥",
+  "明天约会，日料 200 内",
+  "周末和朋友聚会",
+  "想吃面，省时间",
+];
+
 // 切换 conversation 时父组件用 key 强制重挂，避免在 effect 里 sync prop → state
 export function ChatView({ initialConversationId, initialMessages }: Props) {
   const router = useRouter();
@@ -26,32 +33,35 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastFailedText, setLastFailedText] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // 自动滚到底
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
-  async function send() {
-    const text = input.trim();
+  function stop() {
+    abortRef.current?.abort();
+  }
+
+  async function send(textOverride?: string) {
+    const text = (textOverride ?? input).trim();
     if (!text || sending) return;
-    setInput("");
+    if (!textOverride) setInput("");
     setSending(true);
     setError(null);
+    setLastFailedText(null);
+
+    const ac = new AbortController();
+    abortRef.current = ac;
 
     // 立即把用户消息推上去
     setMessages((prev) => [
       ...prev,
-      {
-        role: "user",
-        content: [{ type: "text", text }],
-      },
-      {
-        role: "assistant",
-        content: [],
-        streaming: true,
-      },
+      { role: "user", content: [{ type: "text", text }] },
+      { role: "assistant", content: [], streaming: true },
     ]);
 
     try {
@@ -62,6 +72,7 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
           conversation_id: conversationId,
           message: text,
         }),
+        signal: ac.signal,
       });
 
       if (!res.ok || !res.body) {
@@ -69,13 +80,10 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
         throw new Error(msg || "AI 调用失败");
       }
 
-      // 解析 SSE
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
 
-      // 流式更新最后一条 assistant 消息
-      // 用 ref 风格的本地变量累 blocks
       const blocks: LlmContentBlock[] = [];
       let currentText = "";
       let newConvoId: string | null = null;
@@ -99,7 +107,6 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
 
-        // 按 \n\n 分割 SSE 事件
         let nlIdx: number;
         while ((nlIdx = buffer.indexOf("\n\n")) !== -1) {
           const eventStr = buffer.slice(0, nlIdx);
@@ -115,7 +122,7 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
         }
       }
 
-      // 结束：清流式标记
+      // 流结束
       setMessages((prev) => {
         const next = [...prev];
         const last = next[next.length - 1];
@@ -127,7 +134,6 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
 
       if (newConvoId && newConvoId !== conversationId) {
         setConversationId(newConvoId);
-        // 让 server 重新加载侧栏
         router.replace(`/chat?c=${newConvoId}`);
         router.refresh();
       } else {
@@ -135,10 +141,7 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
       }
 
       // ---- 事件分发 ----
-      function handleEvent(ev: {
-        type: string;
-        [k: string]: unknown;
-      }) {
+      function handleEvent(ev: { type: string; [k: string]: unknown }) {
         switch (ev.type) {
           case "meta": {
             newConvoId = (ev.conversation_id as string) ?? null;
@@ -164,7 +167,6 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
             break;
           }
           case "tool_use_done": {
-            // 用最终 input 覆盖那个 tool_use
             const idx = blocks.findIndex(
               (b) => b.type === "tool_use" && b.id === ev.id,
             );
@@ -189,29 +191,65 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
             break;
           }
           case "done":
+            break;
           case "error": {
-            if (ev.type === "error") {
-              setError((ev.message as string) ?? "AI 调用失败");
-            }
+            setError((ev.message as string) ?? "AI 调用失败");
+            setLastFailedText(text);
             break;
           }
         }
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "网络错误";
-      setError(msg);
-      // 把那条占位 assistant 消息标 streaming=false
-      setMessages((prev) => {
-        const next = [...prev];
-        const last = next[next.length - 1];
-        if (last?.role === "assistant" && last.content.length === 0) {
-          next.pop();
-        }
-        return next;
-      });
+      if (err instanceof Error && err.name === "AbortError") {
+        // 用户主动 stop：保留已生成内容，去掉 streaming 标
+        setMessages((prev) => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (last?.role === "assistant") {
+            // 如果完全没内容就直接删掉，避免空气泡
+            if (last.content.length === 0) {
+              next.pop();
+            } else {
+              next[next.length - 1] = { ...last, streaming: false };
+            }
+          }
+          return next;
+        });
+      } else {
+        const msg = err instanceof Error ? err.message : "网络错误";
+        setError(msg);
+        setLastFailedText(text);
+        setMessages((prev) => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (last?.role === "assistant" && last.content.length === 0) {
+            next.pop();
+          }
+          return next;
+        });
+      }
     } finally {
+      abortRef.current = null;
       setSending(false);
     }
+  }
+
+  function retry() {
+    if (!lastFailedText) return;
+    // 把上一条失败的用户消息撤掉，让 send() 重新推
+    setMessages((prev) => {
+      const next = [...prev];
+      const last = next[next.length - 1];
+      if (
+        last?.role === "user" &&
+        last.content[0]?.type === "text" &&
+        last.content[0].text === lastFailedText
+      ) {
+        next.pop();
+      }
+      return next;
+    });
+    send(lastFailedText);
   }
 
   return (
@@ -220,14 +258,26 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto flex max-w-2xl flex-col gap-4">
           {messages.length === 0 && (
-            <EmptyState />
+            <EmptyState
+              onPick={(prompt) => send(prompt)}
+              disabled={sending}
+            />
           )}
           {messages.map((m, i) => (
             <MessageBubble key={i} message={m} />
           ))}
           {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-              ⚠ {error}
+              <div>⚠ {error}</div>
+              {lastFailedText && (
+                <button
+                  type="button"
+                  onClick={retry}
+                  className="mt-2 rounded-md bg-red-700 px-3 py-1 text-xs font-medium text-white hover:bg-red-800"
+                >
+                  重试
+                </button>
+              )}
             </div>
           )}
           <div ref={bottomRef} />
@@ -240,7 +290,8 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              send();
+              if (sending) stop();
+              else send();
             }}
             className="flex items-end gap-2"
           >
@@ -250,7 +301,7 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  send();
+                  if (!sending) send();
                 }
               }}
               placeholder="今晚和女朋友吃啥？想要日料、200 块以内…"
@@ -259,13 +310,23 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
               className="field-input flex-1 resize-none py-2.5 leading-relaxed"
               style={{ maxHeight: 120 }}
             />
-            <button
-              type="submit"
-              disabled={sending || !input.trim()}
-              className="btn-primary shrink-0 px-4 py-2.5 text-sm"
-            >
-              {sending ? "..." : "发送"}
-            </button>
+            {sending ? (
+              <button
+                type="button"
+                onClick={stop}
+                className="btn-secondary shrink-0 px-4 py-2.5 text-sm"
+              >
+                停止
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!input.trim()}
+                className="btn-primary shrink-0 px-4 py-2.5 text-sm"
+              >
+                发送
+              </button>
+            )}
           </form>
           <p className="mt-1.5 text-[11px] text-zinc-400">
             Enter 发送，Shift+Enter 换行
@@ -276,7 +337,13 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
   );
 }
 
-function EmptyState() {
+function EmptyState({
+  onPick,
+  disabled,
+}: {
+  onPick: (prompt: string) => void;
+  disabled: boolean;
+}) {
   return (
     <div className="card flex flex-col items-center px-6 py-10 text-center">
       <p className="heading-display text-xl text-[var(--text-strong)]">
@@ -285,17 +352,53 @@ function EmptyState() {
       <p className="mt-2 max-w-sm text-sm text-zinc-600">
         告诉我你想吃啥 / 跟谁 / 预算多少，我从你的 list 里挑 2-3 家并给出理由。
       </p>
-      <ul className="mt-5 space-y-1.5 text-sm text-zinc-500">
-        <li>「今晚一个人，吃面」</li>
-        <li>「明天约会，日料，200 内」</li>
-        <li>「那家鼎泰丰怎么样？」</li>
-      </ul>
+      <div className="mt-5 flex flex-wrap justify-center gap-1.5">
+        {QUICK_PROMPTS.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => onPick(p)}
+            disabled={disabled}
+            className="rounded-full border border-[var(--border-subtle)] bg-white px-3 py-1.5 text-xs text-zinc-700 hover:border-[var(--primary)] hover:text-[var(--primary)] disabled:opacity-50"
+          >
+            {p}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
 
 function MessageBubble({ message }: { message: DisplayMessage }) {
   const isUser = message.role === "user";
+
+  // 把 tool_use 和它对应的 tool_result 配对渲染
+  const paired = useMemo(() => {
+    const items: Array<
+      | { kind: "text"; text: string }
+      | {
+          kind: "tool";
+          use: Extract<LlmContentBlock, { type: "tool_use" }>;
+          result?: Extract<LlmContentBlock, { type: "tool_result" }>;
+        }
+    > = [];
+    const resultsById = new Map<
+      string,
+      Extract<LlmContentBlock, { type: "tool_result" }>
+    >();
+    for (const b of message.content) {
+      if (b.type === "tool_result") resultsById.set(b.tool_use_id, b);
+    }
+    for (const b of message.content) {
+      if (b.type === "text") items.push({ kind: "text", text: b.text });
+      else if (b.type === "tool_use") {
+        items.push({ kind: "tool", use: b, result: resultsById.get(b.id) });
+      }
+      // tool_result 已经配对，不单独渲染
+    }
+    return items;
+  }, [message.content]);
+
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
@@ -312,9 +415,19 @@ function MessageBubble({ message }: { message: DisplayMessage }) {
             <Dot delay={300} />
           </span>
         )}
-        {message.content.map((block, i) => (
-          <ContentBlockView key={i} block={block} />
-        ))}
+        {paired.map((item, i) =>
+          item.kind === "text" ? (
+            <span key={i} className="whitespace-pre-wrap">
+              {item.text}
+            </span>
+          ) : (
+            <ToolCallCard
+              key={item.use.id}
+              use={item.use}
+              result={item.result}
+            />
+          ),
+        )}
         {message.streaming && message.content.length > 0 && (
           <span className="ml-1 inline-block h-3 w-1.5 animate-pulse bg-current align-baseline opacity-50" />
         )}
@@ -323,29 +436,127 @@ function MessageBubble({ message }: { message: DisplayMessage }) {
   );
 }
 
-function ContentBlockView({ block }: { block: LlmContentBlock }) {
-  if (block.type === "text") {
-    return <span className="whitespace-pre-wrap">{block.text}</span>;
-  }
-  if (block.type === "tool_use") {
-    return (
-      <div className="my-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-2.5 py-1.5 text-xs text-zinc-600">
-        <span className="font-mono text-[var(--primary)]">⚙ {block.name}</span>
-        {block.input != null &&
-          typeof block.input === "object" &&
-          Object.keys(block.input).length > 0 && (
-            <span className="ml-2 opacity-70">
-              {JSON.stringify(block.input).slice(0, 80)}
-            </span>
+function ToolCallCard({
+  use,
+  result,
+}: {
+  use: Extract<LlmContentBlock, { type: "tool_use" }>;
+  result?: Extract<LlmContentBlock, { type: "tool_result" }>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const status = summarizeToolResult(use.name, result?.content);
+  const isRunning = !result;
+  const isError = result && status.kind === "error";
+
+  return (
+    <div className="my-1.5 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-subtle)] text-xs">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left hover:bg-white/50"
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <span
+            className={`font-mono ${
+              isError ? "text-red-600" : "text-[var(--primary)]"
+            }`}
+          >
+            {isRunning ? "⏳" : isError ? "✗" : "✓"} {labelForTool(use.name)}
+          </span>
+          <span className="truncate text-zinc-600">{status.summary}</span>
+        </span>
+        <span className="shrink-0 text-zinc-400">{expanded ? "▾" : "▸"}</span>
+      </button>
+      {expanded && (
+        <div className="border-t border-[var(--border-subtle)] bg-white/60 px-2.5 py-2">
+          {use.input != null &&
+            typeof use.input === "object" &&
+            Object.keys(use.input as object).length > 0 && (
+              <div className="mb-1.5">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                  参数
+                </div>
+                <pre className="mt-0.5 whitespace-pre-wrap break-words font-mono text-[11px] text-zinc-700">
+                  {JSON.stringify(use.input, null, 2)}
+                </pre>
+              </div>
+            )}
+          {result && (
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                结果
+              </div>
+              <pre className="mt-0.5 max-h-48 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[11px] text-zinc-700">
+                {tryPrettyJson(result.content)}
+              </pre>
+            </div>
           )}
-      </div>
-    );
+        </div>
+      )}
+    </div>
+  );
+}
+
+function labelForTool(name: string): string {
+  switch (name) {
+    case "search_my_list":
+      return "查餐厅库";
+    case "check_place_details":
+      return "查看详情";
+    case "add_to_list":
+      return "添加到 list";
+    default:
+      return name;
   }
-  if (block.type === "tool_result") {
-    // 默认折叠
-    return null;
+}
+
+function summarizeToolResult(
+  toolName: string,
+  content: string | undefined,
+): { kind: "ok" | "error" | "pending"; summary: string } {
+  if (!content) return { kind: "pending", summary: "查询中..." };
+  let obj: unknown;
+  try {
+    obj = JSON.parse(content);
+  } catch {
+    return { kind: "error", summary: "返回不是合法 JSON" };
   }
-  return null;
+  if (!obj || typeof obj !== "object") {
+    return { kind: "error", summary: "返回格式异常" };
+  }
+  const o = obj as Record<string, unknown>;
+  if (typeof o.error === "string") {
+    return { kind: "error", summary: o.error };
+  }
+  switch (toolName) {
+    case "search_my_list": {
+      const count = typeof o.count === "number" ? o.count : 0;
+      if (count === 0) {
+        const note = typeof o.note === "string" ? `（${o.note}）` : "";
+        return { kind: "ok", summary: `找到 0 家${note}` };
+      }
+      return { kind: "ok", summary: `找到 ${count} 家` };
+    }
+    case "check_place_details": {
+      const name = typeof o.name === "string" ? o.name : "";
+      return { kind: "ok", summary: name ? `«${name}»` : "已查看" };
+    }
+    case "add_to_list": {
+      const name = typeof o.name === "string" ? o.name : "";
+      return { kind: "ok", summary: name ? `已添加 «${name}»` : "已添加" };
+    }
+    default:
+      return { kind: "ok", summary: "完成" };
+  }
+}
+
+function tryPrettyJson(raw: string): string {
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2);
+  } catch {
+    return raw;
+  }
 }
 
 function Dot({ delay }: { delay: number }) {

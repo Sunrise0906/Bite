@@ -3,13 +3,28 @@
 
 import type { ZodTypeAny, z } from "zod";
 
-export type ProviderId = "anthropic" | "openai" | "deepseek" | "qwen";
+export type ProviderId =
+  | "gemini"
+  | "anthropic"
+  | "openai"
+  | "deepseek"
+  | "qwen";
 
 export const PROVIDER_LABELS: Record<ProviderId, string> = {
+  gemini: "Google Gemini",
   anthropic: "Anthropic Claude",
   openai: "OpenAI GPT",
   deepseek: "DeepSeek",
   qwen: "通义千问 Qwen",
+};
+
+/** 是否真免费（默认 key 由 app 提供时不会向用户收费），影响 Settings 提示 */
+export const PROVIDER_FREE_TIER: Record<ProviderId, boolean> = {
+  gemini: true,
+  anthropic: false,
+  openai: false,
+  deepseek: false, // 注册送 credit 但不算长期免费
+  qwen: true, // DashScope 有免费额度（额度耗尽即停）
 };
 
 // 每个 provider 的默认模型 + base URL
@@ -22,6 +37,15 @@ export type ProviderPreset = {
 };
 
 export const PROVIDER_PRESETS: Record<ProviderId, ProviderPreset> = {
+  gemini: {
+    id: "gemini",
+    // OpenAI 兼容端点（Google 官方）；以 Bearer <GEMINI_API_KEY> 鉴权
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+    // 2.5 Flash 真·免费、tool calling 稳、1M 上下文
+    defaultExtractModel: "gemini-2.5-flash",
+    defaultChatModel: "gemini-2.5-flash",
+    apiKeyEnvVar: "GEMINI_API_KEY",
+  },
   anthropic: {
     id: "anthropic",
     baseUrl: "https://api.anthropic.com",

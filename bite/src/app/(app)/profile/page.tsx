@@ -23,6 +23,7 @@ export default async function ProfilePage() {
 
   // 检测 env 里有没有配 app default key（让用户知道是否能"留空走默认"）
   const appKeyAvailable: Record<ProviderId, boolean> = {
+    gemini: Boolean(process.env[PROVIDER_PRESETS.gemini.apiKeyEnvVar]),
     anthropic: Boolean(process.env[PROVIDER_PRESETS.anthropic.apiKeyEnvVar]),
     openai: Boolean(process.env[PROVIDER_PRESETS.openai.apiKeyEnvVar]),
     deepseek: Boolean(process.env[PROVIDER_PRESETS.deepseek.apiKeyEnvVar]),

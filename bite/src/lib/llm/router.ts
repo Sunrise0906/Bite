@@ -20,7 +20,8 @@ export type UserLlmSettings = {
   extract_model: string | null;
 };
 
-const DEFAULT_PROVIDER: ProviderId = "anthropic";
+// 默认走 Gemini —— 真·免费（Google AI Studio key），新用户开箱即用
+const DEFAULT_PROVIDER: ProviderId = "gemini";
 
 export async function loadUserLlmSettings(): Promise<UserLlmSettings | null> {
   const user = await getUser();
@@ -66,6 +67,7 @@ export function buildProvider(config: ResolvedProviderConfig): LlmProvider {
   switch (config.id) {
     case "anthropic":
       return new AnthropicProvider(config);
+    case "gemini":
     case "openai":
     case "deepseek":
     case "qwen":

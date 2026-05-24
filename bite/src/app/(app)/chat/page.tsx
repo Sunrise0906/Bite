@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { listConversations, loadMessages } from "@/lib/db/chat";
 import { ChatView } from "@/components/chat/chat-view";
+import { ConvoMenu } from "@/components/chat/convo-menu";
 import type { LlmContentBlock } from "@/lib/llm/types";
 
 type SearchParams = { c?: string };
@@ -25,7 +26,18 @@ export default async function ChatPage(props: {
     const found = conversations.find((c) => c.id === activeId);
     if (found) {
       const rows = await loadMessages(supabase, activeId);
+      // 把"只含 tool_result"的 user 消息折进上一条 assistant，让 UI 配对显示
       for (const row of rows) {
+        const onlyToolResult =
+          row.role === "user" &&
+          row.content.every((b) => b.type === "tool_result");
+        if (onlyToolResult && initialMessages.length > 0) {
+          const last = initialMessages[initialMessages.length - 1];
+          if (last.role === "assistant") {
+            last.content = [...last.content, ...row.content];
+            continue;
+          }
+        }
         initialMessages.push({ role: row.role, content: row.content });
       }
     }
@@ -56,10 +68,10 @@ export default async function ChatPage(props: {
               {conversations.map((c) => {
                 const isActive = c.id === activeId;
                 return (
-                  <li key={c.id}>
+                  <li key={c.id} className="group relative">
                     <Link
                       href={`/chat?c=${c.id}`}
-                      className={`block truncate rounded-lg px-3 py-2 text-sm transition ${
+                      className={`block truncate rounded-lg py-2 pl-3 pr-8 text-sm transition ${
                         isActive
                           ? "bg-[var(--primary-soft)] text-[var(--primary-soft-text)]"
                           : "text-zinc-700 hover:bg-white"
@@ -67,6 +79,18 @@ export default async function ChatPage(props: {
                     >
                       {c.title ?? "新对话"}
                     </Link>
+                    <div
+                      className={`absolute right-1 top-1/2 -translate-y-1/2 ${
+                        isActive
+                          ? "opacity-100"
+                          : "opacity-0 group-hover:opacity-100"
+                      }`}
+                    >
+                      <ConvoMenu
+                        conversationId={c.id}
+                        currentTitle={c.title}
+                      />
+                    </div>
                   </li>
                 );
               })}

@@ -4,9 +4,11 @@ import { useActionState, useState } from "react";
 import {
   saveLlmSettings,
   clearLlmSettings,
+  testLlmConnection,
   type LlmSettingsFormState,
 } from "@/lib/actions/llm-settings";
 import {
+  PROVIDER_FREE_TIER,
   PROVIDER_LABELS,
   PROVIDER_PRESETS,
   type ProviderId,
@@ -25,20 +27,52 @@ type Props = {
 };
 
 const PROVIDER_ORDER: ProviderId[] = [
+  "gemini",
   "anthropic",
   "openai",
   "deepseek",
   "qwen",
 ];
 
+// 每个 provider 列几个常见模型给 datalist 选（用户也可以自由填）
+const MODEL_PRESETS: Record<
+  ProviderId,
+  { chat: string[]; extract: string[] }
+> = {
+  gemini: {
+    chat: ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite"],
+    extract: ["gemini-2.5-flash", "gemini-2.5-flash-lite"],
+  },
+  anthropic: {
+    chat: ["claude-sonnet-4-6", "claude-opus-4-7", "claude-haiku-4-5"],
+    extract: ["claude-haiku-4-5", "claude-sonnet-4-6"],
+  },
+  openai: {
+    chat: ["gpt-5", "gpt-5-mini", "gpt-4o"],
+    extract: ["gpt-5-mini", "gpt-4o-mini"],
+  },
+  deepseek: {
+    chat: ["deepseek-chat", "deepseek-reasoner"],
+    extract: ["deepseek-chat"],
+  },
+  qwen: {
+    chat: ["qwen-plus", "qwen-max", "qwen-turbo"],
+    extract: ["qwen-turbo", "qwen-plus"],
+  },
+};
+
 export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
   const [provider, setProvider] = useState<ProviderId>(
-    initial?.provider ?? "anthropic",
+    initial?.provider ?? "gemini",
   );
   const [showKey, setShowKey] = useState(false);
   const [advanced, setAdvanced] = useState(
     Boolean(initial?.base_url || initial?.chat_model || initial?.extract_model),
   );
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<
+    { ok: true } | { error: string } | null
+  >(null);
 
   const [state, action, pending] = useActionState<
     LlmSettingsFormState,
@@ -63,21 +97,32 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
         <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
           Provider
         </label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {PROVIDER_ORDER.map((id) => {
             const active = provider === id;
+            const isFree = PROVIDER_FREE_TIER[id];
             return (
               <button
                 key={id}
                 type="button"
-                onClick={() => setProvider(id)}
-                className={`rounded-xl border px-3 py-2.5 text-left text-sm transition ${
+                onClick={() => {
+                  setProvider(id);
+                  setTestResult(null);
+                }}
+                className={`relative rounded-xl border px-3 py-2.5 text-left text-sm transition ${
                   active
                     ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary-soft-text)]"
                     : "border-[var(--border-subtle)] bg-white text-[var(--text-default)] hover:border-[var(--primary)]/40"
                 }`}
               >
-                <div className="font-medium">{PROVIDER_LABELS[id]}</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-medium">{PROVIDER_LABELS[id]}</span>
+                  {isFree && (
+                    <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-emerald-700">
+                      免费
+                    </span>
+                  )}
+                </div>
                 <div className="text-xs text-zinc-500">
                   {PROVIDER_PRESETS[id].defaultExtractModel}
                 </div>
@@ -173,11 +218,17 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
                   id="extract_model"
                   name="extract_model"
                   type="text"
+                  list={`extract_options_${provider}`}
                   defaultValue={currentExtractModel}
                   key={`extract_model_${provider}`}
                   placeholder={preset.defaultExtractModel}
                   className="field-input font-mono text-sm"
                 />
+                <datalist id={`extract_options_${provider}`}>
+                  {MODEL_PRESETS[provider].extract.map((m) => (
+                    <option key={m} value={m} />
+                  ))}
+                </datalist>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label
@@ -190,11 +241,17 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
                   id="chat_model"
                   name="chat_model"
                   type="text"
+                  list={`chat_options_${provider}`}
                   defaultValue={currentChatModel}
                   key={`chat_model_${provider}`}
                   placeholder={preset.defaultChatModel}
                   className="field-input font-mono text-sm"
                 />
+                <datalist id={`chat_options_${provider}`}>
+                  {MODEL_PRESETS[provider].chat.map((m) => (
+                    <option key={m} value={m} />
+                  ))}
+                </datalist>
               </div>
             </div>
           </div>
@@ -211,14 +268,49 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
         <p className="text-sm text-emerald-700">已保存 ✓</p>
       )}
 
+      {/* ---- 测试结果 ---- */}
+      {testResult && "ok" in testResult && (
+        <p className="text-sm text-emerald-700">连接成功 ✓ 模型有响应</p>
+      )}
+      {testResult && "error" in testResult && (
+        <p role="alert" className="text-sm text-red-700">
+          连接失败：{testResult.error}
+        </p>
+      )}
+
       {/* ---- 按钮 ---- */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button
           type="submit"
           disabled={pending}
           className="btn-primary flex-1 py-2.5 text-sm"
         >
           {pending ? "保存中..." : "保存设置"}
+        </button>
+        <button
+          type="button"
+          disabled={testing || pending}
+          onClick={async (e) => {
+            // 从表单读取当前值
+            const form = e.currentTarget.closest("form");
+            if (!form) return;
+            setTesting(true);
+            setTestResult(null);
+            try {
+              const fd = new FormData(form);
+              const result = await testLlmConnection(fd);
+              setTestResult(result);
+            } catch (err) {
+              setTestResult({
+                error: err instanceof Error ? err.message : "测试失败",
+              });
+            } finally {
+              setTesting(false);
+            }
+          }}
+          className="btn-secondary px-4 py-2.5 text-sm"
+        >
+          {testing ? "测试中..." : "测试连接"}
         </button>
         {initial && (
           <button
