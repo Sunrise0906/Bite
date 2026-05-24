@@ -49,10 +49,20 @@ export default async function ListsPage() {
     .from("lists")
     .select(
       "id, name, owner_id, created_at, updated_at, places(name, cuisine, status, updated_at, created_at)",
-    )
-    .order("created_at", { ascending: false });
+    );
 
-  const lists = (data ?? []) as ListRow[];
+  // 按"最近活动"排序：取 list.updated_at + 其下所有 place.updated_at 的最大值。
+  // 这样添了新店 / 改了店的 list 会自动顶到前面（GMail / ChatGPT 风格）。
+  function maxActivity(l: ListRow): string {
+    let m = l.updated_at;
+    for (const p of l.places ?? []) {
+      if (p.updated_at > m) m = p.updated_at;
+    }
+    return m;
+  }
+  const lists = ((data ?? []) as ListRow[])
+    .slice()
+    .sort((a, b) => maxActivity(b).localeCompare(maxActivity(a)));
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">

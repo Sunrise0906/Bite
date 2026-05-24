@@ -604,9 +604,9 @@ function MessageBubble({
         )}
       </div>
 
-      {/* 时间戳 + 复制按钮（hover 才显示） */}
+      {/* 时间戳 + 复制按钮：触屏设备永远显示；hover 设备 hover 才显示 */}
       <div
-        className={`flex items-center gap-2 px-1 text-[10px] text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100 ${
+        className={`flex items-center gap-2 px-1 text-[10px] text-zinc-400 transition-opacity opacity-100 sm:opacity-0 sm:group-hover:opacity-100 ${
           isUser ? "flex-row-reverse" : "flex-row"
         }`}
       >

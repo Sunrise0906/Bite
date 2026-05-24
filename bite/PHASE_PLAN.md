@@ -72,6 +72,11 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 
 - [x] **K1. PlaceCard 显示 visit 信号** — chat 工具已能读 visit count / last sentiment / avg star，但 list 页卡片看不到。现在卡片底部加一行：「❤️ 去过 N 次 · 3 天前 · ★★★★☆」
 
+### L. UX 排序 + 移动端可见性
+
+- [x] **L1. /lists 按"最近活动"排序** — 之前 ORDER BY created_at desc，添了新店那个 list 还在原位。改成 server fetch 后 JS 排序 max(list.updated_at, max(places[].updated_at))。新店加进哪个 list 就把那个 list 顶到前
+- [x] **L2. mobile 端 chat 消息时间戳/复制按钮可见** — 之前 opacity-0 group-hover:opacity-100 在 touch 设备上永远透明。改成 mobile 默认显示，sm+ 才走 hover-only 模式
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）
