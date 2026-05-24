@@ -138,6 +138,8 @@ export class OpenAiCompatProvider implements LlmProvider {
         messages,
         ...(tools ? { tools } : {}),
         stream: true,
+        // 让最后一片带 usage（OpenAI / Gemini OpenAI-compat 都支持，DeepSeek/Qwen 通常也兼容）
+        stream_options: { include_usage: true },
       });
     } catch (err) {
       throw mapOpenAiError(err);
@@ -150,9 +152,17 @@ export class OpenAiCompatProvider implements LlmProvider {
       { id: string; name: string; args: string; emittedStart: boolean }
     >();
     let finishReason: StreamStopReason = "end_turn";
+    let capturedUsage: { prompt_tokens?: number; completion_tokens?: number } | null = null;
 
     try {
       for await (const chunk of stream) {
+        // include_usage 的最后一片 choices 是空的，usage 在 chunk.usage
+        if (chunk.usage) {
+          capturedUsage = {
+            prompt_tokens: chunk.usage.prompt_tokens,
+            completion_tokens: chunk.usage.completion_tokens,
+          };
+        }
         const choice = chunk.choices[0];
         if (!choice) continue;
 
@@ -219,6 +229,14 @@ export class OpenAiCompatProvider implements LlmProvider {
           id: entry.id,
           name: entry.name,
           input,
+        };
+      }
+
+      if (capturedUsage) {
+        yield {
+          type: "usage",
+          inputTokens: capturedUsage.prompt_tokens ?? 0,
+          outputTokens: capturedUsage.completion_tokens ?? 0,
         };
       }
 

@@ -28,6 +28,7 @@ const SYSTEM_PROMPT = `你是 Bite 的决策助手——帮用户从他们自己
 【行为准则】
 - 优先用工具查用户的库。在推荐前先 search_my_list；候选不够再深挖 check_place_details。
 - 推荐时给出 2-3 家具体店，每家附上"为什么选它"（引用用户自己写的 reason / notes / tags）。
+- **提到用户库里已有的店名时一律用书名号包起来**：«鼎泰丰»、«海底捞»。前端会把它渲染成可点击跳转的链接。外部店名（不在库里）不要加书名号。
 - 用户库里没有合适的，可以建议外部的，但**不要偷偷写库**——明确问"要加进哪个 list 吗？"再调 add_to_list。
 - 全程中文回复，简洁口语化，不要长篇大论。
 
@@ -39,7 +40,9 @@ const SYSTEM_PROMPT = `你是 Bite 的决策助手——帮用户从他们自己
 
 type RequestBody = {
   conversation_id?: string;
-  message: string;
+  message?: string;
+  /** true 时不追加新 user 消息，而是删除最后一轮 assistant + tool_result，从已存在的 last user 消息重新生成 */
+  regenerate?: boolean;
 };
 
 export async function POST(req: NextRequest) {
@@ -57,12 +60,16 @@ export async function POST(req: NextRequest) {
   } catch {
     return new Response("Invalid JSON", { status: 400 });
   }
+  const isRegen = body.regenerate === true;
   const userText = (body.message ?? "").trim();
-  if (!userText) {
-    return new Response("Empty message", { status: 400 });
+  if (!isRegen) {
+    if (!userText) return new Response("Empty message", { status: 400 });
+    if (userText.length > 4000) {
+      return new Response("Message too long", { status: 400 });
+    }
   }
-  if (userText.length > 4000) {
-    return new Response("Message too long", { status: 400 });
+  if (isRegen && !body.conversation_id) {
+    return new Response("regenerate 需要 conversation_id", { status: 400 });
   }
 
   // 1. provider
@@ -96,23 +103,52 @@ export async function POST(req: NextRequest) {
   }
 
   // 3. 拼历史
-  const historyRows = isNew ? [] : await loadMessages(supabase, conversationId);
+  let historyRows = isNew ? [] : await loadMessages(supabase, conversationId);
+
+  if (isRegen) {
+    // 找到最后一条"含 text 的 user 消息"作为重新生成的起点
+    let cutIdx = -1;
+    for (let i = historyRows.length - 1; i >= 0; i--) {
+      const row = historyRows[i];
+      if (row.role !== "user") continue;
+      const hasText = row.content.some(
+        (b) =>
+          b.type === "text" && typeof b.text === "string" && b.text.trim() !== "",
+      );
+      if (hasText) {
+        cutIdx = i;
+        break;
+      }
+    }
+    if (cutIdx === -1) {
+      return new Response("找不到可重新生成的用户消息", { status: 400 });
+    }
+    // 删掉这条 user-text 之后的所有 message（assistant + tool_result 跟进的 user）
+    const toDelete = historyRows.slice(cutIdx + 1).map((r) => r.id);
+    if (toDelete.length > 0) {
+      await supabase.from("messages").delete().in("id", toDelete);
+    }
+    historyRows = historyRows.slice(0, cutIdx + 1);
+  }
+
   const messages: LlmMessage[] = historyRows.map((row) => ({
     role: row.role,
     content: row.content,
   }));
 
-  // 4. 追加用户新消息（先写库，再喂模型）
-  const userBlock: LlmContentBlock[] = [{ type: "text", text: userText }];
-  const userInsert = await appendMessage(supabase, {
-    conversationId,
-    role: "user",
-    content: userBlock,
-  });
-  if ("error" in userInsert) {
-    return new Response(`保存消息失败：${userInsert.error}`, { status: 500 });
+  // 4. 非 regen：追加用户新消息（先写库，再喂模型）
+  if (!isRegen) {
+    const userBlock: LlmContentBlock[] = [{ type: "text", text: userText }];
+    const userInsert = await appendMessage(supabase, {
+      conversationId,
+      role: "user",
+      content: userBlock,
+    });
+    if ("error" in userInsert) {
+      return new Response(`保存消息失败：${userInsert.error}`, { status: 500 });
+    }
+    messages.push({ role: "user", content: userBlock });
   }
-  messages.push({ role: "user", content: userBlock });
 
   // 5. SSE stream
   const encoder = new TextEncoder();
@@ -152,6 +188,7 @@ export async function POST(req: NextRequest) {
             { name: string; inputJson: string }
           >();
           let stopReason: string = "end_turn";
+          let turnUsage: { input_tokens: number; output_tokens: number } | null = null;
 
           for await (const chunk of provider.streamChat({
             system: SYSTEM_PROMPT,
@@ -200,6 +237,16 @@ export async function POST(req: NextRequest) {
                 name: chunk.name,
                 input: chunk.input,
               });
+            } else if (chunk.type === "usage") {
+              turnUsage = {
+                input_tokens: chunk.inputTokens,
+                output_tokens: chunk.outputTokens,
+              };
+              send(controller, {
+                type: "usage",
+                input_tokens: chunk.inputTokens,
+                output_tokens: chunk.outputTokens,
+              });
             } else if (chunk.type === "stop") {
               stopReason = chunk.reason;
             }
@@ -215,6 +262,7 @@ export async function POST(req: NextRequest) {
                 conversationId,
                 role: "assistant",
                 content: assistantBlocks,
+                usage: turnUsage,
                 stopReason: "aborted",
               });
             }
@@ -226,6 +274,7 @@ export async function POST(req: NextRequest) {
             conversationId,
             role: "assistant",
             content: assistantBlocks,
+            usage: turnUsage,
             stopReason,
           });
           messages.push({ role: "assistant", content: assistantBlocks });

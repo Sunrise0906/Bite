@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { LlmContentBlock } from "@/lib/llm/types";
 
 type DisplayMessage = {
@@ -18,6 +19,7 @@ type Props = {
   headerTitle: string | null;
   headerProviderLabel: string;
   headerModel: string;
+  placeMap: Record<string, { id: string; list_id: string }>;
 };
 
 const QUICK_PROMPTS = [
@@ -37,6 +39,7 @@ export function ChatView({
   headerTitle,
   headerProviderLabel,
   headerModel,
+  placeMap,
 }: Props) {
   const router = useRouter();
   const [conversationId, setConversationId] = useState<string | null>(
@@ -79,34 +82,49 @@ export function ChatView({
     abortRef.current?.abort();
   }
 
-  async function send(textOverride?: string) {
-    const text = (textOverride ?? input).trim();
-    if (!text || sending) return;
-    if (!textOverride) setInput("");
+  async function send(opts: { text?: string; regenerate?: boolean } = {}) {
+    const isRegen = opts.regenerate === true;
+    const text = isRegen ? "" : (opts.text ?? input).trim();
+    if (sending) return;
+    if (!isRegen && !text) return;
+    if (isRegen && !conversationId) return;
+    if (!isRegen && opts.text === undefined) setInput("");
     setSending(true);
     setError(null);
     setLastFailedText(null);
-    // 用户发送时强制贴底
     stickToBottomRef.current = true;
 
     const ac = new AbortController();
     abortRef.current = ac;
 
-    // 立即把用户消息推上去
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: [{ type: "text", text }] },
-      { role: "assistant", content: [], streaming: true },
-    ]);
+    if (!isRegen) {
+      // 立即把用户消息推上去 + assistant 占位
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: [{ type: "text", text }] },
+        { role: "assistant", content: [], streaming: true },
+      ]);
+    } else {
+      // 重新生成：弹掉最后一条 assistant（含 tool 卡），换成新占位
+      setMessages((prev) => {
+        const next = [...prev];
+        while (next.length > 0 && next[next.length - 1].role === "assistant") {
+          next.pop();
+        }
+        next.push({ role: "assistant", content: [], streaming: true });
+        return next;
+      });
+    }
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversation_id: conversationId,
-          message: text,
-        }),
+        body: JSON.stringify(
+          isRegen
+            ? { conversation_id: conversationId, regenerate: true }
+            : { conversation_id: conversationId, message: text },
+        ),
         signal: ac.signal,
       });
 
@@ -229,7 +247,7 @@ export function ChatView({
             break;
           case "error": {
             setError((ev.message as string) ?? "AI 调用失败");
-            setLastFailedText(text);
+            if (!isRegen) setLastFailedText(text);
             break;
           }
         }
@@ -253,7 +271,7 @@ export function ChatView({
       } else {
         const msg = err instanceof Error ? err.message : "网络错误";
         setError(msg);
-        setLastFailedText(text);
+        if (!isRegen) setLastFailedText(text);
         setMessages((prev) => {
           const next = [...prev];
           const last = next[next.length - 1];
@@ -284,7 +302,11 @@ export function ChatView({
       }
       return next;
     });
-    send(lastFailedText);
+    send({ text: lastFailedText });
+  }
+
+  function regenerate() {
+    send({ regenerate: true });
   }
 
   const inputLen = input.length;
@@ -310,13 +332,27 @@ export function ChatView({
         <div className="mx-auto flex max-w-2xl flex-col gap-4">
           {messages.length === 0 && (
             <EmptyState
-              onPick={(prompt) => send(prompt)}
+              onPick={(prompt) => send({ text: prompt })}
               disabled={sending}
             />
           )}
-          {messages.map((m, i) => (
-            <MessageBubble key={i} message={m} />
-          ))}
+          {messages.map((m, i) => {
+            const isLastAssistant =
+              i === messages.length - 1 &&
+              m.role === "assistant" &&
+              !m.streaming &&
+              m.content.length > 0;
+            return (
+              <MessageBubble
+                key={i}
+                message={m}
+                placeMap={placeMap}
+                onRegenerate={
+                  isLastAssistant && conversationId ? regenerate : undefined
+                }
+              />
+            );
+          })}
           {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               <div>⚠ {error}</div>
@@ -342,7 +378,7 @@ export function ChatView({
             onSubmit={(e) => {
               e.preventDefault();
               if (sending) stop();
-              else send();
+              else send({});
             }}
             className="flex items-end gap-2"
           >
@@ -353,7 +389,7 @@ export function ChatView({
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  if (!sending) send();
+                  if (!sending) send({});
                 }
               }}
               placeholder="今晚和女朋友吃啥？想要日料、200 块以内…"
@@ -471,7 +507,15 @@ function EmptyState({
   );
 }
 
-function MessageBubble({ message }: { message: DisplayMessage }) {
+function MessageBubble({
+  message,
+  placeMap,
+  onRegenerate,
+}: {
+  message: DisplayMessage;
+  placeMap: Record<string, { id: string; list_id: string }>;
+  onRegenerate?: () => void;
+}) {
   const isUser = message.role === "user";
 
   // 把 tool_use 和它对应的 tool_result 配对渲染
@@ -537,9 +581,16 @@ function MessageBubble({ message }: { message: DisplayMessage }) {
         )}
         {paired.map((item, i) =>
           item.kind === "text" ? (
-            <span key={i} className="whitespace-pre-wrap">
-              {item.text}
-            </span>
+            <LinkifiedText
+              key={i}
+              text={item.text}
+              placeMap={placeMap}
+              linkClassName={
+                isUser
+                  ? "underline decoration-white/40 underline-offset-2 hover:decoration-white"
+                  : "text-[var(--primary)] underline decoration-[var(--primary)]/40 underline-offset-2 hover:decoration-[var(--primary)]"
+              }
+            />
           ) : (
             <ToolCallCard
               key={item.use.id}
@@ -571,8 +622,79 @@ function MessageBubble({ message }: { message: DisplayMessage }) {
         {!isUser && assistantText && !message.streaming && (
           <CopyButton text={assistantText} />
         )}
+        {onRegenerate && (
+          <button
+            type="button"
+            onClick={onRegenerate}
+            className="rounded-md px-1.5 py-0.5 text-zinc-500 hover:bg-[var(--surface-subtle)] hover:text-[var(--text-strong)]"
+            title="重新生成这条回复"
+          >
+            ↻ 重新生成
+          </button>
+        )}
       </div>
     </div>
+  );
+}
+
+/**
+ * 把文本里的 «店名» 渲染成可点击链接（如果店名在 placeMap 里）；
+ * 没匹配上的 «...» 原样显示，普通文本走 whitespace-pre-wrap。
+ */
+function LinkifiedText({
+  text,
+  placeMap,
+  linkClassName,
+}: {
+  text: string;
+  placeMap: Record<string, { id: string; list_id: string }>;
+  linkClassName: string;
+}) {
+  // 没 placeMap 或文本里没书名号，直接渲染
+  if (!text.includes("«")) {
+    return <span className="whitespace-pre-wrap">{text}</span>;
+  }
+  const parts: Array<
+    | { kind: "text"; text: string }
+    | { kind: "link"; name: string; href: string }
+    | { kind: "raw"; text: string }
+  > = [];
+  // 拆分：«...» 之外是 text，里面是 link 候选
+  const re = /«([^«»]{1,60})»/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) {
+      parts.push({ kind: "text", text: text.slice(last, m.index) });
+    }
+    const name = m[1];
+    const hit = placeMap[name];
+    if (hit) {
+      parts.push({
+        kind: "link",
+        name,
+        href: `/lists/${hit.list_id}/places/${hit.id}/edit`,
+      });
+    } else {
+      parts.push({ kind: "raw", text: m[0] });
+    }
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) {
+    parts.push({ kind: "text", text: text.slice(last) });
+  }
+  return (
+    <span className="whitespace-pre-wrap">
+      {parts.map((p, i) => {
+        if (p.kind === "text") return <span key={i}>{p.text}</span>;
+        if (p.kind === "raw") return <span key={i}>{p.text}</span>;
+        return (
+          <Link key={i} href={p.href} className={linkClassName}>
+            {p.name}
+          </Link>
+        );
+      })}
+    </span>
   );
 }
 

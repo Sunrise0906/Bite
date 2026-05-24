@@ -134,6 +134,18 @@ export class AnthropicProvider implements LlmProvider {
         }
       }
 
+      // 用量：input/output tokens（cache tokens 暂不区分）
+      if (finalMessage.usage) {
+        yield {
+          type: "usage",
+          inputTokens:
+            (finalMessage.usage.input_tokens ?? 0) +
+            (finalMessage.usage.cache_read_input_tokens ?? 0) +
+            (finalMessage.usage.cache_creation_input_tokens ?? 0),
+          outputTokens: finalMessage.usage.output_tokens ?? 0,
+        };
+      }
+
       yield { type: "stop", reason: stopReason };
     } catch (err) {
       throw mapAnthropicError(err);

@@ -44,3 +44,6 @@ dist/
 
 # Vercel
 .vercel
+
+# Claude Code session state（loop schedules, etc.）
+.claude/

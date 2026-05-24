@@ -5,21 +5,78 @@ import { LlmSettingsForm } from "@/components/profile/llm-settings-form";
 import { PROVIDER_PRESETS, type ProviderId } from "@/lib/llm/types";
 import type { UserLlmSettings } from "@/lib/llm/router";
 
+function UsageBox({
+  label,
+  inTok,
+  outTok,
+}: {
+  label: string;
+  inTok: number;
+  outTok: number;
+}) {
+  const total = inTok + outTok;
+  return (
+    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-3">
+      <p className="text-xs font-medium text-zinc-500">{label}</p>
+      <p className="mt-0.5 text-xl font-semibold text-[var(--text-strong)]">
+        {total.toLocaleString()}
+        <span className="ml-1 text-xs font-normal text-zinc-500">tokens</span>
+      </p>
+      <p className="mt-1 text-[11px] text-zinc-500">
+        in {inTok.toLocaleString()} · out {outTok.toLocaleString()}
+      </p>
+    </div>
+  );
+}
+
 export default async function ProfilePage() {
   const user = await requireUser();
   const supabase = await createClient();
 
-  const [{ data: profile }, { data: llmSettings }] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
-    supabase
-      .from("user_llm_settings")
-      .select("provider, api_key, base_url, chat_model, extract_model")
-      .eq("user_id", user.id)
-      .maybeSingle<UserLlmSettings>(),
-  ]);
+  const [{ data: profile }, { data: llmSettings }, { data: usageRows }] =
+    await Promise.all([
+      supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
+      supabase
+        .from("user_llm_settings")
+        .select("provider, api_key, base_url, chat_model, extract_model")
+        .eq("user_id", user.id)
+        .maybeSingle<UserLlmSettings>(),
+      // RLS 限制只能拿到自己 convos 下的 messages
+      supabase
+        .from("messages")
+        .select("usage, created_at")
+        .eq("role", "assistant")
+        .not("usage", "is", null),
+    ]);
 
   const displayName =
     profile?.name ?? user.email?.split("@")[0] ?? "未命名用户";
+
+  // 汇总 token 用量（全部 + 本月）
+  type UsageRow = {
+    usage: { input_tokens?: number; output_tokens?: number } | null;
+    created_at: string;
+  };
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  let allIn = 0,
+    allOut = 0,
+    monthIn = 0,
+    monthOut = 0,
+    turns = 0;
+  for (const row of (usageRows ?? []) as UsageRow[]) {
+    if (!row.usage) continue;
+    const i = row.usage.input_tokens ?? 0;
+    const o = row.usage.output_tokens ?? 0;
+    allIn += i;
+    allOut += o;
+    turns += 1;
+    if (new Date(row.created_at) >= monthStart) {
+      monthIn += i;
+      monthOut += o;
+    }
+  }
 
   // 检测 env 里有没有配 app default key（让用户知道是否能"留空走默认"）
   const appKeyAvailable: Record<ProviderId, boolean> = {
@@ -57,6 +114,25 @@ export default async function ProfilePage() {
             <p className="truncate text-sm text-zinc-500">{user.email}</p>
           </div>
         </div>
+      </section>
+
+      {/* ---- AI 用量 ---- */}
+      <section className="card mb-8 p-5">
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="text-base font-semibold text-[var(--text-strong)]">
+            AI 用量
+          </h2>
+          <span className="text-xs text-zinc-500">
+            {turns > 0 ? `${turns} 轮对话` : "还没有数据"}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <UsageBox label="本月" inTok={monthIn} outTok={monthOut} />
+          <UsageBox label="全部" inTok={allIn} outTok={allOut} />
+        </div>
+        <p className="mt-3 text-[11px] text-zinc-500">
+          tokens 直接来自 provider 返回。Gemini 在免费 tier 内不计费；其他 provider 自带 key 时按各自计费。
+        </p>
       </section>
 
       {/* ---- AI Provider 设置 ---- */}

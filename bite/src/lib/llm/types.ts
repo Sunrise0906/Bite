@@ -143,6 +143,7 @@ export type StreamChunk =
   | { type: "tool_use_start"; id: string; name: string }
   | { type: "tool_use_input_delta"; id: string; delta: string }
   | { type: "tool_use_done"; id: string; name: string; input: unknown }
+  | { type: "usage"; inputTokens: number; outputTokens: number }
   | { type: "stop"; reason: StreamStopReason };
 
 export type StreamChatParams = {

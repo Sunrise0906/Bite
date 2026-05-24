@@ -17,6 +17,34 @@ export default async function ChatPage(props: {
 
   const conversations = await listConversations(supabase, user.id, 30);
 
+  // 加载用户所有 places 的 (name → id+list_id) 映射，
+  // 让 assistant 消息里 «店名» 能渲染成可点击链接
+  const { data: ownerLists } = await supabase
+    .from("lists")
+    .select("id")
+    .eq("owner_id", user.id);
+  const { data: memberLists } = await supabase
+    .from("list_members")
+    .select("list_id")
+    .eq("user_id", user.id);
+  const listIds = [
+    ...(ownerLists ?? []).map((l) => l.id),
+    ...(memberLists ?? []).map((m) => m.list_id),
+  ];
+  let placeMap: Record<string, { id: string; list_id: string }> = {};
+  if (listIds.length > 0) {
+    const { data: places } = await supabase
+      .from("places")
+      .select("id, list_id, name")
+      .in("list_id", listIds);
+    placeMap = Object.fromEntries(
+      (places ?? []).map((p) => [
+        p.name,
+        { id: p.id, list_id: p.list_id },
+      ]),
+    );
+  }
+
   const initialMessages: Array<{
     role: "user" | "assistant";
     content: LlmContentBlock[];
@@ -164,6 +192,7 @@ export default async function ChatPage(props: {
           headerTitle={activeConvo?.title ?? null}
           headerProviderLabel={headerProviderLabel}
           headerModel={headerModel}
+          placeMap={placeMap}
         />
       </section>
     </div>
