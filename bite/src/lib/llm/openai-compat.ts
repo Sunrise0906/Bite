@@ -4,10 +4,13 @@ import type { ZodTypeAny, z } from "zod";
 import {
   LlmProviderError,
   type ExtractParams,
+  type LlmContentBlock,
+  type LlmMessage,
   type LlmProvider,
   type ResolvedProviderConfig,
   type StreamChatParams,
   type StreamChunk,
+  type StreamStopReason,
 } from "./types";
 
 // OpenAI / DeepSeek / Qwen 都用同一份实现，只是 baseUrl + model 不同。
@@ -106,13 +109,197 @@ export class OpenAiCompatProvider implements LlmProvider {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async *streamChat(_params: StreamChatParams): AsyncIterable<StreamChunk> {
-    // Day 8 实现
-    throw new LlmProviderError(
-      "api",
-      "streamChat 尚未实现（Phase 3 Day 8）",
-    );
+  async *streamChat(params: StreamChatParams): AsyncIterable<StreamChunk> {
+    const messages: OpenAI.ChatCompletionMessageParam[] = [];
+    if (params.system) {
+      messages.push({ role: "system", content: params.system });
+    }
+    for (const m of params.messages) {
+      messages.push(...toOpenAiMessages(m));
+    }
+
+    const tools: OpenAI.ChatCompletionTool[] | undefined =
+      params.tools && params.tools.length > 0
+        ? params.tools.map((t) => ({
+            type: "function" as const,
+            function: {
+              name: t.name,
+              description: t.description,
+              parameters: t.inputSchema,
+            },
+          }))
+        : undefined;
+
+    let stream: AsyncIterable<OpenAI.ChatCompletionChunk>;
+    try {
+      stream = await this.client.chat.completions.create({
+        model: this.config.chatModel,
+        max_tokens: params.maxTokens ?? 4096,
+        messages,
+        ...(tools ? { tools } : {}),
+        stream: true,
+      });
+    } catch (err) {
+      throw mapOpenAiError(err);
+    }
+
+    // OpenAI 把 tool_call 拆成多个 delta：第一片有 id/name，后续片只是 arguments 拼接
+    // 用 index 追踪每个 tool_call
+    const toolCalls = new Map<
+      number,
+      { id: string; name: string; args: string; emittedStart: boolean }
+    >();
+    let finishReason: StreamStopReason = "end_turn";
+
+    try {
+      for await (const chunk of stream) {
+        const choice = chunk.choices[0];
+        if (!choice) continue;
+
+        const delta = choice.delta;
+        if (delta?.content) {
+          yield { type: "text", delta: delta.content };
+        }
+
+        if (delta?.tool_calls) {
+          for (const tc of delta.tool_calls) {
+            const idx = tc.index;
+            let entry = toolCalls.get(idx);
+            if (!entry) {
+              entry = {
+                id: tc.id ?? "",
+                name: tc.function?.name ?? "",
+                args: "",
+                emittedStart: false,
+              };
+              toolCalls.set(idx, entry);
+            } else {
+              // 后续片段可能补 id / name（OpenAI 通常第一片就全了）
+              if (tc.id && !entry.id) entry.id = tc.id;
+              if (tc.function?.name && !entry.name) entry.name = tc.function.name;
+            }
+
+            // id + name 齐了就发 start
+            if (!entry.emittedStart && entry.id && entry.name) {
+              entry.emittedStart = true;
+              yield { type: "tool_use_start", id: entry.id, name: entry.name };
+            }
+
+            const argDelta = tc.function?.arguments;
+            if (argDelta) {
+              entry.args += argDelta;
+              if (entry.emittedStart) {
+                yield {
+                  type: "tool_use_input_delta",
+                  id: entry.id,
+                  delta: argDelta,
+                };
+              }
+            }
+          }
+        }
+
+        if (choice.finish_reason) {
+          finishReason = mapOpenAiFinishReason(choice.finish_reason);
+        }
+      }
+
+      // 收尾：每个 tool_call 解析 args JSON 后发 done
+      for (const entry of toolCalls.values()) {
+        if (!entry.emittedStart) continue;
+        let input: unknown = {};
+        try {
+          input = entry.args ? JSON.parse(entry.args) : {};
+        } catch {
+          // 模型偶尔返回不合法 JSON。包成错误传给上层
+          input = { __invalid_json__: entry.args };
+        }
+        yield {
+          type: "tool_use_done",
+          id: entry.id,
+          name: entry.name,
+          input,
+        };
+      }
+
+      yield { type: "stop", reason: finishReason };
+    } catch (err) {
+      throw mapOpenAiError(err);
+    }
+  }
+}
+
+function toOpenAiMessages(
+  m: LlmMessage,
+): OpenAI.ChatCompletionMessageParam[] {
+  if (typeof m.content === "string") {
+    if (m.role === "user") {
+      return [{ role: "user", content: m.content }];
+    }
+    return [{ role: "assistant", content: m.content }];
+  }
+
+  if (m.role === "assistant") {
+    const textParts: string[] = [];
+    const toolCalls: OpenAI.ChatCompletionMessageToolCall[] = [];
+    for (const block of m.content as LlmContentBlock[]) {
+      if (block.type === "text") {
+        textParts.push(block.text);
+      } else if (block.type === "tool_use") {
+        toolCalls.push({
+          id: block.id,
+          type: "function",
+          function: {
+            name: block.name,
+            arguments: JSON.stringify(block.input ?? {}),
+          },
+        });
+      }
+    }
+    const msg: OpenAI.ChatCompletionAssistantMessageParam = {
+      role: "assistant",
+      content: textParts.length > 0 ? textParts.join("\n") : null,
+      ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+    };
+    return [msg];
+  }
+
+  // user role with content blocks：可能含 text + tool_result
+  // OpenAI 把 tool_result 单独表达为 role:"tool" 消息
+  const out: OpenAI.ChatCompletionMessageParam[] = [];
+  const textParts: string[] = [];
+  for (const block of m.content as LlmContentBlock[]) {
+    if (block.type === "text") {
+      textParts.push(block.text);
+    } else if (block.type === "tool_result") {
+      out.push({
+        role: "tool",
+        tool_call_id: block.tool_use_id,
+        content: block.content,
+      });
+    }
+  }
+  if (textParts.length > 0) {
+    out.push({ role: "user", content: textParts.join("\n") });
+  }
+  return out;
+}
+
+function mapOpenAiFinishReason(
+  reason: OpenAI.ChatCompletionChunk.Choice["finish_reason"],
+): StreamStopReason {
+  switch (reason) {
+    case "stop":
+      return "end_turn";
+    case "tool_calls":
+    case "function_call":
+      return "tool_use";
+    case "length":
+      return "max_tokens";
+    case "content_filter":
+      return "refusal";
+    default:
+      return "end_turn";
   }
 }
 

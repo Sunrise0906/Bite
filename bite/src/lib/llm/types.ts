@@ -77,32 +77,53 @@ export type ExtractParams<T extends ZodTypeAny> = {
 };
 
 // ============================ Stream Chat ============================
-// Day 8 才用，先放占位类型
 
-export type LlmTextMessage = {
+// 消息 content 可以是简单 string，也可以是带 tool_use / tool_result 的 blocks
+export type LlmContentBlock =
+  | { type: "text"; text: string }
+  | { type: "tool_use"; id: string; name: string; input: unknown }
+  | {
+      type: "tool_result";
+      tool_use_id: string;
+      content: string;
+      is_error?: boolean;
+    };
+
+export type LlmMessage = {
   role: "user" | "assistant";
-  content: string;
+  content: string | LlmContentBlock[];
+};
+
+export type LlmToolInputSchema = {
+  type: "object";
+  properties: Record<string, unknown>;
+  required?: string[];
+  [k: string]: unknown;
 };
 
 export type LlmTool = {
   name: string;
   description: string;
-  inputSchema: Record<string, unknown>;
+  inputSchema: LlmToolInputSchema;
 };
+
+export type StreamStopReason =
+  | "end_turn"
+  | "tool_use"
+  | "max_tokens"
+  | "refusal"
+  | "error";
 
 export type StreamChunk =
   | { type: "text"; delta: string }
   | { type: "tool_use_start"; id: string; name: string }
-  | { type: "tool_use_input_delta"; delta: string }
+  | { type: "tool_use_input_delta"; id: string; delta: string }
   | { type: "tool_use_done"; id: string; name: string; input: unknown }
-  | {
-      type: "stop";
-      reason: "end_turn" | "tool_use" | "max_tokens" | "refusal" | "error";
-    };
+  | { type: "stop"; reason: StreamStopReason };
 
 export type StreamChatParams = {
   system?: string;
-  messages: LlmTextMessage[];
+  messages: LlmMessage[];
   tools?: LlmTool[];
   maxTokens?: number;
 };
