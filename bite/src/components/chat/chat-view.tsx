@@ -7,6 +7,7 @@ import type { LlmContentBlock } from "@/lib/llm/types";
 type DisplayMessage = {
   role: "user" | "assistant";
   content: LlmContentBlock[];
+  createdAt?: string;
   /** assistant 流式中 */
   streaming?: boolean;
 };
@@ -14,6 +15,9 @@ type DisplayMessage = {
 type Props = {
   initialConversationId: string | null;
   initialMessages: DisplayMessage[];
+  headerTitle: string | null;
+  headerProviderLabel: string;
+  headerModel: string;
 };
 
 const QUICK_PROMPTS = [
@@ -23,8 +27,17 @@ const QUICK_PROMPTS = [
   "想吃面，省时间",
 ];
 
+const INPUT_MAX = 4000;
+const INPUT_WARN = 3500;
+
 // 切换 conversation 时父组件用 key 强制重挂，避免在 effect 里 sync prop → state
-export function ChatView({ initialConversationId, initialMessages }: Props) {
+export function ChatView({
+  initialConversationId,
+  initialMessages,
+  headerTitle,
+  headerProviderLabel,
+  headerModel,
+}: Props) {
   const router = useRouter();
   const [conversationId, setConversationId] = useState<string | null>(
     initialConversationId,
@@ -274,8 +287,20 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
     send(lastFailedText);
   }
 
+  const inputLen = input.length;
+  const overLimit = inputLen > INPUT_MAX;
+  const showCounter = inputLen >= INPUT_WARN;
+
   return (
     <div className="flex h-[calc(100dvh-128px)] flex-col sm:h-[calc(100dvh-72px)]">
+      {/* ---- 顶栏：标题 + provider/model ---- */}
+      <ChatHeader
+        title={headerTitle}
+        providerLabel={headerProviderLabel}
+        model={headerModel}
+        hasConvo={conversationId !== null}
+      />
+
       {/* ---- 消息列表 ---- */}
       <div
         ref={scrollContainerRef}
@@ -348,20 +373,70 @@ export function ChatView({ initialConversationId, initialMessages }: Props) {
             ) : (
               <button
                 type="submit"
-                disabled={!input.trim()}
+                disabled={!input.trim() || overLimit}
                 className="btn-primary shrink-0 px-4 py-2.5 text-sm"
               >
                 发送
               </button>
             )}
           </form>
-          <p className="mt-1.5 text-[11px] text-zinc-400">
-            Enter 发送，Shift+Enter 换行
-          </p>
+          <div className="mt-1.5 flex items-center justify-between text-[11px]">
+            <p className="text-zinc-400">Enter 发送，Shift+Enter 换行</p>
+            {showCounter && (
+              <p
+                className={
+                  overLimit ? "font-medium text-red-700" : "text-amber-700"
+                }
+              >
+                {inputLen.toLocaleString()} / {INPUT_MAX.toLocaleString()}
+                {overLimit && " · 超出上限"}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
+}
+
+function ChatHeader({
+  title,
+  providerLabel,
+  model,
+  hasConvo,
+}: {
+  title: string | null;
+  providerLabel: string;
+  model: string;
+  hasConvo: boolean;
+}) {
+  return (
+    <div className="border-b border-[var(--border-subtle)] bg-[var(--surface)]/95 backdrop-blur">
+      <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2.5">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-[var(--text-strong)]">
+            {hasConvo ? (title ?? "新对话") : "新对话"}
+          </p>
+        </div>
+        {providerLabel && (
+          <div
+            className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--surface-subtle)] px-2.5 py-1 text-[11px] text-zinc-600"
+            title={model ? `model: ${model}` : ""}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="font-medium">{providerLabel}</span>
+            {model && <span className="text-zinc-400">· {shortModel(model)}</span>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function shortModel(m: string): string {
+  // 把过长的 model id 缩成 12 字以内
+  if (m.length <= 16) return m;
+  return m.slice(0, 14) + "…";
 }
 
 function EmptyState({
@@ -426,8 +501,26 @@ function MessageBubble({ message }: { message: DisplayMessage }) {
     return items;
   }, [message.content]);
 
+  // 给 assistant 复制按钮：抓所有 text block 拼起来
+  const assistantText = !isUser
+    ? message.content
+        .filter(
+          (b): b is Extract<LlmContentBlock, { type: "text" }> => b.type === "text",
+        )
+        .map((b) => b.text)
+        .join("\n")
+        .trim()
+    : "";
+
+  const hoverTime = formatHoverTime(message.createdAt);
+  const briefTime = formatBriefTime(message.createdAt);
+
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+    <div
+      className={`group flex flex-col gap-1 ${
+        isUser ? "items-end" : "items-start"
+      }`}
+    >
       <div
         className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
           isUser
@@ -459,8 +552,81 @@ function MessageBubble({ message }: { message: DisplayMessage }) {
           <span className="ml-1 inline-block h-3 w-1.5 animate-pulse bg-current align-baseline opacity-50" />
         )}
       </div>
+
+      {/* 时间戳 + 复制按钮（hover 才显示） */}
+      <div
+        className={`flex items-center gap-2 px-1 text-[10px] text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100 ${
+          isUser ? "flex-row-reverse" : "flex-row"
+        }`}
+      >
+        {briefTime && (
+          <time
+            dateTime={message.createdAt}
+            title={hoverTime}
+            className="cursor-default"
+          >
+            {briefTime}
+          </time>
+        )}
+        {!isUser && assistantText && !message.streaming && (
+          <CopyButton text={assistantText} />
+        )}
+      </div>
     </div>
   );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        } catch {
+          // ignore
+        }
+      }}
+      className="rounded-md px-1.5 py-0.5 text-zinc-500 hover:bg-[var(--surface-subtle)] hover:text-[var(--text-strong)]"
+      title="复制回复"
+    >
+      {copied ? "已复制 ✓" : "复制"}
+    </button>
+  );
+}
+
+function formatBriefTime(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const now = new Date();
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  if (sameDay) return `${hh}:${mm}`;
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  return `${month}/${day} ${hh}:${mm}`;
+}
+
+function formatHoverTime(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 function ToolCallCard({
@@ -473,17 +639,15 @@ function ToolCallCard({
   const status = summarizeToolResult(use.name, result?.content);
   const isRunning = !result;
   const isError = result && status.kind === "error";
-  // 错误时默认展开，让用户看到详情
-  const [expanded, setExpanded] = useState(false);
-  useEffect(() => {
-    if (isError) setExpanded(true);
-  }, [isError]);
+  // 用户没显式切换前，错误默认展开
+  const [userToggle, setUserToggle] = useState<boolean | null>(null);
+  const expanded = userToggle === null ? Boolean(isError) : userToggle;
 
   return (
     <div className="my-1.5 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-subtle)] text-xs">
       <button
         type="button"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={() => setUserToggle(!expanded)}
         className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left hover:bg-white/50"
       >
         <span className="flex min-w-0 items-center gap-2">

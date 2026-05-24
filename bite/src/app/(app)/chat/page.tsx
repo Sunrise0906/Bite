@@ -3,7 +3,8 @@ import { createClient, requireUser } from "@/lib/supabase/server";
 import { listConversations, loadMessages } from "@/lib/db/chat";
 import { ChatView } from "@/components/chat/chat-view";
 import { ConvoMenu } from "@/components/chat/convo-menu";
-import type { LlmContentBlock } from "@/lib/llm/types";
+import { loadUserLlmSettings, resolveConfig } from "@/lib/llm/router";
+import { PROVIDER_LABELS, type LlmContentBlock } from "@/lib/llm/types";
 
 type SearchParams = { c?: string };
 
@@ -19,33 +20,57 @@ export default async function ChatPage(props: {
   const initialMessages: Array<{
     role: "user" | "assistant";
     content: LlmContentBlock[];
+    createdAt?: string;
   }> = [];
 
-  if (activeId) {
-    // 安全：listConversations 已经过 RLS，但额外校验 activeId 属于用户
-    const found = conversations.find((c) => c.id === activeId);
-    if (found) {
-      const rows = await loadMessages(supabase, activeId);
-      // 把"只含 tool_result"的 user 消息折进上一条 assistant，让 UI 配对显示
-      for (const row of rows) {
-        const onlyToolResult =
-          row.role === "user" &&
-          row.content.every((b) => b.type === "tool_result");
-        if (onlyToolResult && initialMessages.length > 0) {
-          const last = initialMessages[initialMessages.length - 1];
-          if (last.role === "assistant") {
-            last.content = [...last.content, ...row.content];
-            continue;
-          }
+  const activeConvo = activeId
+    ? (conversations.find((c) => c.id === activeId) ?? null)
+    : null;
+
+  if (activeConvo) {
+    const rows = await loadMessages(supabase, activeConvo.id);
+    // 把"只含 tool_result"的 user 消息折进上一条 assistant，让 UI 配对显示
+    for (const row of rows) {
+      const onlyToolResult =
+        row.role === "user" &&
+        row.content.every((b) => b.type === "tool_result");
+      if (onlyToolResult && initialMessages.length > 0) {
+        const last = initialMessages[initialMessages.length - 1];
+        if (last.role === "assistant") {
+          last.content = [...last.content, ...row.content];
+          continue;
         }
-        initialMessages.push({ role: row.role, content: row.content });
       }
+      initialMessages.push({
+        role: row.role,
+        content: row.content,
+        createdAt: row.created_at,
+      });
     }
   }
 
-  const hasActive = Boolean(
-    activeId && conversations.some((c) => c.id === activeId),
-  );
+  // 顶栏要显示的 provider/model
+  // - 有 active 会话：用会话存的 provider/model
+  // - 新对话：用用户当前 settings 解析出的 effective config
+  let headerProviderLabel = "";
+  let headerModel = "";
+  if (activeConvo) {
+    headerProviderLabel = PROVIDER_LABELS[activeConvo.provider] ?? activeConvo.provider;
+    headerModel = activeConvo.model ?? "";
+  } else {
+    try {
+      const settings = await loadUserLlmSettings();
+      const config = resolveConfig(settings);
+      headerProviderLabel = PROVIDER_LABELS[config.id];
+      headerModel = config.chatModel;
+    } catch {
+      // 没配 key 也不影响进页面
+      headerProviderLabel = "未配置";
+      headerModel = "";
+    }
+  }
+
+  const hasActive = activeConvo !== null;
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-64px)] w-full max-w-6xl flex-col sm:flex-row">
@@ -136,6 +161,9 @@ export default async function ChatPage(props: {
           key={activeId ?? "new"}
           initialConversationId={hasActive ? (activeId as string) : null}
           initialMessages={initialMessages}
+          headerTitle={activeConvo?.title ?? null}
+          headerProviderLabel={headerProviderLabel}
+          headerModel={headerModel}
         />
       </section>
     </div>

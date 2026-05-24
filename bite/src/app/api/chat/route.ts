@@ -116,8 +116,15 @@ export async function POST(req: NextRequest) {
 
   // 5. SSE stream
   const encoder = new TextEncoder();
+  // 客户端断开就停掉这次 LLM 调用，省 token / 防止偷偷继续执行工具
+  const clientSignal = req.signal;
   const send = (controller: ReadableStreamDefaultController, obj: unknown) => {
-    controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+    if (clientSignal.aborted) return;
+    try {
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+    } catch {
+      // controller 已经关了
+    }
   };
 
   const stream = new ReadableStream({
@@ -134,6 +141,7 @@ export async function POST(req: NextRequest) {
         let loops = 0;
 
         while (loops < MAX_TOOL_LOOPS) {
+          if (clientSignal.aborted) break;
           loops++;
 
           const assistantBlocks: LlmContentBlock[] = [];
@@ -151,6 +159,7 @@ export async function POST(req: NextRequest) {
             tools: CHAT_TOOLS,
             maxTokens: 4096,
           })) {
+            if (clientSignal.aborted) break;
             if (chunk.type === "text") {
               currentText += chunk.delta;
               send(controller, { type: "text", delta: chunk.delta });
@@ -197,6 +206,19 @@ export async function POST(req: NextRequest) {
           }
           if (currentText) {
             assistantBlocks.push({ type: "text", text: currentText });
+          }
+
+          // 客户端断开：把已经收到的部分落库（不浪费这轮 token），停循环
+          if (clientSignal.aborted) {
+            if (assistantBlocks.length > 0) {
+              await appendMessage(supabase, {
+                conversationId,
+                role: "assistant",
+                content: assistantBlocks,
+                stopReason: "aborted",
+              });
+            }
+            break;
           }
 
           // 写 assistant 这一轮

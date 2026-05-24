@@ -20,6 +20,7 @@ const MESSAGES: Record<string, (count?: number) => string> = {
   list_created: () => "已创建 list",
   list_renamed: () => "已重命名",
   list_deleted: () => "list 已删除",
+  convo_deleted: () => "对话已删除",
 };
 
 export function ToastFlash() {

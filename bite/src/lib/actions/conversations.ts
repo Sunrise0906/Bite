@@ -21,7 +21,7 @@ export async function deleteConversationAction(formData: FormData): Promise<void
   }
 
   revalidatePath("/chat");
-  redirect("/chat");
+  redirect("/chat?toast=convo_deleted");
 }
 
 // ---- 重命名会话 ----------------------------------------------------------
