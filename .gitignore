@@ -23,6 +23,11 @@ scratch.*
 credentials.*
 secrets.*
 
+# Workspace 根的 debug / 抓取测试 HTML（应用代码在 bite/，根目录不该有 .html）
+/*.html
+xhs-test.html
+xhs*.html
+
 # Node（防止未来在 workspace 根加脚本时遗漏）
 node_modules/
 
