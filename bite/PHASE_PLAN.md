@@ -68,6 +68,10 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 - [x] **J1. /profile 编辑 name + avatar URL** — 之前用户没法改自己的 display name，朋友 / 共享 list 里看到的全是 email 前缀。新增 updateProfile action + ProfileEditForm 组件（在 read view 和 edit 模式间切换）
 - [x] **J2. 自定义 404 页** — 之前 Next.js 默认黑底英文 404 跟设计语言不符。改成中文 + terracotta 配色 + 回 list / chat 的 CTA
 
+### K. 数据可见性 polish
+
+- [x] **K1. PlaceCard 显示 visit 信号** — chat 工具已能读 visit count / last sentiment / avg star，但 list 页卡片看不到。现在卡片底部加一行：「❤️ 去过 N 次 · 3 天前 · ★★★★☆」
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）
@@ -175,6 +179,17 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 - ✓ acceptRecommendation reasons.user_id 从 from_user_id 改成接收者 user.id，文本加前缀「朋友推荐：」。这样 PlaceCard 渲染 myReason 时能命中
 - ✓ PHASE_PLAN 标 DONE 待用户测
 - commit: 71f6256
+
+### iter-11 [K 数据可见性 — visit 信号上 PlaceCard]
+- ✓ list 详情页一次拉所有 places 的 visit_logs（in placeIds），客户端构建 visitsByPlace map（count / last sentiment / last date / avg star）
+- ✓ PlacesView 接 visitsByPlace prop（默认 {} 空对象向后兼容）
+- ✓ PlaceCard 在 myReason 下加一行：sentiment emoji + 「去过 N 次」 + 相对日期 + 平均星
+- ✓ relDate 辅助函数（今天 / 昨天 / N 天 / N 周 / N 月 / N 年）
+- PM review：
+  - 这个查询每次进 list 页都跑；place 多时（>100）可以考虑用 RPC + GROUP BY 做服务端聚合
+  - PlaceCard 现在有 5 行信息（菜系 + reason + visits + notes + 状态chip 等），有点拥挤；可考虑收起部分
+  - 星级用平均值四舍五入显示——如果只有 1 次 3 星 + 1 次 4 星 显示 4 星，略乐观；可改用最近一次的星
+- commit: b1c25f3
 
 ### iter-10 [J 持续 polish — profile 编辑 + 404 页]
 - ✓ J1 ProfileEditForm：之前用户没法改 display name / avatar

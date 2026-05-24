@@ -21,14 +21,23 @@ const PRICE_LABEL: Record<PlacePrice, string> = {
 
 type StatusFilter = "all" | PlaceStatus;
 
+export type PlaceVisitSummary = {
+  count: number;
+  last_visit: string;
+  last_sentiment: "will_return" | "okay" | "wont_return";
+  avg_star: number | null;
+};
+
 export function PlacesView({
   places,
   currentUserId,
   canEdit = true,
+  visitsByPlace = {},
 }: {
   places: Place[];
   currentUserId: string;
   canEdit?: boolean;
+  visitsByPlace?: Record<string, PlaceVisitSummary>;
 }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -234,6 +243,7 @@ export function PlacesView({
                         place={p}
                         currentUserId={currentUserId}
                         canEdit={canEdit}
+                        visitSummary={visitsByPlace[p.id] ?? null}
                       />
                     </li>
                   ))}

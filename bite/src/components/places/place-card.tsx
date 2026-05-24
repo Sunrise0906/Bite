@@ -3,6 +3,29 @@ import type { Place, PlacePrice } from "@/lib/db/types";
 import { StatusQuickToggle } from "./status-quick-toggle";
 import { PlaceCardMenu } from "./place-card-menu";
 import { VisitLogButton } from "@/components/visits/visit-log-button";
+import type { PlaceVisitSummary } from "./places-view";
+
+const SENTIMENT_EMOJI: Record<
+  PlaceVisitSummary["last_sentiment"],
+  string
+> = {
+  will_return: "❤️",
+  okay: "🟡",
+  wont_return: "👎",
+};
+
+function relDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const now = new Date();
+  const days = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+  if (days === 0) return "今天";
+  if (days === 1) return "昨天";
+  if (days < 7) return `${days} 天前`;
+  if (days < 30) return `${Math.floor(days / 7)} 周前`;
+  if (days < 365) return `${Math.floor(days / 30)} 月前`;
+  return `${Math.floor(days / 365)} 年前`;
+}
 
 const STATUS_CHIP: Record<Place["status"], string> = {
   want_to_go: "chip chip-want",
@@ -21,10 +44,12 @@ export function PlaceCard({
   place,
   currentUserId,
   canEdit = true,
+  visitSummary = null,
 }: {
   place: Place;
   currentUserId: string;
   canEdit?: boolean;
+  visitSummary?: PlaceVisitSummary | null;
 }) {
   const myReason = place.reasons.find((r) => r.user_id === currentUserId)?.text;
   const photos = place.photo_urls ?? [];
@@ -120,6 +145,24 @@ export function PlaceCard({
               <span className="text-[var(--primary)]">“</span>
               {myReason}
               <span className="text-[var(--primary)]">”</span>
+            </p>
+          )}
+
+          {visitSummary && visitSummary.count > 0 && (
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-500">
+              <span>
+                <span aria-hidden>{SENTIMENT_EMOJI[visitSummary.last_sentiment]}</span>{" "}
+                去过 {visitSummary.count} 次
+              </span>
+              <span className="text-zinc-400">· {relDate(visitSummary.last_visit)}</span>
+              {visitSummary.avg_star !== null && (
+                <span className="text-amber-500">
+                  {"★".repeat(Math.round(visitSummary.avg_star))}
+                  <span className="text-zinc-300">
+                    {"★".repeat(5 - Math.round(visitSummary.avg_star))}
+                  </span>
+                </span>
+              )}
             </p>
           )}
 

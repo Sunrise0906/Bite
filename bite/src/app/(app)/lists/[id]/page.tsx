@@ -48,6 +48,53 @@ export default async function ListDetailPage({
   if (!list) notFound();
 
   const places = (placesData ?? []) as Place[];
+
+  // 拉这些 places 的 visit_logs 摘要：count + last sentiment + last date + avg star
+  type VisitSummary = {
+    count: number;
+    last_visit: string;
+    last_sentiment: "will_return" | "okay" | "wont_return";
+    avg_star: number | null;
+  };
+  const visitsByPlace = new Map<string, VisitSummary>();
+  if (places.length > 0) {
+    const placeIds = places.map((p) => p.id);
+    const { data: visitRows } = await supabase
+      .from("visit_logs")
+      .select("place_id, visited_at, sentiment, star_rating")
+      .in("place_id", placeIds)
+      .order("visited_at", { ascending: false });
+
+    const starSums = new Map<string, { total: number; count: number }>();
+    for (const log of (visitRows ?? []) as Array<{
+      place_id: string;
+      visited_at: string;
+      sentiment: "will_return" | "okay" | "wont_return";
+      star_rating: number | null;
+    }>) {
+      const cur = visitsByPlace.get(log.place_id);
+      if (!cur) {
+        visitsByPlace.set(log.place_id, {
+          count: 1,
+          last_visit: log.visited_at,
+          last_sentiment: log.sentiment,
+          avg_star: null,
+        });
+      } else {
+        cur.count += 1;
+      }
+      if (log.star_rating !== null) {
+        const s = starSums.get(log.place_id) ?? { total: 0, count: 0 };
+        s.total += log.star_rating;
+        s.count += 1;
+        starSums.set(log.place_id, s);
+      }
+    }
+    for (const [pid, s] of starSums) {
+      const v = visitsByPlace.get(pid);
+      if (v) v.avg_star = s.total / s.count;
+    }
+  }
   const isOwner = list.owner_id === user.id;
 
   // 不是 owner 时查 list_members 里的角色
@@ -167,6 +214,7 @@ export default async function ListDetailPage({
           places={places}
           currentUserId={user.id}
           canEdit={canEdit}
+          visitsByPlace={Object.fromEntries(visitsByPlace)}
         />
       )}
 
