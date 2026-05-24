@@ -23,7 +23,7 @@
 - [x] **A1. place 链接化** — page 加载 placeMap → ChatView LinkifiedText 解析 «店名» 渲染 <Link>，system prompt 引导 LLM 用书名号
 - [x] **A2. 重新生成最后一轮** — /api/chat 加 regenerate flag：找最后一条 user-text → 删除后续 messages → re-stream；前端 ↻ 按钮挂在最后一条 assistant 下
 - [x] **A3. 用量统计** — Provider 流末尾 yield usage chunk（Anthropic finalMessage.usage / OpenAI stream_options.include_usage），存 messages.usage，/profile 加本月/全部 token 卡
-- [ ] **A4. 对话超长上下文管理** — messages.length > 30 时把前面折叠 + 让 LLM 看截断 summary（可选优化，defer）
+- [x] **A4. 对话超长上下文管理** — /api/chat 超 30 轮时只保留最近 24，且在边界处不切散 tool_use/tool_result 对；前面塞一条 user-role 摘要说"早期轮次已省略"
 
 ### B. Phase 4 — VisitLog + 我去了 + 地图
 
@@ -123,5 +123,16 @@
   - 防重复用 `place_data->>name` + status=pending 做 unique；如果同名不同地址会被误判 —— 极少见，接受
   - 缺 inbox 数字 badge（导航上看不到有几条待处理）—— polish
   - 没接 email 通知（朋友不主动来 inbox 就看不到）—— BLOCKED 需要 Resend 集成
+- commit: 5ad3e44
+
+### iter-6 [E 系列 polish + A4]
+- ✓ E1 /profile 收件箱入口加 pending count badge（terracotta 圆点 + 数字）
+- ✓ E2 list 头部下方加 ActiveInvitesPanel：列出活跃 invite（未用未过期），可复制链接 / 撤销；客户端 optimistic 删除
+- ✓ A4 /api/chat 超 30 轮自动裁剪：保留最近 24 条，避开 tool_use/tool_result 配对被切散，前面塞一句 system-style 提示给 LLM
+- PM review：
+  - context 截断阈值 30/24 是拍脑袋；token 上限随 provider 不同（Gemini 1M 其实可以不裁），可后续按 provider 区分
+  - 截断时塞的提示文是 user-role，因为 system 在 /api/chat 里是单独的 param；可能不如真正改 system prompt 自然
+  - inbox badge 只在 /profile 页内；bottom-nav 没有「收件箱」入口（已经满了），用户得绕一步进 profile
+  - active invites 没显示发给谁——因为 token 没绑定接收者邮箱，发出后任何人持链接都能用
 
 ---

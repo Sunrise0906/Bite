@@ -33,21 +33,31 @@ export default async function ProfilePage() {
   const user = await requireUser();
   const supabase = await createClient();
 
-  const [{ data: profile }, { data: llmSettings }, { data: usageRows }] =
-    await Promise.all([
-      supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
-      supabase
-        .from("user_llm_settings")
-        .select("provider, api_key, base_url, chat_model, extract_model")
-        .eq("user_id", user.id)
-        .maybeSingle<UserLlmSettings>(),
-      // RLS 限制只能拿到自己 convos 下的 messages
-      supabase
-        .from("messages")
-        .select("usage, created_at")
-        .eq("role", "assistant")
-        .not("usage", "is", null),
-    ]);
+  const [
+    { data: profile },
+    { data: llmSettings },
+    { data: usageRows },
+    { count: pendingRecCount },
+  ] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
+    supabase
+      .from("user_llm_settings")
+      .select("provider, api_key, base_url, chat_model, extract_model")
+      .eq("user_id", user.id)
+      .maybeSingle<UserLlmSettings>(),
+    // RLS 限制只能拿到自己 convos 下的 messages
+    supabase
+      .from("messages")
+      .select("usage, created_at")
+      .eq("role", "assistant")
+      .not("usage", "is", null),
+    // 待处理推荐数
+    supabase
+      .from("recommendations")
+      .select("id", { count: "exact", head: true })
+      .eq("to_user_id", user.id)
+      .eq("status", "pending"),
+  ]);
 
   const displayName =
     profile?.name ?? user.email?.split("@")[0] ?? "未命名用户";
@@ -163,6 +173,11 @@ export default async function ProfilePage() {
             <span>📬</span>
             <span className="font-medium text-[var(--text-strong)]">收件箱</span>
             <span className="text-zinc-500">朋友推荐的店</span>
+            {pendingRecCount && pendingRecCount > 0 ? (
+              <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--primary)] px-1.5 text-[11px] font-semibold text-white">
+                {pendingRecCount}
+              </span>
+            ) : null}
           </span>
           <span className="text-zinc-400">›</span>
         </a>

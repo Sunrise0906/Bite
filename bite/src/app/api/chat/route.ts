@@ -138,10 +138,45 @@ export async function POST(req: NextRequest) {
     historyRows = historyRows.slice(0, cutIdx + 1);
   }
 
+  // 长会话保护：超过 30 条消息时只保留最近 24 条 + 一条 system-style 摘要
+  // 防止 token 失控（尤其是 tool_result 占空间）。从消息边界裁剪而不是块切，保证
+  // tool_use 跟它的 tool_result 不会被拆散。
+  const MAX_TURNS = 30;
+  const KEEP_TURNS = 24;
+  let truncated = false;
+  if (historyRows.length > MAX_TURNS) {
+    truncated = true;
+    // 从尾部往前找一个干净的边界：最近一条不是 tool_result-only 的 user 消息
+    let cutoff = historyRows.length - KEEP_TURNS;
+    while (cutoff > 0) {
+      const row = historyRows[cutoff];
+      const onlyToolResult =
+        row.role === "user" &&
+        row.content.every((b) => b.type === "tool_result");
+      if (!onlyToolResult) break;
+      cutoff++;
+    }
+    historyRows = historyRows.slice(cutoff);
+  }
+
   const messages: LlmMessage[] = historyRows.map((row) => ({
     role: row.role,
     content: row.content,
   }));
+
+  // 截断了：在最前面插一条 system-style 摘要给 LLM 看
+  if (truncated && messages.length > 0) {
+    messages.unshift({
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text:
+            "（此对话历史较长，更早的轮次已被省略以控制成本。后续根据当前用户问题 + 可见上下文回答即可。）",
+        },
+      ],
+    });
+  }
 
   // 4. 非 regen：追加用户新消息（先写库，再喂模型）
   if (!isRegen) {

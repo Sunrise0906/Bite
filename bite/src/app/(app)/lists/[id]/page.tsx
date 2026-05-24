@@ -6,6 +6,10 @@ import { RenameListForm } from "@/components/lists/rename-list-form";
 import { DeleteListButton } from "@/components/lists/delete-list-button";
 import { PlacesView } from "@/components/places/places-view";
 import { InviteButton } from "@/components/invites/invite-button";
+import {
+  ActiveInvitesPanel,
+  type ActiveInvite,
+} from "@/components/invites/active-invites";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ error?: string; toast?: string }>;
@@ -41,6 +45,19 @@ export default async function ListDetailPage({
   const places = (placesData ?? []) as Place[];
   const isOwner = list.owner_id === user.id;
 
+  // owner 看自己发的活跃邀请（未用 + 未过期）
+  let activeInvites: ActiveInvite[] = [];
+  if (isOwner) {
+    const { data } = await supabase
+      .from("list_invites")
+      .select("token, role, expires_at")
+      .eq("list_id", id)
+      .is("used_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false });
+    activeInvites = (data ?? []) as ActiveInvite[];
+  }
+
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">
       <Link
@@ -75,6 +92,10 @@ export default async function ListDetailPage({
           + 新增店铺
         </Link>
       </div>
+
+      {isOwner && activeInvites.length > 0 && (
+        <ActiveInvitesPanel invites={activeInvites} />
+      )}
 
       {places.length === 0 ? (
         <EmptyPlaces />
