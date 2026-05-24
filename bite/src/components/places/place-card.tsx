@@ -40,6 +40,17 @@ const PRICE_RANGE: Record<PlacePrice, string> = {
   $$$$: ">$60",
 };
 
+const SOURCE_BADGE: Record<
+  string,
+  { icon: string; label: string } | null
+> = {
+  manual: null, // 默认手动加，不显示
+  xhs: { icon: "📕", label: "来自小红书" },
+  ai_extract: { icon: "🤖", label: "AI 抽取" },
+  google_places: { icon: "🗺️", label: "Google Places" },
+  yelp: { icon: "⭐", label: "Yelp" },
+};
+
 export function PlaceCard({
   place,
   currentUserId,
@@ -134,8 +145,17 @@ export function PlaceCard({
             </div>
           </div>
 
-          {place.cuisine.length > 0 && (
-            <div className="mt-2.5 flex flex-wrap gap-1">
+          {(place.cuisine.length > 0 || SOURCE_BADGE[place.source]) && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-1">
+              {SOURCE_BADGE[place.source] && (
+                <span
+                  className="inline-flex items-center text-sm"
+                  title={SOURCE_BADGE[place.source]!.label}
+                  aria-label={SOURCE_BADGE[place.source]!.label}
+                >
+                  {SOURCE_BADGE[place.source]!.icon}
+                </span>
+              )}
               {place.cuisine.map((c) => (
                 <span key={c} className="chip chip-neutral">
                   {c}
