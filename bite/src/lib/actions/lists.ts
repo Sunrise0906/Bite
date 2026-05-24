@@ -32,6 +32,35 @@ export async function createList(
   redirect(`/lists/${data.id}?toast=list_created`);
 }
 
+// ---- 新建 list 但留在原地（quick-add 等流程用）---------------------------
+// 不 redirect，返回 id 让调用方 revalidate / refresh。
+export type CreateListInPlaceResult =
+  | { ok: true; id: string }
+  | { error: string };
+
+export async function createListInPlace(
+  name: string,
+): Promise<CreateListInPlaceResult> {
+  const user = await requireUser();
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "请输入 list 名称" };
+  if (trimmed.length > 80) return { error: "名称不超过 80 字" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("lists")
+    .insert({ name: trimmed, owner_id: user.id })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (error) return { error: `创建失败：${error.message}` };
+
+  revalidatePath("/lists");
+  revalidatePath("/quick-add");
+  revalidatePath("/quick-add/multi");
+  return { ok: true, id: data.id };
+}
+
 // ---- 重命名 list ---------------------------------------------------------
 export async function renameList(
   _prev: ListFormState,

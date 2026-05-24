@@ -81,6 +81,10 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 
 - [x] **N1. 每个页面 metadata.title** — 之前所有 tab 都显示「Bite · 餐厅记录」（layout 默认）。给 /lists、/chat（动态拉对话标题）、/profile、/recommendations、/quick-add、/quick-add/multi、/invite/[token]、/lists/[id]（动态拉 list 名）、/lists/[id]/places/new、/lists/[id]/places/[placeId]/edit（动态拉 place 名）都加了 metadata 或 generateMetadata
 
+### O. 流程衔接 polish
+
+- [x] **O3. /quick-add 空 list 内联创建** — 之前用户粘 XHS link、LLM 抽取完发现没有可写 list 只能"返回 lists"重新走一遍流程（草稿虽然存了但体验割裂）。新加 createListInPlace action（不 redirect，返回 id）+ InlineCreateList 客户端组件，原地建 list 后 router.refresh，自动接续 confirm 表单
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）

@@ -9,6 +9,7 @@ import {
   type ListOption,
 } from "@/components/places/place-confirm-form";
 import { RetryExtract } from "@/components/places/retry-extract";
+import { InlineCreateList } from "@/components/lists/inline-create-list";
 import type { ExtractedPlace } from "@/lib/llm/extract-place";
 
 export const metadata = {
@@ -60,17 +61,14 @@ export default async function QuickAddPage({
   if (writableLists.length === 0) {
     return (
       <main className="mx-auto w-full max-w-xl px-4 py-10">
-        <div className="card p-6 text-center">
-          <p className="text-sm text-zinc-600">
-            你还没有可写的 list。先回去新建一个再来。
-          </p>
-          <Link
-            href="/lists"
-            className="btn-primary mt-4 inline-flex px-4 py-2 text-sm"
-          >
-            返回 lists
-          </Link>
-        </div>
+        <Link
+          href="/lists"
+          className="mb-5 inline-flex items-center text-sm text-zinc-500 transition-colors hover:text-[var(--text-strong)]"
+        >
+          ‹ 取消并返回
+        </Link>
+        <h1 className="heading-display mb-3 text-2xl">先建一个 list</h1>
+        <InlineCreateList />
       </main>
     );
   }
