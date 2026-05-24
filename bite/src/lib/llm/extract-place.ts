@@ -1,11 +1,8 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { getAnthropicClient } from "./client";
+import { getProvider } from "./router";
+import { LlmProviderError } from "./types";
 
-// Phase 2 默认提取模型 —— Haiku 4.5 经济快速，结构化提取场景足够。
-// Phase 3 多模型抽象时这里会被切到 provider router。
-const EXTRACTION_MODEL = "claude-haiku-4-5";
+// 模型由 provider router 按当前用户 settings 决定（Anthropic / OpenAI / DeepSeek / Qwen）
 
 // ============================== Schema ==============================
 
@@ -249,44 +246,18 @@ export async function extractPlacesFromText(
   if (trimmed.length > 10000)
     return { ok: false, error: "文本过长，超过 10000 字" };
 
-  let client: Anthropic;
   try {
-    client = getAnthropicClient();
-  } catch (err) {
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "AI 客户端初始化失败",
-    };
-  }
-
-  try {
-    const response = await client.messages.parse({
-      model: EXTRACTION_MODEL,
-      max_tokens: 4096,
-      system: [
-        {
-          type: "text",
-          text: SYSTEM_PROMPT,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      messages: [
-        ...FEW_SHOTS.flatMap((ex) => [
-          { role: "user" as const, content: ex.user },
-          {
-            role: "assistant" as const,
-            content: JSON.stringify(ex.assistant),
-          },
-        ]),
-        { role: "user", content: trimmed },
-      ],
-      output_config: {
-        format: zodOutputFormat(ExtractionResultSchema),
-      },
+    const provider = await getProvider();
+    const parsed = await provider.extract({
+      system: SYSTEM_PROMPT,
+      fewShots: FEW_SHOTS,
+      userInput: trimmed,
+      schema: ExtractionResultSchema,
+      schemaName: "place_extraction",
+      maxTokens: 4096,
     });
 
-    const parsed = response.parsed_output;
-    if (!parsed || !parsed.places || parsed.places.length === 0) {
+    if (!parsed.places || parsed.places.length === 0) {
       return { ok: false, error: "AI 未返回有效结构化结果，请重试或换种描述" };
     }
 
@@ -295,14 +266,9 @@ export async function extractPlacesFromText(
 
     return { ok: true, mode: parsed.mode, places };
   } catch (err) {
-    if (err instanceof Anthropic.RateLimitError) {
-      return { ok: false, error: "AI 服务繁忙，请稍后再试" };
-    }
-    if (err instanceof Anthropic.AuthenticationError) {
-      return { ok: false, error: "AI 凭据无效，请检查 ANTHROPIC_API_KEY" };
-    }
-    if (err instanceof Anthropic.APIError) {
-      return { ok: false, error: `AI 解析失败：${err.message}` };
+    if (err instanceof LlmProviderError) {
+      // router / provider 层已经把错误本地化好了，直接透传
+      return { ok: false, error: err.message };
     }
     return {
       ok: false,
