@@ -13,13 +13,13 @@ type Status =
   | { phase: "error"; message: string };
 
 const PLACES_BASE = "https://places.googleapis.com/v1";
+// Google Places API 限制最多 5 个 included_primary_types
 const FOOD_TYPES = [
   "restaurant",
   "cafe",
   "bar",
   "bakery",
   "meal_takeaway",
-  "meal_delivery",
 ];
 
 async function fetchSuggestions(
@@ -160,14 +160,22 @@ export function QuickAddInput() {
           {detected.kind === "free_text" && (
             <div className="flex items-center justify-between border-t border-[var(--border-subtle)] px-3 py-2">
               <span className="text-xs text-zinc-500">
-                ✨ 长文本 · 使用 Claude 解析
+                {detected.hasXhsUrl
+                  ? "🔗 小红书链接 · 抓取 + Claude 解析"
+                  : "✨ 长文本 · 使用 Claude 解析"}
               </span>
               <button
                 type="submit"
                 disabled={pending}
                 className="btn-primary px-4 py-1.5 text-sm"
               >
-                {pending ? "解析中…" : "用 AI 解析"}
+                {pending
+                  ? detected.hasXhsUrl
+                    ? "抓取中…"
+                    : "解析中…"
+                  : detected.hasXhsUrl
+                    ? "抓取并解析"
+                    : "用 AI 解析"}
               </button>
             </div>
           )}
@@ -179,7 +187,6 @@ export function QuickAddInput() {
           </p>
         )}
 
-        {detected.kind === "xhs_url" && <XhsLinkHint />}
         {detected.kind === "place_name" && (
           <SuggestionsList
             status={status}
@@ -188,14 +195,6 @@ export function QuickAddInput() {
           />
         )}
       </form>
-    </div>
-  );
-}
-
-function XhsLinkHint() {
-  return (
-    <div className="rounded-xl border border-[var(--primary-soft)] bg-[var(--primary-soft)]/30 px-3 py-2.5 text-sm text-[var(--primary-soft-text)]">
-      ⚠️ 小红书链接抓不到内容。请打开链接，复制帖子<strong>正文</strong>粘贴回来，AI 会从正文提取。
     </div>
   );
 }

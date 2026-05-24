@@ -8,6 +8,7 @@ import {
   type InitialPlaceData,
   type ListOption,
 } from "@/components/places/place-confirm-form";
+import { RetryExtract } from "@/components/places/retry-extract";
 import type { ExtractedPlace } from "@/lib/llm/extract-place";
 
 type SearchParams = Promise<{
@@ -59,6 +60,8 @@ export default async function QuickAddPage({
   let pageSource: "text" | "place" = "text";
   let confidence: ExtractedPlace["confidence"] | undefined;
   let fetchError: string | null = null;
+  let scrapeWarning: string | null = null;
+  let rawInputForRetry: string | null = null;
 
   if (placeId) {
     pageSource = "place";
@@ -85,6 +88,7 @@ export default async function QuickAddPage({
     pageSource = "text";
     const draft = await readDraft();
     if (!draft) redirect("/lists");
+    if (draft.kind === "multi") redirect("/quick-add/multi");
     const ex = draft.extracted;
     initial = {
       name: ex.name,
@@ -93,13 +97,34 @@ export default async function QuickAddPage({
       price_range: ex.price_range,
       status: ex.status,
       occasions: ex.occasions,
-      recommended_by: ex.recommended_by,
+      recommended_by:
+        ex.recommended_by ?? (draft.source === "xhs" ? "XHS博主" : undefined),
       tags: ex.tags,
       reason: ex.reason,
-      source: "ai_extract",
+      source: draft.source,
+      source_url: draft.sourceUrl,
       notes: ex.notes,
+      photo_urls: draft.photoUrls,
     };
     confidence = ex.confidence;
+    if (draft.scrapeWarning) scrapeWarning = draft.scrapeWarning;
+    rawInputForRetry = draft.rawInput;
+  }
+
+  // 查同名已存在的 list（用于"已存在 → 覆盖更新"提示）
+  let existingInLists: string[] = [];
+  if (initial) {
+    const writableIds = writableLists.map((l) => l.id);
+    if (writableIds.length > 0) {
+      const { data: dupes } = await supabase
+        .from("places")
+        .select("list_id")
+        .eq("name", initial.name)
+        .in("list_id", writableIds);
+      existingInLists = ((dupes ?? []) as Array<{ list_id: string }>).map(
+        (d) => d.list_id,
+      );
+    }
   }
 
   return (
@@ -122,6 +147,15 @@ export default async function QuickAddPage({
         </div>
       )}
 
+      {scrapeWarning && (
+        <div
+          className="mb-5 rounded-xl border border-[var(--primary-soft)] bg-[var(--primary-soft)]/30 px-3 py-2.5 text-sm text-[var(--primary-soft-text)]"
+          role="status"
+        >
+          ⚠️ {scrapeWarning}
+        </div>
+      )}
+
       {initial && (
         <PlaceConfirmForm
           initial={initial}
@@ -129,7 +163,14 @@ export default async function QuickAddPage({
           defaultListId={writableLists[0].id}
           source={pageSource}
           confidence={confidence}
+          existingInLists={existingInLists}
         />
+      )}
+
+      {rawInputForRetry && (
+        <div className="mt-8 border-t border-[var(--border-subtle)] pt-5">
+          <RetryExtract initial={rawInputForRetry} />
+        </div>
       )}
     </main>
   );

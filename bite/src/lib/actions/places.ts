@@ -59,6 +59,11 @@ export async function createPlace(
   const reasons = reasonText
     ? [{ user_id: user.id, text: reasonText }]
     : [];
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const photoUrls = String(formData.get("photo_urls_text") ?? "")
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -74,6 +79,8 @@ export async function createPlace(
       recommended_by: recommendedBy,
       tags,
       reasons,
+      notes,
+      photo_urls: photoUrls,
       source: "manual",
       created_by: user.id,
     })
@@ -83,7 +90,7 @@ export async function createPlace(
   if (error) return { error: `保存失败：${error.message}` };
 
   revalidatePath(`/lists/${listId}`);
-  redirect(`/lists/${listId}`);
+  redirect(`/lists/${listId}?toast=place_added`);
 }
 
 // ---- 更新 place ---------------------------------------------------------
@@ -104,6 +111,8 @@ export async function updatePlace(
   if (!address) return { error: "请填写地址" };
   if (cuisine.length === 0) return { error: "请填写至少一个菜系标签" };
 
+  const notesRaw = formData.get("notes");
+  const photoRaw = formData.get("photo_urls_text");
   const supabase = await createClient();
   const { error } = await supabase
     .from("places")
@@ -117,6 +126,18 @@ export async function updatePlace(
       tags: parseTags(formData.get("tags")),
       recommended_by:
         String(formData.get("recommended_by") ?? "").trim() || null,
+      // notes / photo_urls 不在表单时不动；空字符串 → 清空
+      ...(notesRaw !== null
+        ? { notes: String(notesRaw).trim() || null }
+        : {}),
+      ...(photoRaw !== null
+        ? {
+            photo_urls: String(photoRaw)
+              .split(/\r?\n/)
+              .map((s) => s.trim())
+              .filter(Boolean),
+          }
+        : {}),
     })
     .eq("id", placeId);
 
@@ -128,7 +149,7 @@ export async function updatePlace(
 
   revalidatePath(`/lists/${listId}`);
   revalidatePath(`/lists/${listId}/places/${placeId}/edit`);
-  redirect(`/lists/${listId}`);
+  redirect(`/lists/${listId}?toast=place_updated`);
 }
 
 async function syncOwnReason(
@@ -152,6 +173,27 @@ async function syncOwnReason(
   await supabase.from("places").update({ reasons: next }).eq("id", placeId);
 }
 
+// ---- 快速改 place 状态（卡片上一键切换）--------------------------------
+export async function updatePlaceStatus(
+  placeId: string,
+  listId: string,
+  next: PlaceStatus,
+): Promise<{ ok: boolean; error?: string }> {
+  await requireUser();
+  if (!VALID_STATUS.includes(next)) return { ok: false, error: "无效状态" };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("places")
+    .update({ status: next })
+    .eq("id", placeId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/lists/${listId}`);
+  return { ok: true };
+}
+
 // ---- 删除 place ---------------------------------------------------------
 export async function deletePlace(formData: FormData): Promise<void> {
   await requireUser();
@@ -172,5 +214,5 @@ export async function deletePlace(formData: FormData): Promise<void> {
   }
 
   revalidatePath(`/lists/${listId}`);
-  redirect(`/lists/${listId}`);
+  redirect(`/lists/${listId}?toast=place_deleted`);
 }

@@ -1,25 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
-import type { List, Place, PlaceStatus } from "@/lib/db/types";
+import type { List, Place } from "@/lib/db/types";
 import { RenameListForm } from "@/components/lists/rename-list-form";
 import { DeleteListButton } from "@/components/lists/delete-list-button";
-import { PlaceCard } from "@/components/places/place-card";
+import { PlacesView } from "@/components/places/places-view";
 
 type Params = Promise<{ id: string }>;
-type SearchParams = Promise<{ error?: string }>;
-
-const STATUS_ORDER: Record<PlaceStatus, number> = {
-  want_to_go: 0,
-  visited: 1,
-  archived: 2,
-};
-
-const STATUS_LABEL: Record<PlaceStatus, string> = {
-  want_to_go: "想去",
-  visited: "已去过",
-  archived: "归档",
-};
+type SearchParams = Promise<{ error?: string; toast?: string }>;
 
 export default async function ListDetailPage({
   params,
@@ -52,14 +40,6 @@ export default async function ListDetailPage({
   const places = (placesData ?? []) as Place[];
   const isOwner = list.owner_id === user.id;
 
-  const grouped = new Map<PlaceStatus, Place[]>();
-  for (const status of Object.keys(STATUS_ORDER) as PlaceStatus[]) {
-    grouped.set(status, []);
-  }
-  for (const p of places) {
-    grouped.get(p.status)?.push(p);
-  }
-
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">
       <Link
@@ -83,41 +63,19 @@ export default async function ListDetailPage({
         </p>
       )}
 
-      <div className="mb-7">
+      <div className="mb-6">
         <Link
           href={`/lists/${list.id}/places/new`}
-          className="btn-primary w-full py-3.5 text-base"
+          className="btn-primary w-full py-3 text-base"
         >
           + 新增店铺
         </Link>
-        <p className="mt-1.5 text-center text-xs text-zinc-500">
-          Phase 2 起：粘贴小红书 / 自由文本 / AI 解析
-        </p>
       </div>
 
       {places.length === 0 ? (
         <EmptyPlaces />
       ) : (
-        <div className="space-y-7">
-          {(Object.keys(STATUS_ORDER) as PlaceStatus[]).map((status) => {
-            const items = grouped.get(status) ?? [];
-            if (items.length === 0) return null;
-            return (
-              <section key={status}>
-                <h2 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                  {STATUS_LABEL[status]} · {items.length}
-                </h2>
-                <ul className="space-y-2.5">
-                  {items.map((p) => (
-                    <li key={p.id}>
-                      <PlaceCard place={p} currentUserId={user.id} />
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            );
-          })}
-        </div>
+        <PlacesView places={places} currentUserId={user.id} />
       )}
 
       {isOwner && (

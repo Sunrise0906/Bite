@@ -29,7 +29,7 @@ export async function createList(
   if (error) return { error: `创建失败：${error.message}` };
 
   revalidatePath("/lists");
-  redirect(`/lists/${data.id}`);
+  redirect(`/lists/${data.id}?toast=list_created`);
 }
 
 // ---- 重命名 list ---------------------------------------------------------
@@ -72,5 +72,5 @@ export async function deleteList(formData: FormData): Promise<void> {
   }
 
   revalidatePath("/lists");
-  redirect("/lists");
+  redirect("/lists?toast=list_deleted");
 }

@@ -36,13 +36,13 @@ export type PlaceDetails = {
   primaryTypeDisplayName: string | null;
 };
 
+// Google Places API 限制最多 5 个 included_primary_types
 const AUTOCOMPLETE_FOOD_TYPES = [
   "restaurant",
   "cafe",
   "bar",
   "bakery",
   "meal_takeaway",
-  "meal_delivery",
 ];
 
 export async function autocompletePlace(

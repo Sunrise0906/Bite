@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { createPlace, updatePlace } from "@/lib/actions/places";
 import type { Place } from "@/lib/db/types";
+import { PhotoCarousel } from "./photo-carousel";
 
 const LABEL_CLS =
   "block text-sm font-medium text-[var(--text-default)]";
@@ -161,6 +162,41 @@ export function PlaceForm(props: Mode) {
           placeholder="为啥想去？以后 AI 推荐会引用这里"
           className="field-input mt-1.5 resize-y"
         />
+      </div>
+
+      <div>
+        <label htmlFor="p-notes" className={LABEL_CLS}>
+          AI 综合判断 / 备注
+        </label>
+        <textarea
+          id="p-notes"
+          name="notes"
+          rows={3}
+          defaultValue={place?.notes ?? ""}
+          placeholder="客观信号：评论区分歧、排队、营业时间、性价比、缺失信息…"
+          className="field-input mt-1.5 resize-y"
+        />
+        <p className={HELP_CLS}>未来决策 agent 会读它做推荐</p>
+      </div>
+
+      <div>
+        <label htmlFor="p-photos" className={LABEL_CLS}>
+          图片
+        </label>
+        {place && place.photo_urls && place.photo_urls.length > 0 && (
+          <div className="mb-2">
+            <PhotoCarousel urls={place.photo_urls} />
+          </div>
+        )}
+        <textarea
+          id="p-photos"
+          name="photo_urls_text"
+          rows={3}
+          defaultValue={(place?.photo_urls ?? []).join("\n")}
+          placeholder={"每行一个 URL\nhttps://...\nhttps://..."}
+          className="field-input mt-1.5 resize-y font-mono text-xs"
+        />
+        <p className={HELP_CLS}>第一张作为封面。XHS 抓取自动填好；想清空就删空</p>
       </div>
 
       {state.error && (

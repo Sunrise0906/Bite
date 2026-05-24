@@ -55,6 +55,11 @@ export type Place = {
   google_place_id: string | null;
   lat: number | null;
   lng: number | null;
+  // AI 综合判断 / 评论区交叉信号 / 客观口碑提醒
+  // 由 LLM 在抓取小红书帖子或自由文本时生成；用户可编辑
+  notes: string | null;
+  // 图片 URL 数组（XHS 抓的所有图 / 用户手动贴的）。第一张默认为封面
+  photo_urls: string[];
   created_by: string;
   created_at: string;
   updated_at: string;
