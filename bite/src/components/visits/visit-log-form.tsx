@@ -1,11 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import {
-  logVisit,
-  updateVisit,
-  type VisitFormState,
-} from "@/lib/actions/visits";
+import { useState, useTransition } from "react";
+import { logVisit, updateVisit } from "@/lib/actions/visits";
 import type { VisitLog, VisitSentiment } from "@/lib/db/types";
 
 const SENTIMENT_OPTIONS: Array<{
@@ -47,10 +43,8 @@ function isoToDateInput(iso: string): string {
 
 export function VisitLogForm({ mode, open, onClose }: Props) {
   const action = mode.kind === "create" ? logVisit : updateVisit;
-  const [state, formAction, pending] = useActionState<VisitFormState, FormData>(
-    action,
-    { error: null },
-  );
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   const initialSentiment: VisitSentiment =
     mode.kind === "edit" ? mode.log.sentiment : "will_return";
@@ -59,16 +53,19 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
   const initialStar = mode.kind === "edit" ? mode.log.star_rating : null;
   const [star, setStar] = useState<number | null>(initialStar);
 
-  // 成功后自动关
-  useEffect(() => {
-    if (state.ok && state.version) {
-      onClose();
-    }
-    // 仅在 version 变化时触发
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.version]);
-
   if (!open) return null;
+
+  function handleSubmit(fd: FormData) {
+    startTransition(async () => {
+      const result = await action({ error: null }, fd);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setError(null);
+        onClose();
+      }
+    });
+  }
 
   const initialVisitedAt =
     mode.kind === "edit" ? isoToDateInput(mode.log.visited_at) : todayIsoDate();
@@ -82,7 +79,7 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
       onClick={onClose}
     >
       <form
-        action={formAction}
+        action={handleSubmit}
         onClick={(e) => e.stopPropagation()}
         className="flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"
       >
@@ -217,9 +214,9 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
           />
         </div>
 
-        {state.error && (
+        {error && (
           <p role="alert" className="text-sm text-red-700">
-            {state.error}
+            {error}
           </p>
         )}
 

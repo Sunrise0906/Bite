@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { processTextDraft } from "@/lib/actions/quick-add";
 import { detectInputType } from "@/lib/quick-add/detect";
@@ -74,12 +74,13 @@ export function QuickAddInput() {
   const [state, formAction, pending] = useActionState(processTextDraft, {
     error: null,
   });
-  const sessionToken = useMemo(() => {
+  // useState lazy initializer 只跑一次，且 React 不把它判定为不纯（区别于 useMemo body）
+  const [sessionToken] = useState<string>(() => {
     if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
       return crypto.randomUUID();
     }
     return Math.random().toString(36).slice(2);
-  }, []);
+  });
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 

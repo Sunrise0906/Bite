@@ -1,20 +1,21 @@
 # Bite
 
-餐厅记录 + AI 决策 + 多人协作 web app（个人项目，工作名 "Bite"，最终命名可后期替换）。
+餐厅记录 + AI 决策 + 多人协作 web app。
 
 完整产品设计：[`../docs/Bite_设计文档.md`](../docs/Bite_设计文档.md)
 
 ## 技术栈
 
-- **Next.js 16** (App Router) + **React 19** + **TypeScript** + **Tailwind 4**
+- **Next.js 16** (App Router, Turbopack) + **React 19** + **TypeScript** + **Tailwind 4**
 - **Supabase**（Postgres + RLS + Auth + Storage）
-- **LLM**：Anthropic Claude（默认），可切换 OpenAI / DeepSeek / Qwen
+- **多 LLM provider**：Google Gemini（默认免费）/ Anthropic Claude / OpenAI GPT / DeepSeek / 通义千问 Qwen
 - **地图**：Google Maps + Places API (New)
 - **邮件**：Resend（注册验证 / Magic Link）
 
 ## 本地开发
 
 ```bash
+cd bite
 npm install
 cp .env.example .env.local   # 填入真实 key
 npm run dev
@@ -22,34 +23,102 @@ npm run dev
 
 打开 [http://localhost:3000](http://localhost:3000)。
 
+### 必备环境变量
+
+最低能跑起来：
+
+| 变量 | 用途 | 在哪拿 |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目地址 | Supabase Dashboard → Project Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 匿名 key（前端用） | 同上 |
+| `SUPABASE_SERVICE_ROLE_KEY` | 服务端 key（**绝对不放前端**） | 同上 |
+| `GEMINI_API_KEY` | Google Gemini 默认 AI（**真免费**） | [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Places autocomplete + 地图 | Google Cloud Console，**记得加 HTTP referrer 白名单** |
+| `RESEND_API_KEY` | 注册/Magic Link 邮件 | [resend.com](https://resend.com) 免费 tier |
+
+可选（让用户能选其他 provider）：
+
+- `ANTHROPIC_API_KEY` · `OPENAI_API_KEY` · `DEEPSEEK_API_KEY` · `DASHSCOPE_API_KEY`
+
+### 数据库初始化
+
+按顺序在 Supabase SQL Editor 跑：
+
+```text
+sql/0001_initial.sql               # 核心表 + RLS
+sql/0002_add_notes_column.sql      # places.notes
+sql/0003_quick_add_drafts.sql      # 草稿表
+sql/0004_add_photo_url.sql         # photo_url (superseded by 0005)
+sql/0005_photo_urls_array.sql      # photo_urls text[]
+sql/0006_llm_and_chat.sql          # user_llm_settings + conversations + messages
+sql/0007_add_gemini_provider.sql   # gemini 加入 provider check
+```
+
 ## 项目结构
 
 ```text
 bite/
 ├── src/
-│   ├── app/             # Next.js App Router 页面
-│   │   └── globals.css  # Tailwind 4 入口 + 主题 token
-│   ├── lib/             # Supabase / LLM / 工具函数（开发中）
-│   └── components/      # 复用组件（开发中）
-├── public/              # 静态资源
-├── proxy.ts             # Auth session 刷新（Next.js 16 重命名自 middleware）
-└── .env.example         # 环境变量模板
+│   ├── app/
+│   │   ├── (app)/          # 登录后可访问页面：lists / chat / map / profile ...
+│   │   ├── (auth)/         # login / signup
+│   │   ├── api/chat/       # SSE 流式聊天 + tool calling
+│   │   ├── auth/callback/  # Supabase OAuth 回调
+│   │   └── globals.css     # Tailwind 4 入口 + 主题 token
+│   ├── components/
+│   │   ├── chat/           # /chat 聊天 UI
+│   │   ├── lists/          # list CRUD
+│   │   ├── map/            # 地图组件
+│   │   ├── nav/            # bottom-nav
+│   │   ├── places/         # PlaceCard / quick-add / 照片轮播
+│   │   ├── profile/        # /profile Settings 表单
+│   │   └── visits/         # 我去了 + 造访历史
+│   └── lib/
+│       ├── actions/        # Server Actions（写库走这里）
+│       ├── db/             # 类型定义 + 聊天持久化
+│       ├── llm/            # provider 抽象 + 工具 + 抽取
+│       ├── places/         # XHS 抓取 + Google Places
+│       ├── quick-add/      # 输入类型识别
+│       └── supabase/       # client/server helpers
+├── public/
+│   ├── manifest.webmanifest
+│   └── icons/
+├── sql/                    # Postgres migrations
+├── proxy.ts                # Auth session 刷新（Next.js 16，不是 middleware）
+└── .env.example            # 环境变量模板
 ```
 
-## 必备 API key
-
-详见 [`.env.example`](.env.example) 的注释。开发期最低成本：Anthropic $5 + Supabase 免费 tier + Google Cloud 免费额度（$200/月）+ Resend 免费 tier。
-
-## 阶段计划（15 天 MVP）
+## Phase 进度
 
 | Phase | 状态 | 内容 |
 | --- | --- | --- |
-| 1 · 地基 | 🚧 | Next.js + Supabase + Auth + List/Place CRUD |
-| 2 · 智能添加 | ⏳ | 统一输入框 + AI 路由 + Google Places + 小红书文本解析 |
-| 3 · AI 决策聊天 | ⏳ | 聊天 UI + tool calling + 多 LLM provider |
-| 4 · 我去了 + 地图 | ⏳ | VisitLog + 累积统计 + 地图视图 |
-| 5 · 协作 + 收尾 | ⏳ | Co-owner 邀请 + 推荐 + PWA + Vercel 部署 |
+| 1 · 地基 | ✅ | Next.js + Supabase + Auth + List/Place CRUD |
+| 2 · 智能添加 | ✅ | 统一输入框 + AI 抽取 + Google Places + 小红书富抽取 + 多图 + 搜索 |
+| 3 · AI 决策聊天 | ✅ | 流式 chat + tool calling + 多 provider + 顶栏/复制/时间戳/重新生成/用量 |
+| 4 · 我去了 + 地图 | ✅ | VisitLog CRUD + 我去了按钮 + 造访历史 + chat 信号 + Google Maps |
+| 5 · 协作 + 收尾 | 🚧 | PWA / 共享 list / 推荐 inbox / Vercel 部署 |
 
-## 部署
+参见 [`PHASE_PLAN.md`](./PHASE_PLAN.md) 看每个 phase 的具体待办。
 
-待 Phase 5。Vercel 一键部署，环境变量在 Vercel Dashboard 配置。
+## 部署到 Vercel
+
+1. 把仓库连到 Vercel
+2. **Root Directory** 选 `bite/`（不是仓库根）
+3. Build Command: `npm run build`（默认 OK）
+4. 在 Project Settings → Environment Variables 把上面表里的变量都填进去
+5. Supabase Auth → Redirect URLs 加 `https://<你的域名>/auth/callback`
+6. Google Cloud Console → API key restrictions → 加 `https://<你的域名>/*` 到 referrer 白名单
+7. Deploy
+
+部署后第一次跑会比较慢（cold start）。Vercel 免费 tier 足够个人使用。
+
+## 关键约定
+
+- UI 文案**全中文**
+- 服务端写入用 **Server Actions**，route handlers 仅 OAuth 回调 / SSE chat
+- DB 权限走 **Supabase RLS**，应用层不重复鉴权
+- 错误信息对用户友好（中文）
+- Path alias `@/*` → `./src/*`
+- 不要把 `bite/note` / `.env.local` 提交（已 gitignore）
+
+详见 [`CLAUDE.md`](./CLAUDE.md) 和 [`AGENTS.md`](./AGENTS.md)。

@@ -4,12 +4,6 @@ import { StatusQuickToggle } from "./status-quick-toggle";
 import { PlaceCardMenu } from "./place-card-menu";
 import { VisitLogButton } from "@/components/visits/visit-log-button";
 
-const STATUS_LABEL: Record<Place["status"], string> = {
-  want_to_go: "想去",
-  visited: "已去过",
-  archived: "归档",
-};
-
 const STATUS_CHIP: Record<Place["status"], string> = {
   want_to_go: "chip chip-want",
   visited: "chip chip-visited",
@@ -76,7 +70,6 @@ export function PlaceCard({
                   placeId={place.id}
                   listId={place.list_id}
                   currentStatus={place.status}
-                  label={STATUS_LABEL[place.status]}
                   chipClass={STATUS_CHIP[place.status]}
                 />
                 <PlaceCardMenu

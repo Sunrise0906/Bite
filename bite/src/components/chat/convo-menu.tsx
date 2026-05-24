@@ -1,16 +1,9 @@
 "use client";
 
-import {
-  useActionState,
-  useEffect,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useRef, useState, useTransition } from "react";
 import {
   deleteConversationAction,
   renameConversationAction,
-  type RenameConvoState,
 } from "@/lib/actions/conversations";
 
 export function ConvoMenu({
@@ -23,19 +16,21 @@ export function ConvoMenu({
   const [open, setOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [pendingDelete, startDelete] = useTransition();
+  const [renamePending, startRename] = useTransition();
+  const [renameError, setRenameError] = useState<string | null>(null);
   const deleteFormRef = useRef<HTMLFormElement>(null);
 
-  const [renameState, renameAction, renamePending] = useActionState<
-    RenameConvoState,
-    FormData
-  >(renameConversationAction, { error: null });
-
-  // 重命名成功（version 递增）就关 modal
-  useEffect(() => {
-    if (renameState.ok && renameState.version) {
-      setRenaming(false);
-    }
-  }, [renameState.ok, renameState.version]);
+  function handleRenameSubmit(fd: FormData) {
+    startRename(async () => {
+      const result = await renameConversationAction({ error: null }, fd);
+      if (result.error) {
+        setRenameError(result.error);
+      } else {
+        setRenameError(null);
+        setRenaming(false);
+      }
+    });
+  }
 
   function trigger(e: React.MouseEvent) {
     e.preventDefault();
@@ -116,7 +111,7 @@ export function ConvoMenu({
           onClick={() => setRenaming(false)}
         >
           <form
-            action={renameAction}
+            action={handleRenameSubmit}
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl"
           >
@@ -132,9 +127,9 @@ export function ConvoMenu({
               className="field-input w-full text-sm"
               placeholder="给这个对话起个名字"
             />
-            {renameState.error && (
+            {renameError && (
               <p role="alert" className="mt-2 text-xs text-red-700">
-                {renameState.error}
+                {renameError}
               </p>
             )}
             <div className="mt-3 flex justify-end gap-2">

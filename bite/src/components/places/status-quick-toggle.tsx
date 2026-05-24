@@ -14,13 +14,11 @@ export function StatusQuickToggle({
   placeId,
   listId,
   currentStatus,
-  label,
   chipClass,
 }: {
   placeId: string;
   listId: string;
   currentStatus: PlaceStatus;
-  label: string;
   chipClass: string;
 }) {
   const [open, setOpen] = useState(false);

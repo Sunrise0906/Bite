@@ -66,7 +66,7 @@ export async function createPlace(
     .filter(Boolean);
 
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("places")
     .insert({
       list_id: listId,
@@ -83,9 +83,7 @@ export async function createPlace(
       photo_urls: photoUrls,
       source: "manual",
       created_by: user.id,
-    })
-    .select("id")
-    .single();
+    });
 
   if (error) return { error: `保存失败：${error.message}` };
 

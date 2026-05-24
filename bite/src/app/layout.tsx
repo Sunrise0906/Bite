@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces } from "next/font/google";
 import { Toaster } from "sonner";
+import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -14,6 +15,16 @@ export const metadata: Metadata = {
   title: "Bite · 餐厅记录",
   description: "餐厅记录 + AI 决策 + 朋友共享",
   applicationName: "Bite",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Bite",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: "/icons/icon.svg",
+    apple: "/icons/icon.svg",
+  },
 };
 
 export const viewport: Viewport = {
@@ -42,6 +53,7 @@ export default function RootLayout({
           closeButton
           duration={2800}
         />
+        <PwaRegister />
       </body>
     </html>
   );

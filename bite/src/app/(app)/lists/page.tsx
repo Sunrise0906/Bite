@@ -209,7 +209,7 @@ function EmptyState() {
       </svg>
       <p className="text-sm text-zinc-600">还没有 list</p>
       <p className="mt-1 text-xs text-zinc-500">
-        在上面输入一个名字，比如 "Irvine 想吃的"
+        在上面输入一个名字，比如「Irvine 想吃的」
       </p>
     </div>
   );

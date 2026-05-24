@@ -1,0 +1,20 @@
+{
+  "name": "Bite",
+  "short_name": "Bite",
+  "description": "餐厅记录 + AI 决策 web app",
+  "start_url": "/lists",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FAF5EF",
+  "theme_color": "#D97757",
+  "orientation": "portrait-primary",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

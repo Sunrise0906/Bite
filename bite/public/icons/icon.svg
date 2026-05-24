@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#D97757"/>
+  <g fill="#FAF5EF" stroke="#FAF5EF" stroke-linecap="round" stroke-linejoin="round" stroke-width="20">
+    <!-- 一只筷子 + 一个 dim sum / 包子 简笔 -->
+    <line x1="120" y1="120" x2="270" y2="320" />
+    <circle cx="340" cy="320" r="80" fill="#FAF5EF"/>
+    <path d="M295 305 Q340 270 385 305" fill="none" stroke="#D97757" stroke-width="14"/>
+    <circle cx="340" cy="315" r="10" fill="#D97757"/>
+  </g>
+</svg>

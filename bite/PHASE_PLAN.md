@@ -38,8 +38,8 @@
 
 ### C. Phase 5 — 部署 + PWA + 协作 + 推荐
 
-- [ ] **C1. README 部署文档** — Supabase 配置步骤 + Vercel 一键 deploy + env vars 清单
-- [ ] **C2. PWA 基础** — manifest.json + apple-touch-icon + 最小 service worker（offline 兜底）
+- [x] **C1. README** — env vars / Supabase migration 顺序 / Vercel 部署步骤 / 项目结构 / phase 进度
+- [x] **C2. PWA 基础** — manifest.webmanifest + 简易 SVG icon + 最小 service worker（生产 only 注册）+ layout 关联
 - [ ] **C3. List 共享 / co-owner** — invite link + accept 流程（list_members 表已在 0001）
 - [ ] **C4. Recommendations inbox** — 朋友推荐的店 pending → accept/decline
 - [ ] **C5. /map 共享 list overlay** — co-owner 的地图视图
@@ -83,6 +83,17 @@
   - Place edit 页的 VisitHistory section 在表单下方；用户改完 place 后才能滚到，长 form 时不便。考虑加锚点或顶部 TOC ——次优化
   - 地图 marker 用 SymbolPath.CIRCLE 是老 API；如果 Maps JS 切到 AdvancedMarkerElement 这个写法 deprecated。当前还能用，先记录
   - chat tools 现在每次 search 都额外查 visit_logs 一次；候选 10 家 = 11 个查询。可接受
-- 下一步：iter-3 进 Phase 5 部署 / PWA / 协作
+- commit: 9bc2de6
+
+### iter-3 [D 杂项 + C1 README + C2 PWA]
+- ✓ D1+D3 lint 清理：删未用 import / 改 STATUS_LABEL 未引 / 改 useActionState → useTransition（convo-menu + visit-log-form）/ Math.random 改 useState lazy init / 引号 → 「」
+- ✓ C1 README：补 env vars 表 / SQL migration 顺序 / 项目结构 / Vercel 部署 7 步
+- ✓ C2 PWA：manifest.webmanifest + SVG icon + sw.js（生产 only 注册，offline 兜底）+ layout metadata
+- lint 从 5 error 降到 1 error（剩下的是 quick-add-input.tsx set-state-in-effect，需要重构 effect 模式，defer 到 D2）
+- PM review：
+  - SW 只缓存 /lists + manifest + icon——离线时只有这些可用。可接受 MVP，要真离线友好得缓存更多 routes
+  - SVG icon 是简笔画，不够"app-like"。生产部署前最好换成像素 PNG（192/512）
+  - PWA 在 iOS Safari 上 standalone 模式可能有 status bar 问题，apple-web-app meta 已加但实测要看
+  - README 假设用户读懂 Supabase / Vercel 流程；不算十分手把手
 
 ---
