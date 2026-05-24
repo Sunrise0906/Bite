@@ -5,6 +5,7 @@ import type { List, Place } from "@/lib/db/types";
 import { RenameListForm } from "@/components/lists/rename-list-form";
 import { DeleteListButton } from "@/components/lists/delete-list-button";
 import { PlacesView } from "@/components/places/places-view";
+import { InviteButton } from "@/components/invites/invite-button";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ error?: string; toast?: string }>;
@@ -50,7 +51,10 @@ export default async function ListDetailPage({
       </Link>
 
       <header className="mb-6">
-        <RenameListForm id={list.id} currentName={list.name} />
+        <div className="flex items-start justify-between gap-3">
+          <RenameListForm id={list.id} currentName={list.name} />
+          {isOwner && <InviteButton listId={list.id} />}
+        </div>
         <div className="mt-2 flex items-center gap-2 text-sm text-zinc-500">
           <span>{places.length} 家店</span>
           {!isOwner && <span className="chip chip-neutral">共享 list</span>}

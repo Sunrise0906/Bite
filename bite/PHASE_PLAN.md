@@ -40,9 +40,9 @@
 
 - [x] **C1. README** — env vars / Supabase migration 顺序 / Vercel 部署步骤 / 项目结构 / phase 进度
 - [x] **C2. PWA 基础** — manifest.webmanifest + 简易 SVG icon + 最小 service worker（生产 only 注册）+ layout 关联
-- [ ] **C3. List 共享 / co-owner** — invite link + accept 流程（list_members 表已在 0001）
+- [x] **C3. List 共享 / co-owner** — SQL 0008 list_invites + createListInvite/acceptListInvite/revoke actions + /invite/[token] 页 + list 页 InviteButton modal（角色选 co_owner/viewer + 7 天 token + 复制链接）
 - [ ] **C4. Recommendations inbox** — 朋友推荐的店 pending → accept/decline
-- [ ] **C5. /map 共享 list overlay** — co-owner 的地图视图
+- [ ] **C5. /map 共享 list overlay** — co-owner 的地图视图（共享 list 已经会被 map page 拉进来，因为 listIds 含 member）
 
 ### D. 杂项 / 修补
 
@@ -95,5 +95,19 @@
   - SVG icon 是简笔画，不够"app-like"。生产部署前最好换成像素 PNG（192/512）
   - PWA 在 iOS Safari 上 standalone 模式可能有 status bar 问题，apple-web-app meta 已加但实测要看
   - README 假设用户读懂 Supabase / Vercel 流程；不算十分手把手
+- commit: 8426ee3
+
+### iter-4 [C3 List 共享]
+- ✓ SQL 0008 list_invites 表（token uuid PK + role check + 7 天 expires + RLS）
+- ✓ invites actions: createListInvite / loadInvitePreview / acceptListInvite / revokeListInvite
+- ✓ /invite/[token] 页：4 个分支（无效 / 自己 / 已用 / 过期 / 可加入）
+- ✓ InviteButton modal 嵌入 list 头部（仅 owner 可见）：角色选 + 生成 token + 复制链接
+- ✓ ToastFlash 加 invite_accepted 消息
+- PM review：
+  - SQL 0008 需要用户跑——已添加到 README 列表
+  - 邀请页路径在 /invite/[token]，需要登录才能 accept；未登录用户被跳到 /login（next-auth flow），登录后回 invite 页 —— 假设 proxy.ts 处理；可能要测一下
+  - invite token 是 uuid v4（122 bits 熵），跟 URL 一起算合理安全；7 天过期是默认值
+  - revokeListInvite 写了但没接 UI，list owner 看不到自己历史发的邀请—— 列入 polish
+  - viewer 角色：现在 RLS 在 places 表上没区分 co_owner vs viewer 的写权限，viewer 加入后仍能改 places —— BLOCKED 需新 migration 加 list_members.role 校验进 places RLS
 
 ---
