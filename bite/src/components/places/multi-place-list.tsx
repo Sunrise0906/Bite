@@ -7,6 +7,7 @@ import {
 } from "@/lib/actions/quick-add";
 import type { ExtractedPlace } from "@/lib/llm/extract-place";
 import type { ListOption } from "./place-confirm-form";
+import { PhotoCarousel } from "./photo-carousel";
 
 const PRICE_LABEL: Record<NonNullable<ExtractedPlace["price_range"]>, string> = {
   $: "$ · <$15",
@@ -33,12 +34,14 @@ export function MultiPlaceList({
   defaultListId,
   sourceUrl,
   existingByList = {},
+  photoUrls = [],
 }: {
   places: ExtractedPlace[];
   lists: ListOption[];
   defaultListId: string;
   sourceUrl?: string;
   existingByList?: Record<string, string[]>;
+  photoUrls?: string[];
 }) {
   const [state, action, pending] = useActionState(savePlacesBatch, {
     error: null,
@@ -140,6 +143,14 @@ export function MultiPlaceList({
         {places.map((p, i) => {
           const checked = selected.has(i);
           const existsInThisList = existingNamesInList.has(p.name);
+          // 只在 AI 给了 photo_indices 时显示预览，让用户验证分图结果。
+          // 没标注的店保存时后端会回退到全部图，但这里不展示，避免每家店看起来都"重复占了同一组图"。
+          const placePhotos =
+            p.photo_indices && p.photo_indices.length > 0
+              ? p.photo_indices
+                  .filter((idx) => idx >= 0 && idx < photoUrls.length)
+                  .map((idx) => photoUrls[idx])
+              : [];
           return (
             <li key={i}>
               <label
@@ -197,6 +208,22 @@ export function MultiPlaceList({
                     <p className="mt-1.5 line-clamp-3 rounded-md bg-[var(--surface-muted)]/60 px-2 py-1.5 text-xs italic text-zinc-500">
                       🤖 {p.notes}
                     </p>
+                  )}
+                  {placePhotos.length > 0 && (
+                    <div
+                      className="mt-2 max-w-xs"
+                      onClick={(e) => {
+                        // 防止点轮播翻页时误触 label 的 checkbox toggle
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                    >
+                      <p className="mb-1 text-[11px] text-zinc-500">
+                        🤖 AI 分图：{placePhotos.length} 张 · idx [
+                        {p.photo_indices?.join(", ")}]
+                      </p>
+                      <PhotoCarousel urls={placePhotos} />
+                    </div>
                   )}
                 </div>
               </label>

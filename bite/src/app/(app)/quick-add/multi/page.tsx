@@ -109,6 +109,7 @@ export default async function QuickAddMultiPage() {
         defaultListId={writableLists[0].id}
         sourceUrl={draft.sourceUrl}
         existingByList={existingByList}
+        photoUrls={draft.photoUrls}
       />
 
       <div className="mt-8 border-t border-[var(--border-subtle)] pt-5">
