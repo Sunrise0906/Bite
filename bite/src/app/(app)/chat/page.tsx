@@ -197,7 +197,7 @@ export default async function ChatPage(props: {
                           <li key={c.id} className="group relative">
                             <Link
                               href={`/chat?c=${c.id}`}
-                              className={`block truncate rounded-lg py-2 pl-3 pr-10 text-sm transition ${
+                              className={`block line-clamp-2 rounded-lg py-2 pl-3 pr-10 text-sm leading-snug transition ${
                                 isActive
                                   ? "bg-[var(--primary-soft)] text-[var(--primary-soft-text)]"
                                   : "text-zinc-700 hover:bg-white"
