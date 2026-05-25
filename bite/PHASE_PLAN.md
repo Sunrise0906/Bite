@@ -103,6 +103,10 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 
 - [x] **S1. PlaceCard 显示 source 标记** — 之前看 PlaceCard 不知道这家店是手动加的、还是 XHS 抓的、Google Places 搜的、AI 抽取的、Yelp 来的。在 cuisine chip 行前加 source emoji（📕 / 🤖 / 🗺️ / ⭐ + tooltip 说明），manual 默认不显示
 
+### T. 错误边界 / 可靠性
+
+- [x] **T1. 全局 error.tsx + global-error.tsx** — 之前 runtime 错误（Supabase 挂 / env 配错 / provider 502）直接掉到 Next.js 默认黑底 error 页。加 app/error.tsx 兜底 route segment 内的崩，含 中文文案 + 重试按钮（reset）+ 回 list 链接 + error.message + digest（调试）。再加 app/global-error.tsx 兜底 root layout 自己崩的情况（必须自带 html/body，纯 inline 样式不依赖 layout）
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）
