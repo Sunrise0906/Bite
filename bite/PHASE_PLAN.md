@@ -142,6 +142,7 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 ### AD. README 文档准确性
 
 - [x] **AD1. README env vars 校正** — 之前表里列了 `RESEND_API_KEY` 但代码完全没用（实际 Magic Link 走 Supabase 默认邮件）；缺少实际重要的 `NEXT_PUBLIC_APP_URL`（OAuth callback + 邮件链接基址，部署到生产忘配会导致邮件链接指 localhost）。改：补 NEXT_PUBLIC_APP_URL，去掉 RESEND_API_KEY，技术栈描述里把"邮件：Resend"改成"Supabase 默认邮件，生产可接 Resend / SendGrid"，加可选 SMTP 段说明
+- [x] **AE1. .env.example 同步校正** — README 改了但 .env.example 还把 Anthropic 标"必须"、漏 GEMINI_API_KEY、留 RESEND_API_KEY/EMAIL_FROM 占位。新用户拷贝就会浪费时间申请 Anthropic 和 Resend。重构成：Supabase（必须）→ Gemini（推荐 / 真免费 / App 默认）→ Google Maps（必须）→ NEXT_PUBLIC_APP_URL（必须）→ 可选 providers（Anthropic/OpenAI/DeepSeek/Qwen 全部移到可选）→ 可选 SMTP（说明配在 Supabase Auth 而非代码）
 
 ## 当前 iter 选
 
