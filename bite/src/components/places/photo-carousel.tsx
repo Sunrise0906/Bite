@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 export function PhotoCarousel({ urls }: { urls: string[] }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
+  // 哪些图加载失败了（XHS CDN 防盗链 / 图床挂了 / URL 输错都会触发）
+  const [broken, setBroken] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -36,17 +38,36 @@ export function PhotoCarousel({ urls }: { urls: string[] }) {
         className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth"
         style={{ scrollbarWidth: "none" }}
       >
-        {urls.map((u, i) => (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            key={i}
-            src={u}
-            alt={`图 ${i + 1} / ${urls.length}`}
-            className="aspect-video w-full shrink-0 snap-center object-cover"
-            loading={i === 0 ? "eager" : "lazy"}
-            referrerPolicy="no-referrer"
-          />
-        ))}
+        {urls.map((u, i) =>
+          broken.has(i) ? (
+            <div
+              key={i}
+              className="flex aspect-video w-full shrink-0 snap-center flex-col items-center justify-center bg-[var(--surface-subtle)] text-sm text-zinc-500"
+            >
+              <span className="text-2xl" aria-hidden>
+                🖼️
+              </span>
+              <span className="mt-1 text-xs">图片加载失败</span>
+            </div>
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              key={i}
+              src={u}
+              alt={`图 ${i + 1} / ${urls.length}`}
+              onError={() =>
+                setBroken((prev) => {
+                  const next = new Set(prev);
+                  next.add(i);
+                  return next;
+                })
+              }
+              className="aspect-video w-full shrink-0 snap-center object-cover"
+              loading={i === 0 ? "eager" : "lazy"}
+              referrerPolicy="no-referrer"
+            />
+          ),
+        )}
       </div>
 
       {urls.length > 1 && (
