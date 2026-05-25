@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createPlace, updatePlace } from "@/lib/actions/places";
 import type { Place } from "@/lib/db/types";
 import { PhotoCarousel } from "./photo-carousel";
@@ -35,6 +35,20 @@ export function PlaceForm(props: Mode) {
     place?.reasons.find((r) => r.user_id === props.currentUserId)?.text ?? "";
   const readOnly = props.readOnly === true;
 
+  // photo URLs 改成 controlled，提供实时预览
+  const [photoText, setPhotoText] = useState(
+    (place?.photo_urls ?? []).join("\n"),
+  );
+  const previewUrls = photoText
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter((s) => /^https?:\/\//i.test(s));
+
+  // readOnly 时不显示 `*`，因为用户不能填，显示反而误导
+  const Req = readOnly ? null : (
+    <span className="text-[var(--primary)]">*</span>
+  );
+
   return (
     <form action={formAction} className="space-y-5">
       <fieldset disabled={readOnly} className="space-y-5">
@@ -43,7 +57,7 @@ export function PlaceForm(props: Mode) {
 
       <div>
         <label htmlFor="p-name" className={LABEL_CLS}>
-          店名 <span className="text-[var(--primary)]">*</span>
+          店名 {Req}
         </label>
         <input
           id="p-name"
@@ -58,7 +72,7 @@ export function PlaceForm(props: Mode) {
 
       <div>
         <label htmlFor="p-address" className={LABEL_CLS}>
-          地址 <span className="text-[var(--primary)]">*</span>
+          地址 {Req}
         </label>
         <input
           id="p-address"
@@ -73,7 +87,7 @@ export function PlaceForm(props: Mode) {
 
       <div>
         <label htmlFor="p-cuisine" className={LABEL_CLS}>
-          菜系 <span className="text-[var(--primary)]">*</span>
+          菜系 {Req}
         </label>
         <input
           id="p-cuisine"
@@ -195,22 +209,29 @@ export function PlaceForm(props: Mode) {
 
       <div>
         <label htmlFor="p-photos" className={LABEL_CLS}>
-          图片
+          图片 {previewUrls.length > 0 && (
+            <span className="ml-1 text-xs font-normal text-zinc-500">
+              · {previewUrls.length} 张
+            </span>
+          )}
         </label>
-        {place && place.photo_urls && place.photo_urls.length > 0 && (
+        {previewUrls.length > 0 && (
           <div className="mb-2">
-            <PhotoCarousel urls={place.photo_urls} />
+            <PhotoCarousel urls={previewUrls} />
           </div>
         )}
         <textarea
           id="p-photos"
           name="photo_urls_text"
           rows={3}
-          defaultValue={(place?.photo_urls ?? []).join("\n")}
+          value={photoText}
+          onChange={(e) => setPhotoText(e.target.value)}
           placeholder={"每行一个 URL\nhttps://...\nhttps://..."}
           className="field-input mt-1.5 resize-y font-mono text-xs"
         />
-        <p className={HELP_CLS}>第一张作为封面。XHS 抓取自动填好；想清空就删空</p>
+        <p className={HELP_CLS}>
+          第一张作为封面。XHS 抓取自动填好；想清空就删空。每行一个 https:// 才算有效
+        </p>
       </div>
 
       {state.error && (
