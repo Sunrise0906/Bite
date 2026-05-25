@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { signUpWithEmail } from "@/lib/actions/auth";
 
-export function SignUpForm() {
+export function SignUpForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(signUpWithEmail, {
     error: null,
     notice: null,
@@ -35,6 +35,7 @@ export function SignUpForm() {
         autoComplete="new-password"
         className="field-input"
       />
+      <input type="hidden" name="next" value={next ?? ""} />
       {state.error && (
         <p role="alert" className="text-sm text-red-700 dark:text-red-300">
           {state.error}

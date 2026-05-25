@@ -52,6 +52,7 @@ export async function signUpWithEmail(
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const name = String(formData.get("name") ?? "").trim() || null;
+  const next = safeNext(formData.get("next"));
 
   if (!email || !password) {
     return { error: "请输入邮箱和密码", notice: null };
@@ -66,7 +67,7 @@ export async function signUpWithEmail(
     password,
     options: {
       data: name ? { name } : undefined,
-      emailRedirectTo: `${appUrl()}/auth/callback`,
+      emailRedirectTo: `${appUrl()}/auth/callback?next=${encodeURIComponent(next)}`,
     },
   });
 

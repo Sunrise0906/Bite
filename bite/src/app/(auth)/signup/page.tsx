@@ -7,14 +7,14 @@ export const metadata = {
   title: "注册 · Bite",
 };
 
-type SearchParams = Promise<{ error?: string }>;
+type SearchParams = Promise<{ error?: string; next?: string }>;
 
 export default async function SignUpPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
 
   return (
     <div className="space-y-6">
@@ -31,16 +31,16 @@ export default async function SignUpPage({
         </p>
       )}
 
-      <SignUpForm />
+      <SignUpForm next={next} />
 
       <AuthDivider>或</AuthDivider>
 
-      <GoogleButton />
+      <GoogleButton next={next} />
 
       <p className="text-center text-sm text-zinc-500">
         已经有账号？{" "}
         <Link
-          href="/login"
+          href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
           className="font-medium text-[var(--text-strong)] underline underline-offset-2 decoration-zinc-300"
         >
           登录

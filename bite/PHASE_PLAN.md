@@ -139,6 +139,15 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 
 - [x] **AC1. places_added toast 含 updated count** — `savePlacesBatch` redirect URL 已经带 `&updated=N` 但 ToastFlash 只读 `count` 忽略 `updated`，5 家全添加跟 3 加 + 2 合并显示一样「已添加 5 家店」误导用户。修：ToastFlash 也读 `updated`，文案根据合并比例分三档：「全合并」「混合」「全新增」
 
+### AF. Auth 流程端到端 next 参数
+
+- [x] **AF1. SignUp 流程接 next** — bug：朋友给的 invite 链接 `/invite/abc`，未登录用户被 proxy 拐到 `/login?next=/invite/abc`，但点「创建账号」跳 `/signup` 时 next 丢了；signUpWithEmail 也没用 next，注册验证邮件 redirectTo 默认 `/lists`。整条 sign-up 路径上 next 被吃掉。修：
+  - login 页底部「创建账号」link 把 next 带到 /signup
+  - signup 页 searchParams 读 next，SignUpForm + GoogleButton 都收 next prop
+  - SignUpForm 加 hidden next input；signUpWithEmail action 用 next 构造 emailRedirectTo
+  - signup 页底部「登录」link 也把 next 带回 /login（双向对称）
+  - 现在 invite → login → 「创建账号」→ 注册 → 验证邮件 → 回 /invite/abc 链路完整
+
 ### AD. README 文档准确性
 
 - [x] **AD1. README env vars 校正** — 之前表里列了 `RESEND_API_KEY` 但代码完全没用（实际 Magic Link 走 Supabase 默认邮件）；缺少实际重要的 `NEXT_PUBLIC_APP_URL`（OAuth callback + 邮件链接基址，部署到生产忘配会导致邮件链接指 localhost）。改：补 NEXT_PUBLIC_APP_URL，去掉 RESEND_API_KEY，技术栈描述里把"邮件：Resend"改成"Supabase 默认邮件，生产可接 Resend / SendGrid"，加可选 SMTP 段说明

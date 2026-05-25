@@ -43,7 +43,7 @@ export default async function LoginPage({
       <p className="text-center text-sm text-zinc-500">
         还没有账号？{" "}
         <Link
-          href="/signup"
+          href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}
           className="font-medium text-[var(--text-strong)] underline underline-offset-2 decoration-zinc-300"
         >
           创建账号

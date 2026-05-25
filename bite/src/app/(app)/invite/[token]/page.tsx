@@ -10,6 +10,8 @@ type Params = Promise<{ token: string }>;
 
 export default async function InvitePage({ params }: { params: Params }) {
   const { token } = await params;
+  // 未登录用户由 proxy.ts 提前 redirect 到 /login?next=/invite/<token>
+  // SignInForm 走 next 参数；登录后回到这里接受邀请
   const preview = await loadInvitePreview(token);
 
   return (
