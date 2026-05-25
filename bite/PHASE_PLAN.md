@@ -123,6 +123,10 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 - [x] **X1. readOnly viewer 不显示 required `*` 标记** — viewer 看 place edit 页时所有字段 disabled，但标签上的 `*` 还在，看着像让你填实际不能填。抽出 `Req` 节点，readOnly 时为 null，否则星号
 - [x] **X2. photo URLs 实时预览** — 之前 PhotoCarousel 只显示已保存的 photos，textarea 编辑时贴新 URL 看不到预览。改 textarea 为 controlled state，按行 parse 出 https:// 的有效 URL 实时给 PhotoCarousel；显示「N 张」计数
 
+### Y. 一致性 fix
+
+- [x] **Y1. /recommendations 接受目标 list 含 co_owner 共享 list** — /quick-add 已经 fix 过同类（iter-8 O3 旁带），但 /recommendations 还只看 owner_id 的 list。修：加 list_members 查询，含 role='co_owner' 的共享 list 也算可接受目标
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）

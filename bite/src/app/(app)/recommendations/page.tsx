@@ -23,24 +23,43 @@ export default async function RecommendationsPage() {
   const user = await requireUser();
   const supabase = await createClient();
 
-  const [{ data: incoming }, { data: outgoing }, { data: ownLists }] =
-    await Promise.all([
-      supabase
-        .from("recommendations")
-        .select("*")
-        .eq("to_user_id", user.id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("recommendations")
-        .select("*")
-        .eq("from_user_id", user.id)
-        .order("created_at", { ascending: false }),
-      supabase.from("lists").select("id, name").eq("owner_id", user.id),
-    ]);
+  const [
+    { data: incoming },
+    { data: outgoing },
+    { data: allLists },
+    { data: memberships },
+  ] = await Promise.all([
+    supabase
+      .from("recommendations")
+      .select("*")
+      .eq("to_user_id", user.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("recommendations")
+      .select("*")
+      .eq("from_user_id", user.id)
+      .order("created_at", { ascending: false }),
+    // 通过 RLS 拿所有用户可见的 lists（owner + member）
+    supabase.from("lists").select("id, name, owner_id"),
+    supabase
+      .from("list_members")
+      .select("list_id, role")
+      .eq("user_id", user.id),
+  ]);
 
   const incomingRows = (incoming ?? []) as RecRow[];
   const outgoingRows = (outgoing ?? []) as RecRow[];
-  const lists = (ownLists ?? []) as ListOption[];
+
+  // 接受目标：owner 的 list + co_owner member 的 list（跟 /quick-add 行为一致）
+  const coOwnerListIds = new Set(
+    (memberships ?? [])
+      .filter((m) => m.role === "co_owner")
+      .map((m) => m.list_id),
+  );
+  type ListWithOwner = { id: string; name: string; owner_id: string };
+  const lists: ListOption[] = ((allLists ?? []) as ListWithOwner[])
+    .filter((l) => l.owner_id === user.id || coOwnerListIds.has(l.id))
+    .map((l) => ({ id: l.id, name: l.name }));
 
   const pendingIncoming = incomingRows.filter((r) => r.status === "pending");
   const resolvedIncoming = incomingRows.filter((r) => r.status !== "pending");
