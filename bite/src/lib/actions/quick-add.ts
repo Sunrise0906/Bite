@@ -64,6 +64,12 @@ export async function processTextDraft(
       const userText = stripXhsUrl(text);
       const pieces: string[] = [scraped.combinedText];
       if (userText) pieces.push(`（用户附言）${userText}`);
+      // 告诉 LLM 图集大小，让 compilation 帖能正确算 photo_indices
+      if (scrapedImages.length > 0) {
+        pieces.push(
+          `【图片】共 ${scrapedImages.length} 张，索引 0..${scrapedImages.length - 1}`,
+        );
+      }
       inputForAI = pieces.join("\n\n");
     } catch (err) {
       const userOnly = stripXhsUrl(text);
@@ -503,6 +509,18 @@ export async function savePlacesBatch(
     return { error: "选择无效，请重试" };
   }
 
+  const allPhotos = draft.photoUrls ?? [];
+  // 按 AI 标注的 photo_indices 给每家店分配图；没标的店回退到全部图
+  // （宁可多给一点，让用户在 confirm form 里删，也比强制平均切给错的店强）
+  function photosFor(p: ExtractedPlace): string[] {
+    const idx = p.photo_indices;
+    if (!idx || idx.length === 0 || allPhotos.length === 0) return allPhotos;
+    const picked = idx
+      .filter((i) => Number.isInteger(i) && i >= 0 && i < allPhotos.length)
+      .map((i) => allPhotos[i]);
+    return picked.length > 0 ? picked : allPhotos;
+  }
+
   const candidates: UpsertCandidate[] = selected.map((p) => ({
     list_id: listId,
     name: p.name,
@@ -516,8 +534,8 @@ export async function savePlacesBatch(
       p.recommended_by ?? (draft.source === "xhs" ? "XHS博主" : null),
     myReason: p.reason ?? null,
     notes: p.notes ?? null,
-    // 合集帖整篇共享同一图集；每家店都先用同一组图（用户后续可编辑去掉无关图）
-    photo_urls: draft.photoUrls ?? [],
+    // AI 标了 photo_indices 就按它分；没标 → 全部图（用户后续可编辑）
+    photo_urls: photosFor(p),
     source: draft.source,
     source_url: draft.sourceUrl ?? null,
     google_place_id: null,

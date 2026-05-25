@@ -42,6 +42,17 @@ const PlaceItemSchema = z.object({
         "评论区、标签等信号，1-3 句话。包含但不限于：评论区是否有差评、" +
         "排队 / 位置 / 性价比 / 营业时间等客观提醒、信息缺失项。",
     ),
+  photo_indices: z
+    .array(z.number().int().nonnegative())
+    .optional()
+    .describe(
+      "合集帖时，本店对应的图片在帖子图集中的索引（0-based）。" +
+        "依据：正文里 '图1️⃣-2️⃣ / 图3-4 / 图5️⃣-7️⃣' 这类显式标注。" +
+        "解析规则：'图N' / '图N️⃣' = 索引 N-1（用户看的是 1-based）；" +
+        "'图M-N' / 'M-N' 范围两端都含。" +
+        "找不到明确映射就**留空**（调用方会回退到所有图）——不要瞎猜。" +
+        "单店帖（mode='single'）不填这个字段。",
+    ),
 });
 
 export type ExtractedPlace = z.infer<typeof PlaceItemSchema>;
@@ -112,6 +123,16 @@ const SYSTEM_PROMPT = `你是一个餐厅信息提取助手。从用户输入的
 - 帖子标签（如 "GardenGrove美食"、"OC越南区"）常直接是地址/菜系信号
 - 博主 IP 属地和真实地址不一定一致，仅作辅助
 
+【合集帖图片分配 photo_indices】
+- 输入有时会附带"【图片】共 N 张"信息，告诉你帖子有几张图、索引 0..N-1。
+- 正文里若有"图1️⃣-2️⃣：上水小馆"或"图3-4 凯悦轩"等标注：把对应区间转成 0-based 索引数组。
+  - 例：'图1-2 上水小馆' → photo_indices: [0, 1]
+  - 例：'图5️⃣-7️⃣ 鼎泰丰' → photo_indices: [4, 5, 6]
+  - 例：'图1️⃣ XX' → photo_indices: [0]
+- 没有显式图片标注时，**就别填 photo_indices**，留空。调用方会回退到全部图。
+  - 宁可少标不要瞎猜——共 10 张图但只能确认 1 家店对应图 1-2，那家填 [0,1]，其他不填。
+- 索引必须在合法范围（< 图集总数），超出就视为无效，丢弃。
+
 【输出】
 严格按 JSON schema 输出 { mode, places: [...] }。不要写 markdown 包裹、不要解释。`;
 
@@ -164,6 +185,7 @@ const FEW_SHOTS: Array<{ user: string; assistant: ExtractionResult }> = [
     user: `帖子标题：尔湾｜四月治愈我的美食
 博主：@xxx
 帖子标签：尔湾美食、尔湾探店
+【图片】共 7 张，索引 0..6
 帖子正文：
 图1️⃣-2️⃣：上水小馆 - 粤菜馆，炒饭烧鸭都好吃，分量大，没吃完打包
 
@@ -183,6 +205,7 @@ const FEW_SHOTS: Array<{ user: string; assistant: ExtractionResult }> = [
           confidence: "high",
           notes:
             "博主四月探店合集第 1 家。主推炒饭和烧鸭，分量大可打包。",
+          photo_indices: [0, 1],
         },
         {
           name: "凯悦轩",
@@ -194,6 +217,7 @@ const FEW_SHOTS: Array<{ user: string; assistant: ExtractionResult }> = [
           confidence: "high",
           notes:
             "博主合集第 2 家。早茶单价偏高但分量大；周末通常等位约 20 分钟。",
+          photo_indices: [2, 3],
         },
         {
           name: "鼎泰丰",
@@ -205,6 +229,7 @@ const FEW_SHOTS: Array<{ user: string; assistant: ExtractionResult }> = [
           confidence: "high",
           notes:
             "博主合集第 3 家，Spectrum 新开。周五 5pm waitlist 排到 9pm 才入座；芋泥小笼包偏腻不推荐。",
+          photo_indices: [4, 5, 6],
         },
       ],
     },
