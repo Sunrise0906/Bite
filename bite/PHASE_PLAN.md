@@ -131,6 +131,10 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 
 - [x] **Z1. /chat 侧栏对话按时间分组** — 之前 conversations 平铺一长串，多于 20 条不好扫。改为按 updated_at 分组成 5 桶（今天/昨天/本周/本月/更早），每组上方加小标题。桌面侧栏生效；mobile 横滚 chip 暂保持平铺（横滚本就不适合分组）
 
+### AB. 登录路径 polish
+
+- [x] **AB1. SignInForm 加忘了密码 hint** — 之前用户输错密码只看到红色错误，没人告诉 ta 还能用 Magic Link 进。login 页本来就有 Magic Link 表单。SignInForm 底部加一行 11px 小字：「忘了密码？下面的「魔法链接登录」也能进，不用密码」
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）

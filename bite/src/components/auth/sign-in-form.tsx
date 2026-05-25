@@ -41,6 +41,9 @@ export function SignInForm({ next }: { next?: string }) {
       >
         {pending ? "登录中…" : "登录"}
       </button>
+      <p className="text-center text-xs text-zinc-500">
+        忘了密码？下面的「魔法链接登录」也能进，不用密码
+      </p>
     </form>
   );
 }
