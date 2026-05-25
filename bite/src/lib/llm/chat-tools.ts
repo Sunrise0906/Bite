@@ -60,7 +60,8 @@ export const CHAT_TOOLS: LlmTool[] = [
     name: "add_to_list",
     description:
       "把一家用户库外的店加进某个 list（想去）。仅在用户明确说'帮我加上' / '记一下' 时用。" +
-      "不要在常规推荐里偷偷加。",
+      "不要在常规推荐里偷偷加。" +
+      "返回 ok:true 表示加成功；返回 already_exists:true 表示同 list 同名已存在，没重复加——告诉用户「这家店你已经在该 list 里了」。",
     inputSchema: {
       type: "object",
       properties: {
@@ -305,6 +306,22 @@ async function addToList(input: unknown, ctx: ToolContext) {
   const args = (input ?? {}) as AddInput;
   if (!args.list_id || !args.name || !args.address || !args.cuisine?.length) {
     return { error: "缺少必填字段（list_id / name / address / cuisine）" };
+  }
+
+  // 防 dup：同 list 同名已存在 → 不重复插，告诉 AI 让 ta 告知用户
+  const { data: existing } = await ctx.supabase
+    .from("places")
+    .select("id, name")
+    .eq("list_id", args.list_id)
+    .eq("name", args.name)
+    .maybeSingle<{ id: string; name: string }>();
+  if (existing) {
+    return {
+      already_exists: true,
+      place_id: existing.id,
+      name: existing.name,
+      note: "这家店已经在该 list 里了，没有重复添加。告诉用户。",
+    };
   }
 
   const reasons = args.reason

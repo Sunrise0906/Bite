@@ -93,6 +93,7 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 ### Q. 数据完整性 bug fix
 
 - [x] **Q1. acceptRecommendation 防 dup + smart merge** — bug：朋友推荐的店如果接收者目标 list 里已有同名店，会插重复行。修：先查 (list_id, name)，命中则合并（reasons 去重 append、tags/cuisine/occasions/photo_urls union dedup、notes 保留已有非空），返回 merged:true。UI 区分"已添加 / 已合并"toast
+- [x] **Q2. chat add_to_list tool 防 dup** — 同 Q1 同类 bug。chat AI 调 add_to_list 时若同 list 同名已存在会插重复。修：先查，命中返回 `already_exists:true`（不 merge，因为 AI 上下文里"用户让我加"和"该店已存在"语义不同——直接告诉用户更清晰）。工具 description 也更新让 AI 知道这种 case 该怎么转达
 
 ### R. 共享 list 来源可见性
 
