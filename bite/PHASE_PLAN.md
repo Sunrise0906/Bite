@@ -127,6 +127,10 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 
 - [x] **Y1. /recommendations 接受目标 list 含 co_owner 共享 list** — /quick-add 已经 fix 过同类（iter-8 O3 旁带），但 /recommendations 还只看 owner_id 的 list。修：加 list_members 查询，含 role='co_owner' 的共享 list 也算可接受目标
 
+### Z. 长列表导航
+
+- [x] **Z1. /chat 侧栏对话按时间分组** — 之前 conversations 平铺一长串，多于 20 条不好扫。改为按 updated_at 分组成 5 桶（今天/昨天/本周/本月/更早），每组上方加小标题。桌面侧栏生效；mobile 横滚 chip 暂保持平铺（横滚本就不适合分组）
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）

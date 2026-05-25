@@ -118,6 +118,52 @@ export default async function ChatPage(props: {
 
   const hasActive = activeConvo !== null;
 
+  // 按 updated_at 分组：今天 / 昨天 / 本周 / 本月 / 更早
+  // 长 chat 历史扫起来更快
+  function bucketOf(iso: string): "today" | "yesterday" | "week" | "month" | "older" {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "older";
+    const now = new Date();
+    const startToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const startYesterday = new Date(startToday);
+    startYesterday.setDate(startYesterday.getDate() - 1);
+    const startWeek = new Date(startToday);
+    startWeek.setDate(startWeek.getDate() - 7);
+    const startMonth = new Date(startToday);
+    startMonth.setDate(startMonth.getDate() - 30);
+
+    if (d >= startToday) return "today";
+    if (d >= startYesterday) return "yesterday";
+    if (d >= startWeek) return "week";
+    if (d >= startMonth) return "month";
+    return "older";
+  }
+  const BUCKET_LABEL: Record<ReturnType<typeof bucketOf>, string> = {
+    today: "今天",
+    yesterday: "昨天",
+    week: "本周",
+    month: "本月",
+    older: "更早",
+  };
+  const BUCKET_ORDER: Array<ReturnType<typeof bucketOf>> = [
+    "today",
+    "yesterday",
+    "week",
+    "month",
+    "older",
+  ];
+  const grouped = new Map<ReturnType<typeof bucketOf>, typeof conversations>();
+  for (const c of conversations) {
+    const b = bucketOf(c.updated_at);
+    const arr = grouped.get(b) ?? [];
+    arr.push(c);
+    grouped.set(b, arr);
+  }
+
   return (
     <div className="mx-auto flex h-[calc(100dvh-64px)] w-full max-w-6xl flex-col sm:flex-row">
       {/* ---- Sidebar：会话列表 ---- */}
@@ -135,37 +181,50 @@ export default async function ChatPage(props: {
           {conversations.length === 0 ? (
             <p className="px-2 text-xs text-zinc-500">还没有对话</p>
           ) : (
-            <ul className="space-y-0.5">
-              {conversations.map((c) => {
-                const isActive = c.id === activeId;
+            <div className="space-y-3">
+              {BUCKET_ORDER.map((bucket) => {
+                const items = grouped.get(bucket);
+                if (!items || items.length === 0) return null;
                 return (
-                  <li key={c.id} className="group relative">
-                    <Link
-                      href={`/chat?c=${c.id}`}
-                      className={`block truncate rounded-lg py-2 pl-3 pr-8 text-sm transition ${
-                        isActive
-                          ? "bg-[var(--primary-soft)] text-[var(--primary-soft-text)]"
-                          : "text-zinc-700 hover:bg-white"
-                      }`}
-                    >
-                      {c.title ?? "新对话"}
-                    </Link>
-                    <div
-                      className={`absolute right-1 top-1/2 -translate-y-1/2 ${
-                        isActive
-                          ? "opacity-100"
-                          : "opacity-0 group-hover:opacity-100"
-                      }`}
-                    >
-                      <ConvoMenu
-                        conversationId={c.id}
-                        currentTitle={c.title}
-                      />
-                    </div>
-                  </li>
+                  <div key={bucket}>
+                    <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                      {BUCKET_LABEL[bucket]}
+                    </p>
+                    <ul className="space-y-0.5">
+                      {items.map((c) => {
+                        const isActive = c.id === activeId;
+                        return (
+                          <li key={c.id} className="group relative">
+                            <Link
+                              href={`/chat?c=${c.id}`}
+                              className={`block truncate rounded-lg py-2 pl-3 pr-8 text-sm transition ${
+                                isActive
+                                  ? "bg-[var(--primary-soft)] text-[var(--primary-soft-text)]"
+                                  : "text-zinc-700 hover:bg-white"
+                              }`}
+                            >
+                              {c.title ?? "新对话"}
+                            </Link>
+                            <div
+                              className={`absolute right-1 top-1/2 -translate-y-1/2 ${
+                                isActive
+                                  ? "opacity-100"
+                                  : "opacity-0 group-hover:opacity-100"
+                              }`}
+                            >
+                              <ConvoMenu
+                                conversationId={c.id}
+                                currentTitle={c.title}
+                              />
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
                 );
               })}
-            </ul>
+            </div>
           )}
         </nav>
 
