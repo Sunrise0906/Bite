@@ -10,7 +10,7 @@
 - **Supabase**（Postgres + RLS + Auth + Storage）
 - **多 LLM provider**：Google Gemini（默认免费）/ Anthropic Claude / OpenAI GPT / DeepSeek / 通义千问 Qwen
 - **地图**：Google Maps + Places API (New)
-- **邮件**：Resend（注册验证 / Magic Link）
+- **邮件**：Supabase 默认邮件服务（注册验证 / Magic Link）。生产想要更可靠 + 自家域名发件可接 Resend / SendGrid
 
 ## 本地开发
 
@@ -34,11 +34,15 @@ npm run dev
 | `SUPABASE_SERVICE_ROLE_KEY` | 服务端 key（**绝对不放前端**） | 同上 |
 | `GEMINI_API_KEY` | Google Gemini 默认 AI（**真免费**） | [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Places autocomplete + 地图 | Google Cloud Console，**记得加 HTTP referrer 白名单** |
-| `RESEND_API_KEY` | 注册/Magic Link 邮件 | [resend.com](https://resend.com) 免费 tier |
+| `NEXT_PUBLIC_APP_URL` | OAuth callback + Magic Link 邮件里的链接基址 | 本地 `http://localhost:3000`；生产填部署域名（**必须**否则邮件链接指错地方） |
 
 可选（让用户能选其他 provider）：
 
 - `ANTHROPIC_API_KEY` · `OPENAI_API_KEY` · `DEEPSEEK_API_KEY` · `DASHSCOPE_API_KEY`
+
+可选（生产邮件，自家域名发件更专业）：
+
+- 配 Resend / SendGrid SMTP 到 Supabase Auth → Email Settings；当前代码用 Supabase 默认邮件，足够开发 + 小流量使用
 
 ### 数据库初始化
 
