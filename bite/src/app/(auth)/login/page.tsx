@@ -2,6 +2,11 @@ import Link from "next/link";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { MagicLinkForm } from "@/components/auth/magic-link-form";
 import { GoogleButton } from "@/components/auth/google-button";
+import { AuthDivider } from "@/components/auth/divider";
+
+export const metadata = {
+  title: "登录 · Bite",
+};
 
 type SearchParams = Promise<{ next?: string; error?: string }>;
 
@@ -27,11 +32,11 @@ export default async function LoginPage({
 
       <SignInForm next={next} />
 
-      <Divider>或</Divider>
+      <AuthDivider>或</AuthDivider>
 
       <MagicLinkForm next={next} />
 
-      <Divider>或</Divider>
+      <AuthDivider>或</AuthDivider>
 
       <GoogleButton next={next} />
 
@@ -44,16 +49,6 @@ export default async function LoginPage({
           创建账号
         </Link>
       </p>
-    </div>
-  );
-}
-
-function Divider({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 text-xs text-zinc-400">
-      <div className="h-px flex-1 bg-zinc-200" />
-      <span>{children}</span>
-      <div className="h-px flex-1 bg-zinc-200" />
     </div>
   );
 }

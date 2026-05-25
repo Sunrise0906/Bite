@@ -112,6 +112,11 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 - [x] **U1. chat system prompt 处理空库** — 之前 search_my_list 返回 `note="用户还没有任何 list"` 时 AI 不知道该说啥。在 system prompt 加「冷启动 / 空库的情况」段落：引导用户去 /lists 建 list + /quick-add 加店；如果有 list 但查不到匹配，建议换条件不主动写库
 - [x] **U2. /lists/[id] 头部 sticky** — 长 list 滚下去 list 名 + 邀请按钮就看不见了。改 header 为 sticky top-0 + backdrop blur，滚动时仍可见
 
+### V. auth 页 polish + 去重
+
+- [x] **V1. /login + /signup metadata.title** — 之前 auth 页 tab 也显示「Bite · 餐厅记录」layout 默认值。加「登录 · Bite」/「注册 · Bite」
+- [x] **V2. AuthDivider 组件去重** — 之前 /login 和 /signup 各自重复定义 Divider 组件（同样代码）。提取到 components/auth/divider.tsx
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）

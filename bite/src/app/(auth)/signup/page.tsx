@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 import { GoogleButton } from "@/components/auth/google-button";
+import { AuthDivider } from "@/components/auth/divider";
+
+export const metadata = {
+  title: "注册 · Bite",
+};
 
 type SearchParams = Promise<{ error?: string }>;
 
@@ -28,7 +33,7 @@ export default async function SignUpPage({
 
       <SignUpForm />
 
-      <Divider>或</Divider>
+      <AuthDivider>或</AuthDivider>
 
       <GoogleButton />
 
@@ -41,16 +46,6 @@ export default async function SignUpPage({
           登录
         </Link>
       </p>
-    </div>
-  );
-}
-
-function Divider({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 text-xs text-zinc-400">
-      <div className="h-px flex-1 bg-zinc-200" />
-      <span>{children}</span>
-      <div className="h-px flex-1 bg-zinc-200" />
     </div>
   );
 }
