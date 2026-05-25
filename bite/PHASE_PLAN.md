@@ -152,6 +152,7 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 
 - [x] **AG1. ProfileEditForm avatar onError 回退** — 用户贴个 URL 当头像，URL 失效（404 / 跨域被 block）后 read view 显示浏览器默认 broken-image icon，很丑且无操作引导。加 avatarBroken state + img onError 回退到 initial 字母圆圈，保存新 URL 后重置标记重新尝试加载
 - [x] **AG2. PhotoCarousel 单张图加载失败 placeholder** — XHS CDN 偶尔防盗链 block referrer / 图床挂了 / 用户贴错 URL，carousel 内某张图碎了浏览器显示破图 icon 又丑又卡视觉。加 broken Set state + 每张图 onError 回退到「🖼️ 图片加载失败」placeholder，保留其他图正常滚动 / 圆点指示
+- [x] **AG3. PlaceCard cover image fallback** — list 主页卡片左侧封面图碎了同样难看。但 PlaceCard 是 server component，需抽个小 client 组件 PlaceCardCover 用 onError。fallback 是中性 🍽️ placeholder（占同尺寸），同时 broken 时不显示「N 张」badge（误导）
 
 ### AD. README 文档准确性
 

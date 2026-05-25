@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Place, PlacePrice } from "@/lib/db/types";
 import { StatusQuickToggle } from "./status-quick-toggle";
 import { PlaceCardMenu } from "./place-card-menu";
+import { PlaceCardCover } from "./card-cover";
 import { VisitLogButton } from "@/components/visits/visit-log-button";
 import type { PlaceVisitSummary } from "./places-view";
 
@@ -74,24 +75,11 @@ export function PlaceCard({
     <article className="card block overflow-hidden p-0">
       <div className="flex">
         {cover && (
-          <Link
+          <PlaceCardCover
             href={`/lists/${place.list_id}/places/${place.id}/edit`}
-            className="relative block shrink-0"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={cover}
-              alt=""
-              className="h-full max-h-32 w-24 object-cover sm:w-28"
-              loading="lazy"
-              referrerPolicy="no-referrer"
-            />
-            {photos.length > 1 && (
-              <span className="absolute bottom-1 right-1 rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur">
-                {photos.length} 张
-              </span>
-            )}
-          </Link>
+            url={cover}
+            totalPhotos={photos.length}
+          />
         )}
         <div className="min-w-0 flex-1 p-4">
           <div className="flex items-start justify-between gap-3">
