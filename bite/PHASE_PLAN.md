@@ -135,6 +135,10 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 
 - [x] **AB1. SignInForm 加忘了密码 hint** — 之前用户输错密码只看到红色错误，没人告诉 ta 还能用 Magic Link 进。login 页本来就有 Magic Link 表单。SignInForm 底部加一行 11px 小字：「忘了密码？下面的「魔法链接登录」也能进，不用密码」
 
+### AC. Toast 反馈准确性
+
+- [x] **AC1. places_added toast 含 updated count** — `savePlacesBatch` redirect URL 已经带 `&updated=N` 但 ToastFlash 只读 `count` 忽略 `updated`，5 家全添加跟 3 加 + 2 合并显示一样「已添加 5 家店」误导用户。修：ToastFlash 也读 `updated`，文案根据合并比例分三档：「全合并」「混合」「全新增」
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）
