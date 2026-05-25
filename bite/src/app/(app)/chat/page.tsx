@@ -197,7 +197,7 @@ export default async function ChatPage(props: {
                           <li key={c.id} className="group relative">
                             <Link
                               href={`/chat?c=${c.id}`}
-                              className={`block truncate rounded-lg py-2 pl-3 pr-8 text-sm transition ${
+                              className={`block truncate rounded-lg py-2 pl-3 pr-10 text-sm transition ${
                                 isActive
                                   ? "bg-[var(--primary-soft)] text-[var(--primary-soft-text)]"
                                   : "text-zinc-700 hover:bg-white"
@@ -238,7 +238,7 @@ export default async function ChatPage(props: {
                   <li key={c.id} className="relative shrink-0">
                     <Link
                       href={`/chat?c=${c.id}`}
-                      className={`block max-w-[160px] truncate rounded-full py-1 pl-3 pr-7 text-xs ${
+                      className={`block max-w-[160px] truncate rounded-full py-1 pl-3 pr-9 text-xs ${
                         isActive
                           ? "bg-[var(--primary-soft)] text-[var(--primary-soft-text)]"
                           : "bg-white text-zinc-600"

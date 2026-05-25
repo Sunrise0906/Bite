@@ -43,6 +43,8 @@ export function PlaceForm(props: Mode) {
     .split(/\r?\n/)
     .map((s) => s.trim())
     .filter((s) => /^https?:\/\//i.test(s));
+  // 默认收起 URL 编辑区，光看预览不被一堆链接刷屏
+  const [showPhotoEditor, setShowPhotoEditor] = useState(false);
 
   // readOnly 时不显示 `*`，因为用户不能填，显示反而误导
   const Req = readOnly ? null : (
@@ -208,18 +210,35 @@ export function PlaceForm(props: Mode) {
       </div>
 
       <div>
-        <label htmlFor="p-photos" className={LABEL_CLS}>
-          图片 {previewUrls.length > 0 && (
-            <span className="ml-1 text-xs font-normal text-zinc-500">
-              · {previewUrls.length} 张
-            </span>
+        <div className="flex items-baseline justify-between">
+          <label htmlFor="p-photos" className={LABEL_CLS}>
+            图片 {previewUrls.length > 0 && (
+              <span className="ml-1 text-xs font-normal text-zinc-500">
+                · {previewUrls.length} 张
+              </span>
+            )}
+          </label>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={() => setShowPhotoEditor((v) => !v)}
+              className="text-xs text-[var(--primary)] hover:underline"
+            >
+              {showPhotoEditor ? "▾ 收起 URL" : "▸ 编辑 URL"}
+            </button>
           )}
-        </label>
+        </div>
         {previewUrls.length > 0 && (
-          <div className="mb-2">
+          <div className="mt-1.5">
             <PhotoCarousel urls={previewUrls} />
           </div>
         )}
+        {previewUrls.length === 0 && !showPhotoEditor && (
+          <p className="mt-1.5 rounded-md border border-dashed border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-3 py-4 text-center text-xs text-zinc-500">
+            暂无图片 · 点右上「编辑 URL」贴链接
+          </p>
+        )}
+        {/* textarea 始终在 DOM（form 要提交），用 hidden 控制可见 */}
         <textarea
           id="p-photos"
           name="photo_urls_text"
@@ -227,11 +246,15 @@ export function PlaceForm(props: Mode) {
           value={photoText}
           onChange={(e) => setPhotoText(e.target.value)}
           placeholder={"每行一个 URL\nhttps://...\nhttps://..."}
-          className="field-input mt-1.5 resize-y font-mono text-xs"
+          className={`field-input mt-2 resize-y font-mono text-xs ${
+            showPhotoEditor ? "" : "hidden"
+          }`}
         />
-        <p className={HELP_CLS}>
-          第一张作为封面。XHS 抓取自动填好；想清空就删空。每行一个 https:// 才算有效
-        </p>
+        {showPhotoEditor && (
+          <p className={HELP_CLS}>
+            第一张作为封面。XHS 抓取自动填好；想清空就删空。每行一个 https:// 才算有效
+          </p>
+        )}
       </div>
 
       {state.error && (

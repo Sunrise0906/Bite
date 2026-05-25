@@ -66,7 +66,8 @@ export function ConvoMenu({
         aria-label="会话操作"
         className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-white hover:text-[var(--text-strong)] disabled:opacity-50"
       >
-        <span aria-hidden="true" className="text-base leading-none">⋯</span>
+        {/* 用纵向三点跟标题 truncate 的水平 "..." 区分开，肉眼一看就知道是按钮 */}
+        <span aria-hidden="true" className="text-base leading-none">⋮</span>
       </button>
 
       {open && (
