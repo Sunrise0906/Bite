@@ -18,6 +18,8 @@ export function ProfileEditForm({
   const [name, setName] = useState(initialName ?? "");
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl ?? "");
   const [savedFlash, setSavedFlash] = useState(false);
+  // avatar 加载失败回退到 initial 圆圈，避免 broken-image icon
+  const [avatarBroken, setAvatarBroken] = useState(false);
 
   const display = name || email.split("@")[0] || "未命名用户";
 
@@ -30,19 +32,23 @@ export function ProfileEditForm({
         setError(null);
         setEditing(false);
         setSavedFlash(true);
+        // 重置 broken 标记，新 URL 重新尝试加载
+        setAvatarBroken(false);
         setTimeout(() => setSavedFlash(false), 1500);
       }
     });
   }
 
   if (!editing) {
+    const showImage = avatarUrl && !avatarBroken;
     return (
       <div className="flex items-center gap-4">
-        {avatarUrl ? (
+        {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={avatarUrl}
             alt=""
+            onError={() => setAvatarBroken(true)}
             className="h-14 w-14 rounded-full object-cover"
             referrerPolicy="no-referrer"
           />

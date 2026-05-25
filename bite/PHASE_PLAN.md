@@ -148,6 +148,10 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
   - signup 页底部「登录」link 也把 next 带回 /login（双向对称）
   - 现在 invite → login → 「创建账号」→ 注册 → 验证邮件 → 回 /invite/abc 链路完整
 
+### AG. 图片加载兜底
+
+- [x] **AG1. ProfileEditForm avatar onError 回退** — 用户贴个 URL 当头像，URL 失效（404 / 跨域被 block）后 read view 显示浏览器默认 broken-image icon，很丑且无操作引导。加 avatarBroken state + img onError 回退到 initial 字母圆圈，保存新 URL 后重置标记重新尝试加载
+
 ### AD. README 文档准确性
 
 - [x] **AD1. README env vars 校正** — 之前表里列了 `RESEND_API_KEY` 但代码完全没用（实际 Magic Link 走 Supabase 默认邮件）；缺少实际重要的 `NEXT_PUBLIC_APP_URL`（OAuth callback + 邮件链接基址，部署到生产忘配会导致邮件链接指 localhost）。改：补 NEXT_PUBLIC_APP_URL，去掉 RESEND_API_KEY，技术栈描述里把"邮件：Resend"改成"Supabase 默认邮件，生产可接 Resend / SendGrid"，加可选 SMTP 段说明
