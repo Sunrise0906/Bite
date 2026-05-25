@@ -158,6 +158,10 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 
 - [x] **AH1. Settings 保存后清旧 testResult** — bug：用户测试连接 ✓ → 改字段 → 保存 → 同时看到「已保存 ✓」+「连接成功 ✓」，但后者是几次操作前的旧测试结果，误以为刚刚又测过了。修：saveLlmSettings 加 version 递增；客户端 useEffect 监听 state.version 触发 setTestResult(null)。注意 React 19 严格 set-state-in-effect 规则，加 inline disable + 注释说明 deliberate
 
+### AI. 流式 / 路由交互 bug
+
+- [x] **AI1. 新对话 stream 中 URL 替换导致 ChatView 重挂** — 严重 bug：用户在 /chat 发首条消息，meta 事件回来时调 `router.replace('/chat?c=<id>')`，触发 Next.js 父 page server re-render，ChatView key=activeId 从 `"new"` → 实际 id，React 看到 key 变了 unmount + mount 新实例。原 ChatView 的 stream reader 被丢弃 → assistant 流式回复在用户屏上中断消失。后端继续跑完保存到 DB，用户得手动 refresh 才看得到。修：改用 native `window.history.replaceState` 静默更新 URL bar——Next router 状态不变，组件继续挂着接完 stream。流结束的 `router.refresh()` 再把 sidebar 状态 sync 上来
+
 ### AD. README 文档准确性
 
 - [x] **AD1. README env vars 校正** — 之前表里列了 `RESEND_API_KEY` 但代码完全没用（实际 Magic Link 走 Supabase 默认邮件）；缺少实际重要的 `NEXT_PUBLIC_APP_URL`（OAuth callback + 邮件链接基址，部署到生产忘配会导致邮件链接指 localhost）。改：补 NEXT_PUBLIC_APP_URL，去掉 RESEND_API_KEY，技术栈描述里把"邮件：Resend"改成"Supabase 默认邮件，生产可接 Resend / SendGrid"，加可选 SMTP 段说明

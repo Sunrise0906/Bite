@@ -193,10 +193,15 @@ export function ChatView({
         switch (ev.type) {
           case "meta": {
             newConvoId = (ev.conversation_id as string) ?? null;
-            // 第一时间把 URL 切到带 c=<id>，避免用户中途刷新丢上下文
+            // 第一时间把 URL 切到带 c=<id>，避免用户中途刷新丢上下文。
+            // 用 native history.replaceState 而不是 router.replace——后者会触发
+            // Next.js 重 render 父 page，导致 ChatView key=activeId 从 "new"
+            // 变成新 id 触发 unmount + remount，stream 当场中断。native API
+            // 只改 URL bar，Next router 状态不变，组件继续挂着接 stream。
+            // 流结束后 router.refresh 会重 sync 状态（sidebar 显示新对话）。
             if (newConvoId && newConvoId !== conversationId) {
               setConversationId(newConvoId);
-              router.replace(`/chat?c=${newConvoId}`);
+              window.history.replaceState(null, "", `/chat?c=${newConvoId}`);
             }
             break;
           }
