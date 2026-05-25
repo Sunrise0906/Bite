@@ -88,6 +88,9 @@ export function ChatView({
     if (sending) return;
     if (!isRegen && !text) return;
     if (isRegen && !conversationId) return;
+    // 用 send 开始那一刻的 conversationId 判定是不是新对话——meta 回来时
+    // 会 setConversationId(newId)，之后再读 conversationId 不可靠
+    const isNewConvo = conversationId === null;
     if (!isRegen && opts.text === undefined) setInput("");
     setSending(true);
     setError(null);
@@ -185,8 +188,17 @@ export function ChatView({
         return next;
       });
 
-      // URL 已在 meta 事件时更新过；这里只做 router.refresh 触发侧栏重载
-      router.refresh();
+      // 流结束后让 Next.js router 状态跟 URL bar 对齐
+      // - 新对话：meta 事件时已用 native replaceState 改了 URL bar 但 Next router
+      //   不知道。这里调 router.replace 让 router 状态也对齐，sidebar active
+      //   高亮才正确。此时 DB 已有完整 assistant 消息，ChatView 重挂的
+      //   initialMessages = 当前 local state，视觉无明显变化。
+      // - 已有对话：URL 没变，router.refresh 触发 sidebar / metadata 重 fetch。
+      if (isNewConvo && newConvoId) {
+        router.replace(`/chat?c=${newConvoId}`);
+      } else {
+        router.refresh();
+      }
 
       // ---- 事件分发 ----
       function handleEvent(ev: { type: string; [k: string]: unknown }) {

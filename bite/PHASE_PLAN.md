@@ -161,6 +161,7 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 ### AI. 流式 / 路由交互 bug
 
 - [x] **AI1. 新对话 stream 中 URL 替换导致 ChatView 重挂** — 严重 bug：用户在 /chat 发首条消息，meta 事件回来时调 `router.replace('/chat?c=<id>')`，触发 Next.js 父 page server re-render，ChatView key=activeId 从 `"new"` → 实际 id，React 看到 key 变了 unmount + mount 新实例。原 ChatView 的 stream reader 被丢弃 → assistant 流式回复在用户屏上中断消失。后端继续跑完保存到 DB，用户得手动 refresh 才看得到。修：改用 native `window.history.replaceState` 静默更新 URL bar——Next router 状态不变，组件继续挂着接完 stream。流结束的 `router.refresh()` 再把 sidebar 状态 sync 上来
+- [x] **AI2. 流结束后用 router.replace 对齐 router 状态** — 接 AI1：用 native replaceState 后 URL bar 是 /chat?c=newId，但 Next router 内部状态还是 /chat。router.refresh 用 router 内部状态去 fetch（不带 c=），sidebar 看不到 active 高亮。改：捕获 send 开始时的 `isNewConvo = conversationId === null`，流结束后新对话走 router.replace(`/chat?c=${newId}`) 让 router 状态对齐；已有对话维持 router.refresh。此时 DB 已写完 assistant 消息，ChatView 重挂的 initialMessages 跟当前 local state 一致，无视觉跳动
 
 ### AD. README 文档准确性
 
