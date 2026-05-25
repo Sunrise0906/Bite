@@ -107,6 +107,11 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 
 - [x] **T1. 全局 error.tsx + global-error.tsx** — 之前 runtime 错误（Supabase 挂 / env 配错 / provider 502）直接掉到 Next.js 默认黑底 error 页。加 app/error.tsx 兜底 route segment 内的崩，含 中文文案 + 重试按钮（reset）+ 回 list 链接 + error.message + digest（调试）。再加 app/global-error.tsx 兜底 root layout 自己崩的情况（必须自带 html/body，纯 inline 样式不依赖 layout）
 
+### U. 冷启动 + 导航 polish
+
+- [x] **U1. chat system prompt 处理空库** — 之前 search_my_list 返回 `note="用户还没有任何 list"` 时 AI 不知道该说啥。在 system prompt 加「冷启动 / 空库的情况」段落：引导用户去 /lists 建 list + /quick-add 加店；如果有 list 但查不到匹配，建议换条件不主动写库
+- [x] **U2. /lists/[id] 头部 sticky** — 长 list 滚下去 list 名 + 邀请按钮就看不见了。改 header 为 sticky top-0 + backdrop blur，滚动时仍可见
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）

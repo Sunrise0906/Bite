@@ -202,12 +202,12 @@ export default async function ListDetailPage({
         ‹ 返回所有 list
       </Link>
 
-      <header className="mb-6">
+      <header className="sticky top-0 z-20 -mx-4 mb-6 border-b border-[var(--border-subtle)] bg-[var(--background)]/90 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/70">
         <div className="flex items-start justify-between gap-3">
           {isOwner ? (
             <RenameListForm id={list.id} currentName={list.name} />
           ) : (
-            <h1 className="heading-display text-3xl text-[var(--text-strong)]">
+            <h1 className="heading-display text-2xl text-[var(--text-strong)] sm:text-3xl">
               {list.name}
             </h1>
           )}
