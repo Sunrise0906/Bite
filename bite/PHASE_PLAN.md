@@ -154,6 +154,10 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 - [x] **AG2. PhotoCarousel 单张图加载失败 placeholder** — XHS CDN 偶尔防盗链 block referrer / 图床挂了 / 用户贴错 URL，carousel 内某张图碎了浏览器显示破图 icon 又丑又卡视觉。加 broken Set state + 每张图 onError 回退到「🖼️ 图片加载失败」placeholder，保留其他图正常滚动 / 圆点指示
 - [x] **AG3. PlaceCard cover image fallback** — list 主页卡片左侧封面图碎了同样难看。但 PlaceCard 是 server component，需抽个小 client 组件 PlaceCardCover 用 onError。fallback 是中性 🍽️ placeholder（占同尺寸），同时 broken 时不显示「N 张」badge（误导）
 
+### AH. 表单状态一致性
+
+- [x] **AH1. Settings 保存后清旧 testResult** — bug：用户测试连接 ✓ → 改字段 → 保存 → 同时看到「已保存 ✓」+「连接成功 ✓」，但后者是几次操作前的旧测试结果，误以为刚刚又测过了。修：saveLlmSettings 加 version 递增；客户端 useEffect 监听 state.version 触发 setTestResult(null)。注意 React 19 严格 set-state-in-effect 规则，加 inline disable + 注释说明 deliberate
+
 ### AD. README 文档准确性
 
 - [x] **AD1. README env vars 校正** — 之前表里列了 `RESEND_API_KEY` 但代码完全没用（实际 Magic Link 走 Supabase 默认邮件）；缺少实际重要的 `NEXT_PUBLIC_APP_URL`（OAuth callback + 邮件链接基址，部署到生产忘配会导致邮件链接指 localhost）。改：补 NEXT_PUBLIC_APP_URL，去掉 RESEND_API_KEY，技术栈描述里把"邮件：Resend"改成"Supabase 默认邮件，生产可接 Resend / SendGrid"，加可选 SMTP 段说明

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
   saveLlmSettings,
   clearLlmSettings,
@@ -78,6 +78,17 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
     LlmSettingsFormState,
     FormData
   >(saveLlmSettings, { error: null });
+
+  // 保存成功（version 递增）后清掉上一次测试结果——避免「已保存 ✓」
+  // 和过期的「连接成功 ✓」同时显示让用户误以为刚刚测过。
+  // setState 在 effect 是 deliberate（同步 server action 结果 → 本地 stale
+  // 状态清理），重写成派生态会让 testResult 跟 test action 强耦合。
+  useEffect(() => {
+    if (state.ok && state.version) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTestResult(null);
+    }
+  }, [state.ok, state.version]);
 
   const preset = PROVIDER_PRESETS[provider];
   const isInitialProvider = initial?.provider === provider;

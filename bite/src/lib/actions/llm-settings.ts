@@ -9,6 +9,8 @@ import { LlmProviderError, type ProviderId } from "@/lib/llm/types";
 export type LlmSettingsFormState = {
   error: string | null;
   ok?: boolean;
+  /** 每次成功保存都自增，让前端 useEffect 检测"新一次保存"做清理 */
+  version?: number;
 };
 
 const VALID_PROVIDERS: ProviderId[] = [
@@ -27,7 +29,7 @@ function normalize(value: FormDataEntryValue | null): string | null {
 
 // ---- 保存 settings -------------------------------------------------------
 export async function saveLlmSettings(
-  _prev: LlmSettingsFormState,
+  prev: LlmSettingsFormState,
   formData: FormData,
 ): Promise<LlmSettingsFormState> {
   const user = await requireUser();
@@ -72,7 +74,7 @@ export async function saveLlmSettings(
   if (error) return { error: `保存失败：${error.message}` };
 
   revalidatePath("/profile");
-  return { error: null, ok: true };
+  return { error: null, ok: true, version: (prev.version ?? 0) + 1 };
 }
 
 // ---- 清空（回退到 app 默认）---------------------------------------------
