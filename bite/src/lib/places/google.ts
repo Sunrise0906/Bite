@@ -23,6 +23,8 @@ export type PlaceSuggestion = {
   placeId: string;
   mainText: string;
   secondaryText: string;
+  /** 米。仅当 autocomplete 请求带 origin 时 Google 返回。 */
+  distanceMeters?: number;
 };
 
 export type PlaceDetails = {

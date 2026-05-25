@@ -22,12 +22,22 @@ const FOOD_TYPES = [
   "meal_takeaway",
 ];
 
+// 用户当前位置，浏览器 geolocation 失败时回退到 Irvine 中心。
+// origin → Google 返回 distanceMeters；locationBias circle → 50km 内优先
+// （仍能搜到外地，只是近的排前面）。两个一起传：bias 影响候选选择，origin
+// 拿距离 + 我们客户端再按距离 ascending 排一次保险。
+const IRVINE_FALLBACK = { lat: 33.6846, lng: -117.8265 };
+
 async function fetchSuggestions(
   input: string,
   sessionToken: string,
   apiKey: string,
   signal: AbortSignal,
+  origin: { lat: number; lng: number } | null,
 ): Promise<PlaceSuggestion[]> {
+  const center = origin ?? IRVINE_FALLBACK;
+  // Places API v1 用 latitude/longitude 字段名（不是 lat/lng）
+  const apiPoint = { latitude: center.lat, longitude: center.lng };
   const res = await fetch(`${PLACES_BASE}/places:autocomplete`, {
     method: "POST",
     headers: {
@@ -39,6 +49,13 @@ async function fetchSuggestions(
       sessionToken,
       languageCode: "zh-CN",
       includedPrimaryTypes: FOOD_TYPES,
+      origin: apiPoint,
+      locationBias: {
+        circle: {
+          center: apiPoint,
+          radius: 50000, // 50km，覆盖 OC + LA 部分
+        },
+      },
     }),
     signal,
   });
@@ -50,6 +67,7 @@ async function fetchSuggestions(
     suggestions?: Array<{
       placePrediction?: {
         placeId: string;
+        distanceMeters?: number;
         structuredFormat?: {
           mainText?: { text?: string };
           secondaryText?: { text?: string };
@@ -57,14 +75,22 @@ async function fetchSuggestions(
       };
     }>;
   } = await res.json();
-  return (data.suggestions ?? [])
+  const items = (data.suggestions ?? [])
     .map((s) => s.placePrediction)
     .filter((p): p is NonNullable<typeof p> => Boolean(p))
     .map((p) => ({
       placeId: p.placeId,
       mainText: p.structuredFormat?.mainText?.text ?? "",
       secondaryText: p.structuredFormat?.secondaryText?.text ?? "",
+      distanceMeters: p.distanceMeters,
     }));
+  // 按距离 ascending 排；没距离的（极少）丢底
+  items.sort((a, b) => {
+    if (a.distanceMeters === undefined) return 1;
+    if (b.distanceMeters === undefined) return -1;
+    return a.distanceMeters - b.distanceMeters;
+  });
+  return items;
 }
 
 export function QuickAddInput() {
@@ -83,6 +109,31 @@ export function QuickAddInput() {
   });
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+  // 浏览器定位（一次性，挂载时拿；失败 fallback 到 Irvine 中心，autocomplete 不阻塞）
+  const [userLocation, setUserLocation] = useState<
+    { lat: number; lng: number } | null
+  >(null);
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    let cancelled = false;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (cancelled) return;
+        setUserLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+      // 用户拒绝 / 超时 / 不支持都吞掉 — fetchSuggestions 自带 Irvine fallback
+      () => {},
+      { timeout: 5000, maximumAge: 5 * 60_000 },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const detected = detectInputType(text);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -119,6 +170,7 @@ export function QuickAddInput() {
           sessionToken,
           apiKey,
           controller.signal,
+          userLocation,
         );
         setStatus({ phase: "loaded", suggestions });
       } catch (err) {
@@ -136,7 +188,7 @@ export function QuickAddInput() {
       controller.abort();
       clearTimeout(handle);
     };
-  }, [text, detected.kind, apiKey, sessionToken]);
+  }, [text, detected.kind, apiKey, sessionToken, userLocation]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   function pickSuggestion(s: PlaceSuggestion) {
@@ -248,8 +300,15 @@ function SuggestionsList({
           >
             <span className="mt-0.5 text-[var(--primary)]">📍</span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-[var(--text-strong)]">
-                {s.mainText}
+              <span className="flex items-baseline justify-between gap-2">
+                <span className="truncate text-sm font-medium text-[var(--text-strong)]">
+                  {s.mainText}
+                </span>
+                {s.distanceMeters !== undefined && (
+                  <span className="shrink-0 text-[11px] font-medium text-[var(--primary)]">
+                    {formatDistance(s.distanceMeters)}
+                  </span>
+                )}
               </span>
               <span className="block truncate text-xs text-zinc-500">
                 {s.secondaryText}
@@ -260,4 +319,11 @@ function SuggestionsList({
       ))}
     </ul>
   );
+}
+
+function formatDistance(meters: number): string {
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  const km = meters / 1000;
+  if (km < 10) return `${km.toFixed(1)} km`;
+  return `${Math.round(km)} km`;
 }
