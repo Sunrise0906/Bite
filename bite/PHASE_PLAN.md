@@ -334,6 +334,19 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
   - 只覆盖纯逻辑；server action 里碰 Supabase 的部分（RLS gate / 实际 upsert / 权限校验）仍没测——要 mock supabase client 或起测试 DB，工程量大，defer
   - 还没测的纯逻辑：LLM `extract-place` 的 zod 校验、xhs URL 解析、chat 上下文裁剪——下一批可补
   - 合并逻辑统一后，将来改合并规则只需动一处 + 对应测试，回归有保护；这也是这次重构除「可测」外的额外收益
+  - commit: `3ec21ca`
+
+### iter-13 [测试安全网续 + chat 裁剪隐患加固]
+
+- 延伸 P0 测试网到下一批高风险纯逻辑：
+  - 抽 `src/lib/llm/trim-history.ts`（长会话上下文裁剪，从 /api/chat route 移出）+ 6 单测
+  - `src/lib/places/xhs.test.ts`：`extractXhsUrl` / `stripXhsUrl`（路由热路径，9 单测）
+  - 合计 46 测试全过，tsc + lint + build 全绿
+- **审出并修一个潜在 crash**：原 chat 裁剪 `while (cutoff > 0)` 无上界，若初始 cutoff 之后全是 tool_result-only 行，`historyRows[cutoff]` 越界 undefined → `.role` 抛错。实践中最后一条总是 user-text 不可达，但加了 `cutoff < rows.length` 防御边界 + 测试覆盖该退化场景
+- PM review：
+  - LLM `extract-place` 没单测——核心是 async provider 调用，纯逻辑只剩长度守卫 / slice(0,10)，测它要重 mock provider，ROI 低，defer
+  - 真正没覆盖的复杂路径是 provider 流式 / tool_use 累积 / usage 统计（anthropic.ts / openai-compat.ts），provider-specific，dogfood 时最可能冒 bug——但要测得 mock SSE 流，工程量大
+  - 纯逻辑测试已覆盖：合并去重 / 分图 / 输入路由 / 上下文裁剪 / XHS URL 解析，bug 密度最高的几块都有网了
   - commit 待提交
 
 ---

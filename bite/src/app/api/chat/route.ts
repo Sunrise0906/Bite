@@ -12,6 +12,7 @@ import { getProvider } from "@/lib/llm/router";
 import { LlmProviderError } from "@/lib/llm/types";
 import type { LlmContentBlock, LlmMessage } from "@/lib/llm/types";
 import { CHAT_TOOLS, executeChatTool } from "@/lib/llm/chat-tools";
+import { trimHistory } from "@/lib/llm/trim-history";
 import {
   appendMessage,
   createConversation,
@@ -142,26 +143,12 @@ export async function POST(req: NextRequest) {
     historyRows = historyRows.slice(0, cutIdx + 1);
   }
 
-  // 长会话保护：超过 30 条消息时只保留最近 24 条 + 一条 system-style 摘要
-  // 防止 token 失控（尤其是 tool_result 占空间）。从消息边界裁剪而不是块切，保证
-  // tool_use 跟它的 tool_result 不会被拆散。
-  const MAX_TURNS = 30;
-  const KEEP_TURNS = 24;
-  let truncated = false;
-  if (historyRows.length > MAX_TURNS) {
-    truncated = true;
-    // 从尾部往前找一个干净的边界：最近一条不是 tool_result-only 的 user 消息
-    let cutoff = historyRows.length - KEEP_TURNS;
-    while (cutoff > 0) {
-      const row = historyRows[cutoff];
-      const onlyToolResult =
-        row.role === "user" &&
-        row.content.every((b) => b.type === "tool_result");
-      if (!onlyToolResult) break;
-      cutoff++;
-    }
-    historyRows = historyRows.slice(cutoff);
-  }
+  // 长会话保护：超过 30 条只保留最近 24 条 + 一条 system-style 摘要，防 token 失控
+  // （尤其 tool_result 占空间）。从消息边界裁剪、不切散 tool_use/tool_result 配对，
+  // 逻辑+测试见 trimHistory。
+  const trimmed = trimHistory(historyRows, { maxTurns: 30, keepTurns: 24 });
+  historyRows = trimmed.rows;
+  const truncated = trimmed.truncated;
 
   const messages: LlmMessage[] = historyRows.map((row) => ({
     role: row.role,
