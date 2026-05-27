@@ -30,8 +30,7 @@ npm run dev
 | 变量 | 用途 | 在哪拿 |
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目地址 | Supabase Dashboard → Project Settings → API |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 匿名 key（前端用） | 同上 |
-| `SUPABASE_SERVICE_ROLE_KEY` | 服务端 key（**绝对不放前端**） | 同上 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 匿名 key（前端用，RLS 兜底） | 同上 |
 | `GEMINI_API_KEY` | Google Gemini 默认 AI（**真免费**） | [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Places autocomplete + 地图 | Google Cloud Console，**记得加 HTTP referrer 白名单** |
 | `NEXT_PUBLIC_APP_URL` | OAuth callback + Magic Link 邮件里的链接基址 | 本地 `http://localhost:3000`；生产填部署域名（**必须**否则邮件链接指错地方） |
@@ -43,6 +42,8 @@ npm run dev
 可选（生产邮件，自家域名发件更专业）：
 
 - 配 Resend / SendGrid SMTP 到 Supabase Auth → Email Settings；当前代码用 Supabase 默认邮件，足够开发 + 小流量使用
+
+> 注：`SUPABASE_SERVICE_ROLE_KEY` 当前代码**未使用**（写入全走 RLS + anon key），无需配置。将来若加服务端 admin 操作再补。
 
 ### 数据库初始化
 
@@ -56,6 +57,7 @@ sql/0004_add_photo_url.sql         # photo_url (superseded by 0005)
 sql/0005_photo_urls_array.sql      # photo_urls text[]
 sql/0006_llm_and_chat.sql          # user_llm_settings + conversations + messages
 sql/0007_add_gemini_provider.sql   # gemini 加入 provider check
+sql/0008_list_invites.sql          # list 共享邀请表 + RLS
 ```
 
 ## 项目结构
@@ -106,13 +108,14 @@ bite/
 
 ## 部署到 Vercel
 
-1. 把仓库连到 Vercel
-2. **Root Directory** 选 `bite/`（不是仓库根）
-3. Build Command: `npm run build`（默认 OK）
-4. 在 Project Settings → Environment Variables 把上面表里的变量都填进去
-5. Supabase Auth → Redirect URLs 加 `https://<你的域名>/auth/callback`
-6. Google Cloud Console → API key restrictions → 加 `https://<你的域名>/*` 到 referrer 白名单
-7. Deploy
+完整可执行的上线 runbook（环境变量逐条对照源码、Supabase/Google OAuth 回调、Maps key
+防盗刷、部署后冒烟测试清单）见 **[`DEPLOY.md`](./DEPLOY.md)**。
+
+最关键的三点：
+
+1. **Root Directory 选 `bite`**（app 在子目录，不是仓库根）
+2. **`NEXT_PUBLIC_APP_URL` 填 Vercel 域名**后要重新 deploy（构建期注入），否则邮件链接指 localhost
+3. **Google Maps key 加 HTTP referrer 限制**（`NEXT_PUBLIC_` 暴露在浏览器，不限制会被盗刷）
 
 部署后第一次跑会比较慢（cold start）。Vercel 免费 tier 足够个人使用。
 
