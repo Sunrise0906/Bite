@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, requireUser } from "@/lib/supabase/server";
+import { appendReasonDedup, unionStrings } from "@/lib/places/merge";
 import type { Place, PlacePrice } from "@/lib/db/types";
 
 // 推荐时快照下来的字段（不要带 user-specific 的 reasons / id / list_id）
@@ -202,29 +203,17 @@ export async function acceptRecommendation(args: {
 
   if (existing) {
     merged = true;
-    // reasons：避免重复，按 (user_id, text) 去重
-    const existingReasons = existing.reasons ?? [];
-    const reasons = [...existingReasons];
-    if (
-      newReason &&
-      !existingReasons.some(
-        (r) => r.user_id === newReason.user_id && r.text === newReason.text,
-      )
-    ) {
-      reasons.push(newReason);
-    }
-    // 数组 union dedup
-    const unionDedup = (a: string[] | null, b: string[]): string[] =>
-      Array.from(new Set([...(a ?? []), ...b]));
+    // reasons 按 (user_id, text) 去重追加；数组字段 union 去重——逻辑跟 quick-add 同源
+    const reasons = appendReasonDedup(existing.reasons, newReason);
 
     const { error: updErr } = await supabase
       .from("places")
       .update({
         reasons,
-        tags: unionDedup(existing.tags, snap.tags),
-        cuisine: unionDedup(existing.cuisine, snap.cuisine),
-        occasions: unionDedup(existing.occasions, snap.occasions),
-        photo_urls: unionDedup(existing.photo_urls, snap.photo_urls),
+        tags: unionStrings(existing.tags, snap.tags),
+        cuisine: unionStrings(existing.cuisine, snap.cuisine),
+        occasions: unionStrings(existing.occasions, snap.occasions),
+        photo_urls: unionStrings(existing.photo_urls, snap.photo_urls),
         // notes 保留原有的（用户可能改过），空时才接朋友 snapshot 的
         notes: existing.notes && existing.notes.trim() !== ""
           ? existing.notes

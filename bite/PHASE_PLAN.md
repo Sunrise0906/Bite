@@ -2,16 +2,13 @@
 
 > 用户离开 10h，我自主续干。每半小时一个 /loop iteration。
 
-## 当前状态：✅ DONE — 待用户测试
+## 当前状态：v1 功能完成 → 上线验证阶段
 
-- 启动 commit: `e96cd84` (phase-3-polish-r3)
-- 自主开发 9 个 iter，10 个 commit 推进到当前 HEAD
-- Phase 1-5 全部主线功能完成
-- typecheck / lint / build 全绿
-- 待用户回来：
-  1. 跑 SQL 0008（list_invites）
-  2. 真机测：/chat（Gemini）/ /map / 「我去了」 / /recommendations / 邀请链接
-  3. 检查 PR / push
+- Phase 1-5 全部主线功能完成；SQL 0008 用户已跑
+- typecheck / lint / build / **test** 全绿（test 为新增，见 iter-12）
+- 上线 runbook 就绪：`DEPLOY.md`（复用现有 Supabase + 新建 Vercel）
+- 用户正在配置 Vercel 部署；并行补测试安全网 + 持续优化
+- 下一步候选：补更多纯逻辑测试 / P1（邮件通知 Resend、拍照上传 Supabase Storage）
 
 ## 待用户跑的 SQL migrations
 
@@ -172,6 +169,13 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 - [x] **AD1. README env vars 校正** — 之前表里列了 `RESEND_API_KEY` 但代码完全没用（实际 Magic Link 走 Supabase 默认邮件）；缺少实际重要的 `NEXT_PUBLIC_APP_URL`（OAuth callback + 邮件链接基址，部署到生产忘配会导致邮件链接指 localhost）。改：补 NEXT_PUBLIC_APP_URL，去掉 RESEND_API_KEY，技术栈描述里把"邮件：Resend"改成"Supabase 默认邮件，生产可接 Resend / SendGrid"，加可选 SMTP 段说明
 - [x] **AE1. .env.example 同步校正** — README 改了但 .env.example 还把 Anthropic 标"必须"、漏 GEMINI_API_KEY、留 RESEND_API_KEY/EMAIL_FROM 占位。新用户拷贝就会浪费时间申请 Anthropic 和 Resend。重构成：Supabase（必须）→ Gemini（推荐 / 真免费 / App 默认）→ Google Maps（必须）→ NEXT_PUBLIC_APP_URL（必须）→ 可选 providers（Anthropic/OpenAI/DeepSeek/Qwen 全部移到可选）→ 可选 SMTP（说明配在 Supabase Auth 而非代码）
 
+### AL. 上线准备 + 测试安全网（用户回归后）
+
+- [x] **AL1. 部署 runbook** — `DEPLOY.md`（复用现有 Supabase + 新建 Vercel）；修 SERVICE_ROLE_KEY 文档雷（代码零引用却标「必须」）+ README 补 0008
+- [x] **AL2. Google Places 距离排序** — autocomplete 加 origin/locationBias，按距离 ascending 排 + UI 显示距离 + 浏览器定位（fallback Irvine）
+- [x] **AL3. chat 侧栏菜单 portal** — dropdown 用 createPortal 逃出 `overflow-y-auto` 裁剪
+- [x] **AL4. 测试安全网（P0）** — 数据完整性逻辑此前零测试，dogfood 前补：抽 `src/lib/places/merge.ts` 纯模块，quick-add + recommendations 两处合并逻辑收敛为一份；vitest + 31 单测
+
 ## 当前 iter 选
 
 **iter-1（now）**: A1 + A2 + A3（phase 3 收尾）
@@ -317,5 +321,19 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
   - 仍没做共享 list 的 push notification（friend 在他自己 inbox 看 place card 但不知道 list 里有新店）—— BLOCKED 需 Resend
   - 草稿是 server-side 单条，user 在 quick-add 选 list 后没建过 list 就走"先建一个"分支会丢上下文——可接受 MVP
   - 没做 owner 给已加入成员邮件提醒（变更角色 / 移除）——next polish
+
+### iter-12 [上线准备 + 测试安全网]
+
+- 用户回归，进入上线验证阶段。产出部署 runbook（`DEPLOY.md`），修文档雷（SERVICE_ROLE_KEY 代码零引用、README 漏 0008）
+- **P0 测试安全网**：数据完整性逻辑（合并去重 / 分图 / 输入路由）此前零测试，真人 dogfood 前补上
+  - 抽 `src/lib/places/merge.ts` 纯模块：`unionStrings` / `mergeReasons` / `appendReasonDedup` / `pickPhotosByIndices`
+  - quick-add 的 `unionArr`+`mergeReasons`+inline `photosFor`、recommendations 的 `unionDedup`+inline reason dedup —— 全部收敛到这一份（之前两套会随时间漂移的实现）
+  - vitest（env=node，alias `@` 对齐 tsconfig）+ 31 单测，覆盖脏数据 / 越界索引 / override 分支 / 去重语义 / 引用安全
+  - test + tsc + lint + build 全绿，纯抽取零行为变化
+- PM review：
+  - 只覆盖纯逻辑；server action 里碰 Supabase 的部分（RLS gate / 实际 upsert / 权限校验）仍没测——要 mock supabase client 或起测试 DB，工程量大，defer
+  - 还没测的纯逻辑：LLM `extract-place` 的 zod 校验、xhs URL 解析、chat 上下文裁剪——下一批可补
+  - 合并逻辑统一后，将来改合并规则只需动一处 + 对应测试，回归有保护；这也是这次重构除「可测」外的额外收益
+  - commit 待提交
 
 ---

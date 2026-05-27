@@ -7,6 +7,11 @@ import {
   type ExtractedPlace,
 } from "@/lib/llm/extract-place";
 import { extractXhsUrl, scrapeXhsUrl, stripXhsUrl } from "@/lib/places/xhs";
+import {
+  mergeReasons,
+  pickPhotosByIndices,
+  unionStrings,
+} from "@/lib/places/merge";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import type { PlacePrice, PlaceStatus } from "@/lib/db/types";
 
@@ -207,7 +212,6 @@ function parseSource(raw: FormDataEntryValue | null): SourceValue {
 //   - overrideMyReason=false（批量从 AI 抽取，未手编）：仅在用户尚无 reason 时追加
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
-type PlaceReasonEntry = { user_id: string; text: string };
 
 type UpsertCandidate = {
   list_id: string;
@@ -228,49 +232,6 @@ type UpsertCandidate = {
   lat: number | null;
   lng: number | null;
 };
-
-function mergeReasons(
-  existing: unknown,
-  userId: string,
-  newReason: string | null,
-  overrideMyReason: boolean,
-): PlaceReasonEntry[] {
-  const list: PlaceReasonEntry[] = Array.isArray(existing)
-    ? (existing as PlaceReasonEntry[]).filter(
-        (r) => r && typeof r.user_id === "string" && typeof r.text === "string",
-      )
-    : [];
-  const others = list.filter((r) => r.user_id !== userId);
-  const mine = list.find((r) => r.user_id === userId);
-
-  if (overrideMyReason) {
-    // 用户在表单上编辑过：替换（空 → 删）
-    return newReason
-      ? [...others, { user_id: userId, text: newReason }]
-      : others;
-  }
-  // 批量场景：仅在用户原本没 reason 时追加
-  if (mine) return list;
-  return newReason
-    ? [...others, { user_id: userId, text: newReason }]
-    : others;
-}
-
-// 字符串数组 union 去重（保序：existing 先，append 仅 new 的）
-function unionArr(existing: unknown, incoming: string[]): string[] {
-  const ex: string[] = Array.isArray(existing)
-    ? (existing as unknown[]).filter((x): x is string => typeof x === "string")
-    : [];
-  const seen = new Set(ex);
-  const out = [...ex];
-  for (const x of incoming) {
-    if (!seen.has(x)) {
-      out.push(x);
-      seen.add(x);
-    }
-  }
-  return out;
-}
 
 async function upsertPlaces(
   supabase: SupabaseClient,
@@ -335,10 +296,10 @@ async function upsertPlaces(
           : c.notes;
 
       // 数组类字段 union 去重（保留既有 + 加入新的）
-      const photo_urls = unionArr(existing.photo_urls, c.photo_urls);
-      const cuisine = unionArr(existing.cuisine, c.cuisine);
-      const tags = unionArr(existing.tags, c.tags);
-      const occasions = unionArr(existing.occasions, c.occasions);
+      const photo_urls = unionStrings(existing.photo_urls, c.photo_urls);
+      const cuisine = unionStrings(existing.cuisine, c.cuisine);
+      const tags = unionStrings(existing.tags, c.tags);
+      const occasions = unionStrings(existing.occasions, c.occasions);
 
       // 客观字段：用最新覆盖
       const updateFields = {
@@ -510,16 +471,6 @@ export async function savePlacesBatch(
   }
 
   const allPhotos = draft.photoUrls ?? [];
-  // 按 AI 标注的 photo_indices 给每家店分配图；没标的店回退到全部图
-  // （宁可多给一点，让用户在 confirm form 里删，也比强制平均切给错的店强）
-  function photosFor(p: ExtractedPlace): string[] {
-    const idx = p.photo_indices;
-    if (!idx || idx.length === 0 || allPhotos.length === 0) return allPhotos;
-    const picked = idx
-      .filter((i) => Number.isInteger(i) && i >= 0 && i < allPhotos.length)
-      .map((i) => allPhotos[i]);
-    return picked.length > 0 ? picked : allPhotos;
-  }
 
   const candidates: UpsertCandidate[] = selected.map((p) => ({
     list_id: listId,
@@ -535,7 +486,7 @@ export async function savePlacesBatch(
     myReason: p.reason ?? null,
     notes: p.notes ?? null,
     // AI 标了 photo_indices 就按它分；没标 → 全部图（用户后续可编辑）
-    photo_urls: photosFor(p),
+    photo_urls: pickPhotosByIndices(p.photo_indices, allPhotos),
     source: draft.source,
     source_url: draft.sourceUrl ?? null,
     google_place_id: null,
