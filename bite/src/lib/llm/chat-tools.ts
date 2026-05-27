@@ -3,6 +3,11 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LlmTool } from "./types";
+import {
+  aggregateVisitSignals,
+  type VisitLogRow,
+  type VisitSignal,
+} from "@/lib/visits/aggregate";
 
 export const CHAT_TOOLS: LlmTool[] = [
   {
@@ -196,8 +201,8 @@ async function searchMyList(input: unknown, ctx: ToolContext) {
       notes: p.notes,
       has_photos: (p.photo_urls ?? []).length > 0,
       visit_count: v?.count ?? 0,
-      last_visit: v?.lastVisit ?? null,
-      last_sentiment: v?.lastSentiment ?? null,
+      last_visit: v?.last_visit ?? null,
+      last_sentiment: v?.last_sentiment ?? null,
     };
   });
 
@@ -208,21 +213,8 @@ async function searchMyList(input: unknown, ctx: ToolContext) {
 async function summarizeVisits(
   ctx: ToolContext,
   placeIds: string[],
-): Promise<
-  Map<
-    string,
-    {
-      count: number;
-      lastVisit: string | null;
-      lastSentiment: string | null;
-    }
-  >
-> {
-  const result = new Map<
-    string,
-    { count: number; lastVisit: string | null; lastSentiment: string | null }
-  >();
-  if (placeIds.length === 0) return result;
+): Promise<Map<string, VisitSignal>> {
+  if (placeIds.length === 0) return new Map();
 
   const { data } = await ctx.supabase
     .from("visit_logs")
@@ -230,19 +222,8 @@ async function summarizeVisits(
     .in("place_id", placeIds)
     .order("visited_at", { ascending: false });
 
-  for (const log of data ?? []) {
-    const cur = result.get(log.place_id);
-    if (!cur) {
-      result.set(log.place_id, {
-        count: 1,
-        lastVisit: log.visited_at,
-        lastSentiment: log.sentiment,
-      });
-    } else {
-      cur.count += 1;
-    }
-  }
-  return result;
+  // 共用 /lists 页同一份聚合纯函数（这里不查 star_rating，avg_star 恒 null，本工具也不用）
+  return aggregateVisitSignals((data ?? []) as VisitLogRow[]);
 }
 
 type DetailsInput = { place_id?: string };

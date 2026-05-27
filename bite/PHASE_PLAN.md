@@ -347,6 +347,22 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
   - LLM `extract-place` 没单测——核心是 async provider 调用，纯逻辑只剩长度守卫 / slice(0,10)，测它要重 mock provider，ROI 低，defer
   - 真正没覆盖的复杂路径是 provider 流式 / tool_use 累积 / usage 统计（anthropic.ts / openai-compat.ts），provider-specific，dogfood 时最可能冒 bug——但要测得 mock SSE 流，工程量大
   - 纯逻辑测试已覆盖：合并去重 / 分图 / 输入路由 / 上下文裁剪 / XHS URL 解析，bug 密度最高的几块都有网了
+  - commit: `87981ef`
+
+### iter-14 [造访信号聚合统一 + 测试]
+
+- 发现**第三处**相似聚合：`/lists/[id]` 页（count/last/avg_star，用户可见的「去过 N 次 · ★」）和 chat-tools 的 `summarizeVisits`（AI 决策读）各写一份
+- 抽 `src/lib/visits/aggregate.ts` 纯函数 `aggregateVisitSignals`，两处共用；list 页 inline reduce 删除，chat-tools 字段统一为 snake_case
+- 7 单测覆盖：count 累加 / last_* 取最近 / avg_star 只算非 null 星级 / 全 null → null / 多店独立 / star 字段缺失
+- 53 测试全过，tsc + lint + build 全绿，纯抽取零行为变化
+- PM review：
+  - 这是用户可见 + AI 决策都依赖的数据，之前两处会漂移，现在一份 + 有测
+  - chat-tools 查询没带 star_rating（avg_star 恒 null，本工具不用）；若想让 AI 也参考平均星级是个小增强，列 backlog 不急
+  - avg_star 存原始平均，四舍五入在展示层（PlaceCard）；之前记的「1×3 + 1×4 显示 4 星略乐观」仍是展示层可调项，未动
   - commit 待提交
+
+### 自主优化告一段落（用户配置部署期间）
+
+P0 测试安全网 + 上线 runbook 这条线做完：4 commit，53 测试，覆盖所有 bug 密度高的纯逻辑，顺带 dedup 三处漂移逻辑 + 修一个潜在 crash。再往下要么是有风险的流式改动（无法手测）、要么是方向性的 P1（邮件 / 拍照上传，需用户定），停在干净点等用户回来定方向。
 
 ---
