@@ -366,3 +366,13 @@ sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
 P0 测试安全网 + 上线 runbook 这条线做完：4 commit，53 测试，覆盖所有 bug 密度高的纯逻辑，顺带 dedup 三处漂移逻辑 + 修一个潜在 crash。再往下要么是有风险的流式改动（无法手测）、要么是方向性的 P1（邮件 / 拍照上传，需用户定），停在干净点等用户回来定方向。
 
 ---
+
+### iter-15 [pre-dogfood audit workflow]
+
+- 后台 workflow 跑了 6 维度 audit + 对抗 verify + 安全修复 + P1 拍照上传脚手架
+- 70 候选 → 38 真问题 → 18 盲修(已应用) + 20 延期(需真机验证)
+- 188 测试全过,tsc + lint + build 全绿
+- 主要应用修复:escapeLikePattern (防邮箱枚举)、sanitizeTailOrphan (chat 孤立 tool_use)、safeDecodeURIComponent (URI decode 健壮)、+ 多个新纯函数模块抽取 + 测试
+- P1 拍照上传脚手架就绪:sql/0009 + photos.ts action + photo-upload.tsx 组件,additive 集成到 PlaceForm/VisitLogForm
+- PM 顾虑(critique):chat 无 rate limit(P0)、Storage bucket public 默认(隐私)、缺 loading.tsx(空白屏)、无每用户 token 计费(成本不可追)
+- commit 分组见 git log
