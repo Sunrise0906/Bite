@@ -8,6 +8,7 @@ import {
   type VisitLogRow,
   type VisitSignal,
 } from "@/lib/visits/aggregate";
+import { normalizeFilterValues } from "./filter-shape";
 
 export const CHAT_TOOLS: LlmTool[] = [
   {
@@ -26,9 +27,13 @@ export const CHAT_TOOLS: LlmTool[] = [
             "可选关键词，匹配店名 / 地址 / 标签 / notes / reasons。留空 = 不按文本筛",
         },
         status: {
-          type: "string",
-          enum: ["want_to_go", "visited", "archived"],
-          description: "可选状态过滤",
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["want_to_go", "visited", "archived"],
+          },
+          description:
+            "可选状态数组（OR 匹配）。要同时含想去 + 去过就传 [\"want_to_go\",\"visited\"]",
         },
         cuisine: {
           type: "array",
@@ -39,6 +44,16 @@ export const CHAT_TOOLS: LlmTool[] = [
           type: "array",
           items: { type: "string", enum: ["$", "$$", "$$$", "$$$$"] },
           description: "可选价位数组（OR 匹配）",
+        },
+        occasions: {
+          type: "array",
+          items: { type: "string" },
+          description: "可选场景数组（如 date_night / casual，OR 匹配）",
+        },
+        tags: {
+          type: "array",
+          items: { type: "string" },
+          description: "可选标签数组（OR 匹配）",
         },
         limit: {
           type: "number",
@@ -120,11 +135,15 @@ export async function executeChatTool(
 
 // ============================== Implementations ==============================
 
+// 入参类型故意松——LLM 经常无视 schema 把 string 塞数组或反之，
+// 实际归一化在 normalizeFilterValues 里做（见 filter-shape.ts）。
 type SearchInput = {
   query?: string;
-  status?: "want_to_go" | "visited" | "archived";
-  cuisine?: string[];
-  price_range?: Array<"$" | "$$" | "$$$" | "$$$$">;
+  status?: unknown;
+  cuisine?: unknown;
+  price_range?: unknown;
+  occasions?: unknown;
+  tags?: unknown;
   limit?: number;
 };
 
@@ -158,10 +177,26 @@ async function searchMyList(input: unknown, ctx: ToolContext) {
     )
     .in("list_id", listIds);
 
-  if (args.status) q = q.eq("status", args.status);
-  if (args.cuisine && args.cuisine.length > 0) q = q.overlaps("cuisine", args.cuisine);
-  if (args.price_range && args.price_range.length > 0)
-    q = q.in("price_range", args.price_range);
+  // 单值 enum 列：用 .in()（数组）/ .eq()（单值都走 .in([v]) 也对，简化为统一 .in()）。
+  // 直接用 .eq() + 数组 会被 Supabase 拼成 "a,b" 喂给 enum → invalid enum 错。
+  const statuses = normalizeFilterValues(args.status);
+  if (statuses.length > 0) q = q.in("status", statuses);
+
+  const prices = normalizeFilterValues(args.price_range);
+  if (prices.length > 0) q = q.in("price_range", prices);
+
+  // text[] 列：用 .overlaps()（数组交集）。
+  // 注：.contains(col, arr) 是"col 包含 arr 里所有元素"（AND），
+  // .overlaps 才是"col 含 arr 里任一元素"（OR），符合多值过滤意图。
+  const cuisines = normalizeFilterValues(args.cuisine);
+  if (cuisines.length > 0) q = q.overlaps("cuisine", cuisines);
+
+  const occasions = normalizeFilterValues(args.occasions);
+  if (occasions.length > 0) q = q.overlaps("occasions", occasions);
+
+  const tags = normalizeFilterValues(args.tags);
+  if (tags.length > 0) q = q.overlaps("tags", tags);
+
   if (args.query && args.query.trim()) {
     // PostgREST or() 用 , 和 () 分隔，原始 query 含这些字符会破坏过滤语法。
     // 安全做法：剥掉控制字符 + 用 % 通配。% 和 _ 是 LIKE 通配符，本来就当 fuzzy 用。
