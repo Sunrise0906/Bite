@@ -2,7 +2,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 
-// TODO: 运行 `npx supabase gen types typescript` 后，在此处加 <Database> generic 获得类型推导。
+// Database 类型见 ./types.ts（手写）。如需类型推导可改为 createServerClient<Database>(...)；
+// 改动会一次性影响 26 处消费方，建议单独 PR 评审。
 export async function createClient() {
   const cookieStore = await cookies();
 

@@ -49,7 +49,7 @@ export async function processTextDraft(
   _prev: QuickAddFormState,
   formData: FormData,
 ): Promise<QuickAddFormState> {
-  await requireUser();
+  const user = await requireUser();
   const text = String(formData.get("text") ?? "").trim();
   if (!text) return { error: "请输入要识别的内容" };
 
@@ -123,8 +123,6 @@ export async function processTextDraft(
   }
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "未登录" };
 
   const { error: upsertError } = await supabase
     .from("quick_add_drafts")

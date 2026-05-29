@@ -302,12 +302,3 @@ export async function extractPlacesFromText(
   }
 }
 
-/** @deprecated 用 extractPlacesFromText 替换 */
-export async function extractPlaceFromText(text: string): Promise<
-  | { ok: true; data: ExtractedPlace }
-  | { ok: false; error: string }
-> {
-  const r = await extractPlacesFromText(text);
-  if (!r.ok) return r;
-  return { ok: true, data: r.places[0] };
-}

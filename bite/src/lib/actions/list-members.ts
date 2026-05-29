@@ -3,15 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { createClient, requireUser } from "@/lib/supabase/server";
 
-export type ListMemberRow = {
-  user_id: string;
-  list_id: string;
-  role: "co_owner" | "viewer";
-  invited_by: string | null;
-  created_at: string;
-  profile?: { name: string | null; email: string } | null;
-};
-
 /** owner 改成员角色 */
 export async function changeMemberRole(
   listId: string,
