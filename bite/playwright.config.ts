@@ -1,12 +1,12 @@
 import { defineConfig } from "@playwright/test";
 import { readFileSync, existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import * as path from "node:path";
 
 // 手动加载 .env.local（避免新增 dotenv 依赖）
 // 给 E2E 用：E2E_TEST_EMAIL / E2E_TEST_PASSWORD 等
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const envPath = resolve(__dirname, ".env.local");
+// 注意：Playwright 1.60 的 TS loader 以 CJS 加载此文件（package.json 无 "type": "module"），
+// 因此不能用 import.meta.url；改用 process.cwd()（npm script 启动时即 bite/）。
+const envPath = path.resolve(process.cwd(), ".env.local");
 if (existsSync(envPath)) {
   const raw = readFileSync(envPath, "utf8");
   for (const rawLine of raw.split(/\r?\n/)) {
