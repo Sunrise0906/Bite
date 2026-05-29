@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { login, uniqueTag } from "./_utils/auth";
+import { createTestList, deleteTestList } from "./_utils/lists";
 
 /**
  * 回归：commit 9c1b98e —— /quick-add 点 autocomplete 建议后，
@@ -11,38 +12,14 @@ test.describe("quick-add places", () => {
     "E2E credentials not in bite/.env.local; skipping",
   );
 
-  let createdListUrl: string | null = null;
+  let createdListId: string | null = null;
   const listName = uniqueTag("[E2E] Smoke ");
 
   test("Place Details fetch works on confirm page", async ({ page }) => {
     await login(page);
 
     // ---- 准备：创建一个 [E2E] list，从 URL 捕获 id ----
-    await page.goto("/lists");
-
-    const newListBtn = page
-      .getByRole("button", { name: /新建.*list|建.*list|新建|添加.*list/i })
-      .or(page.getByRole("link", { name: /新建.*list|建.*list|新建/i }))
-      .or(page.getByRole("button", { name: /^\+$/ }))
-      .first();
-    await newListBtn.click({ timeout: 10_000 });
-
-    const nameInput = page
-      .getByRole("textbox", { name: /名称|名字|name/i })
-      .or(page.getByPlaceholder(/名称|名字|name|List/i))
-      .or(page.locator('input[type="text"]').first())
-      .first();
-    await nameInput.fill(listName);
-
-    await page
-      .getByRole("button", { name: /创建|确定|保存|提交|Create|Save/i })
-      .first()
-      .click();
-
-    await expect(page).toHaveURL(/\/lists\/[0-9a-f-]{8,}/i, {
-      timeout: 15_000,
-    });
-    createdListUrl = page.url();
+    createdListId = await createTestList(page, listName);
 
     // ---- 进入 quick-add ----
     await page.goto("/quick-add");
@@ -92,32 +69,12 @@ test.describe("quick-add places", () => {
 
   test.afterAll(async ({ browser }) => {
     // 删除测试 list，best-effort
-    if (!createdListUrl) return;
+    if (!createdListId) return;
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
     try {
       await login(page);
-      await page.goto(createdListUrl);
-
-      const menuBtn = page
-        .getByRole("button", { name: /更多|menu|操作|⋯|\.\.\./i })
-        .first();
-      await menuBtn.click({ timeout: 5_000 });
-
-      const deleteBtn = page
-        .getByRole("menuitem", { name: /删除|Delete/i })
-        .or(page.getByRole("button", { name: /删除|Delete/i }))
-        .first();
-      await deleteBtn.click({ timeout: 5_000 });
-
-      const confirmBtn = page
-        .getByRole("button", { name: /确认|确定|Delete|删除/i })
-        .first();
-      await confirmBtn.click({ timeout: 5_000 });
-    } catch (err) {
-      console.warn(
-        `[E2E quick-add] cleanup failed for "${listName}": ${(err as Error).message}`,
-      );
+      await deleteTestList(page, createdListId);
     } finally {
       await ctx.close();
     }
