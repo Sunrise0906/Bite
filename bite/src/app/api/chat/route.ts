@@ -12,7 +12,7 @@ import { getProvider } from "@/lib/llm/router";
 import { LlmProviderError } from "@/lib/llm/types";
 import type { LlmContentBlock, LlmMessage } from "@/lib/llm/types";
 import { CHAT_TOOLS, executeChatTool } from "@/lib/llm/chat-tools";
-import { trimHistory } from "@/lib/llm/trim-history";
+import { trimHistory, sanitizeTailOrphan } from "@/lib/llm/trim-history";
 import {
   appendMessage,
   createConversation,
@@ -149,6 +149,10 @@ export async function POST(req: NextRequest) {
   const trimmed = trimHistory(historyRows, { maxTurns: 30, keepTurns: 24 });
   historyRows = trimmed.rows;
   const truncated = trimmed.truncated;
+
+  // 上一轮可能在 assistant(tool_use) 之后崩了，留下没配对的 tool_use。
+  // 如果直接发给 provider 会被拒（Anthropic 400），永久 brick 这个会话。
+  historyRows = sanitizeTailOrphan(historyRows);
 
   const messages: LlmMessage[] = historyRows.map((row) => ({
     role: row.role,
@@ -318,6 +322,15 @@ export async function POST(req: NextRequest) {
               (b): b is Extract<LlmContentBlock, { type: "tool_use" }> =>
                 b.type === "tool_use",
             );
+
+            // 防御：provider 报告 stop=tool_use 但没有任何完整的 tool_use 块
+            // （例如 OpenAI-compat 流里 tool_call 缺 id/name 被丢弃）。
+            // 不能继续循环——下一轮会喂一条空 user 消息给 LLM，要么被静默丢弃要么 API 报错。
+            // 当作 end_turn 处理，把已经产生的文本（如果有）发给用户。
+            if (toolUses.length === 0) {
+              send(controller, { type: "done", reason: "end_turn" });
+              break;
+            }
 
             const resultBlocks: LlmContentBlock[] = [];
             for (const tu of toolUses) {

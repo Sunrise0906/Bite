@@ -4,6 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { LlmContentBlock } from "@/lib/llm/types";
+import {
+  labelForTool,
+  summarizeToolResult,
+  tryPrettyJson,
+} from "@/lib/llm/tool-summary";
+import { parseLinkifiedSegments } from "@/lib/chat/linkify";
 
 type DisplayMessage = {
   role: "user" | "assistant";
@@ -667,39 +673,7 @@ function LinkifiedText({
   placeMap: Record<string, { id: string; list_id: string }>;
   linkClassName: string;
 }) {
-  // 没 placeMap 或文本里没书名号，直接渲染
-  if (!text.includes("«")) {
-    return <span className="whitespace-pre-wrap">{text}</span>;
-  }
-  const parts: Array<
-    | { kind: "text"; text: string }
-    | { kind: "link"; name: string; href: string }
-    | { kind: "raw"; text: string }
-  > = [];
-  // 拆分：«...» 之外是 text，里面是 link 候选
-  const re = /«([^«»]{1,60})»/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text)) !== null) {
-    if (m.index > last) {
-      parts.push({ kind: "text", text: text.slice(last, m.index) });
-    }
-    const name = m[1];
-    const hit = placeMap[name];
-    if (hit) {
-      parts.push({
-        kind: "link",
-        name,
-        href: `/lists/${hit.list_id}/places/${hit.id}/edit`,
-      });
-    } else {
-      parts.push({ kind: "raw", text: m[0] });
-    }
-    last = m.index + m[0].length;
-  }
-  if (last < text.length) {
-    parts.push({ kind: "text", text: text.slice(last) });
-  }
+  const parts = parseLinkifiedSegments(text, placeMap);
   return (
     <span className="whitespace-pre-wrap">
       {parts.map((p, i) => {
@@ -829,67 +803,6 @@ function ToolCallCard({
       )}
     </div>
   );
-}
-
-function labelForTool(name: string): string {
-  switch (name) {
-    case "search_my_list":
-      return "查餐厅库";
-    case "check_place_details":
-      return "查看详情";
-    case "add_to_list":
-      return "添加到 list";
-    default:
-      return name;
-  }
-}
-
-function summarizeToolResult(
-  toolName: string,
-  content: string | undefined,
-): { kind: "ok" | "error" | "pending"; summary: string } {
-  if (!content) return { kind: "pending", summary: "查询中..." };
-  let obj: unknown;
-  try {
-    obj = JSON.parse(content);
-  } catch {
-    return { kind: "error", summary: "返回不是合法 JSON" };
-  }
-  if (!obj || typeof obj !== "object") {
-    return { kind: "error", summary: "返回格式异常" };
-  }
-  const o = obj as Record<string, unknown>;
-  if (typeof o.error === "string") {
-    return { kind: "error", summary: o.error };
-  }
-  switch (toolName) {
-    case "search_my_list": {
-      const count = typeof o.count === "number" ? o.count : 0;
-      if (count === 0) {
-        const note = typeof o.note === "string" ? `（${o.note}）` : "";
-        return { kind: "ok", summary: `找到 0 家${note}` };
-      }
-      return { kind: "ok", summary: `找到 ${count} 家` };
-    }
-    case "check_place_details": {
-      const name = typeof o.name === "string" ? o.name : "";
-      return { kind: "ok", summary: name ? `«${name}»` : "已查看" };
-    }
-    case "add_to_list": {
-      const name = typeof o.name === "string" ? o.name : "";
-      return { kind: "ok", summary: name ? `已添加 «${name}»` : "已添加" };
-    }
-    default:
-      return { kind: "ok", summary: "完成" };
-  }
-}
-
-function tryPrettyJson(raw: string): string {
-  try {
-    return JSON.stringify(JSON.parse(raw), null, 2);
-  } catch {
-    return raw;
-  }
 }
 
 function Dot({ delay }: { delay: number }) {

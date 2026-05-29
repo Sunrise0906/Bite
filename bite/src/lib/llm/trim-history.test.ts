@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { trimHistory } from "./trim-history";
+import { trimHistory, sanitizeTailOrphan } from "./trim-history";
 
 // 测试用行：带 id 方便断言裁剪后留下哪几条
 type Row = { id: string; role: "user" | "assistant"; content: { type: string }[] };
@@ -85,5 +85,46 @@ describe("trimHistory", () => {
     const out = trimHistory(rows, { maxTurns: 2, keepTurns: 2 });
     expect(out.truncated).toBe(true);
     expect(out.rows).toEqual([]);
+  });
+});
+
+describe("sanitizeTailOrphan", () => {
+  it("尾部是 assistant(tool_use) → 丢掉", () => {
+    const rows = [u("u0"), a("a1"), u("u2"), toolUse("a3")];
+    const out = sanitizeTailOrphan(rows);
+    expect(out.map((r) => r.id)).toEqual(["u0", "a1", "u2"]);
+  });
+
+  it("尾部是干净 assistant(text) → 不动（同引用）", () => {
+    const rows = [u("u0"), a("a1")];
+    const out = sanitizeTailOrphan(rows);
+    expect(out).toBe(rows);
+  });
+
+  it("尾部 user(text) → 不动", () => {
+    const rows = [a("a0"), u("u1")];
+    const out = sanitizeTailOrphan(rows);
+    expect(out).toBe(rows);
+  });
+
+  it("连续多条孤立 tool_use → 全部丢掉", () => {
+    const rows = [u("u0"), a("a1"), toolUse("a2"), toolUse("a3")];
+    const out = sanitizeTailOrphan(rows);
+    expect(out.map((r) => r.id)).toEqual(["u0", "a1"]);
+  });
+
+  it("空数组 → 返回空，不崩", () => {
+    expect(sanitizeTailOrphan([])).toEqual([]);
+  });
+
+  it("assistant 消息混合 text + tool_use 也算孤立（被 LLM 视为 tool_use 一轮）", () => {
+    const mixed: Row = {
+      id: "a-mix",
+      role: "assistant",
+      content: [{ type: "text" }, { type: "tool_use" }],
+    };
+    const rows = [u("u0"), mixed];
+    const out = sanitizeTailOrphan(rows);
+    expect(out.map((r) => r.id)).toEqual(["u0"]);
   });
 });

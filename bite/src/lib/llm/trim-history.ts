@@ -38,3 +38,27 @@ export function trimHistory<T extends TrimmableRow>(
 
   return { rows: rows.slice(cutoff), truncated: true };
 }
+
+/**
+ * 上一次请求若在写 assistant(tool_use) 之后、写对应 user(tool_result) 之前崩了
+ * （进程被 kill / appendMessage 静默失败），DB 尾巴会留下孤立的 assistant(tool_use)。
+ * 直接拼新 user-text 发给 provider，Anthropic 会 400 "tool_use ids must be followed
+ * by tool_result blocks"，整条会话永久坏掉。
+ *
+ * 这里把尾部任何含 tool_use 的 assistant 消息丢掉——AI 丢一次工具记忆，但对话能继续。
+ */
+export function sanitizeTailOrphan<T extends TrimmableRow>(rows: T[]): T[] {
+  let end = rows.length;
+  while (end > 0) {
+    const last = rows[end - 1];
+    if (
+      last.role === "assistant" &&
+      last.content.some((b) => b.type === "tool_use")
+    ) {
+      end--;
+      continue;
+    }
+    break;
+  }
+  return end === rows.length ? rows : rows.slice(0, end);
+}
