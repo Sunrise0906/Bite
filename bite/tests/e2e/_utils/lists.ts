@@ -40,27 +40,30 @@ export async function createTestList(page: Page, name: string): Promise<string> 
 /**
  * 删除测试 list — best-effort，不抛错。
  * 用于 cleanup，UI 文案/路径变了也不应让主用例失败。
+ *
+ * 真实 UI（与 src/components/lists/delete-list-button.tsx 对齐）：
+ * - /lists/<id> 底部 "设置 · 危险操作" 区域有一个 <form action={deleteList}>
+ *   里的 <button type="submit">删除 list</button>。
+ * - 没有自定义 dialog 组件，点击会触发浏览器原生 window.confirm()。
+ * - 必须在 click 之前注册 page.once('dialog', d => d.accept())，
+ *   否则 dialog 会被自动 dismiss、表单永不 submit。
+ * - 成功后 server action redirect 到 /lists?toast=list_deleted。
  */
 export async function deleteTestList(page: Page, id: string): Promise<void> {
   try {
     await page.goto(`/lists/${id}`);
 
-    const menuBtn = page
-      .getByRole("button", { name: /list 操作菜单|更多|menu|操作|⋯|\.\.\./i })
-      .first();
-    await menuBtn.click({ timeout: 5_000 });
+    // 注册 native confirm 处理器 — 必须在 click 之前注册
+    page.once("dialog", (dialog) => {
+      dialog.accept().catch(() => {});
+    });
 
     const deleteBtn = page
-      .getByRole("menuitem", { name: /删除|Delete/i })
-      .or(page.getByRole("button", { name: /删除|Delete/i }))
+      .getByRole("button", { name: /^删除 list$/ })
       .first();
     await deleteBtn.click({ timeout: 5_000 });
 
-    const confirmBtn = page
-      .getByRole("button", { name: /确认|确定|Delete|删除/i })
-      .first();
-    await confirmBtn.click({ timeout: 5_000 });
-
+    // 成功后跳回 /lists（带 ?toast=list_deleted 也算）
     await page.waitForURL(/\/lists\/?(\?.*)?$/, { timeout: 10_000 });
   } catch (err) {
     console.warn(
