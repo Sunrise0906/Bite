@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { safeNext } from "@/lib/auth/safe-next";
 
 export type AuthFormState = {
   error: string | null;
@@ -11,13 +12,6 @@ export type AuthFormState = {
 
 function appUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-}
-
-function safeNext(raw: FormDataEntryValue | null): string {
-  const value = typeof raw === "string" ? raw : "";
-  // 仅允许同站点相对路径，防止 open redirect
-  if (value.startsWith("/") && !value.startsWith("//")) return value;
-  return "/lists";
 }
 
 // ---- Email + 密码 登录 ----------------------------------------------------
