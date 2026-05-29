@@ -376,3 +376,11 @@ P0 测试安全网 + 上线 runbook 这条线做完：4 commit，53 测试，覆
 - P1 拍照上传脚手架就绪:sql/0009 + photos.ts action + photo-upload.tsx 组件,additive 集成到 PlaceForm/VisitLogForm
 - PM 顾虑(critique):chat 无 rate limit(P0)、Storage bucket public 默认(隐私)、缺 loading.tsx(空白屏)、无每用户 token 计费(成本不可追)
 - commit 分组见 git log
+
+### iter-16 [hot fix: Google Places server key]
+
+- 真机测试发现: quick-add 确认页报 `Places details 403 Requests from referer <empty> are blocked`
+- 根因: src/lib/places/google.ts 服务端 fetchPlaceDetails 沿用 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,但该 key 在 GCP Console 已加 HTTP referrer 限制 (bite-sand.vercel.app/*),server 调用无 Referer 头被 403 挡
+- 修法: 拆 key — getClientApiKey() 仍读 NEXT_PUBLIC_,getServerApiKey() 优先读新增 GOOGLE_PLACES_SERVER_KEY,unset 时回退到 NEXT_PUBLIC_ 方便 dev
+- .env.example + DEPLOY.md 同步说明
+- 用户需操作: GCP 建一把无 referrer 限的 key → 加到 Vercel Env Vars 作 GOOGLE_PLACES_SERVER_KEY → 自动 redeploy

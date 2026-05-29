@@ -17,6 +17,7 @@
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase 项目地址 | `NEXT_PUBLIC_`：打包进前端，改了要重新 deploy |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | 匿名 key（RLS 兜底，可公开） | 同上 |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | ✅ | Places 补全 + 地图 | 同上；**暴露在浏览器，务必加 referrer 限制**（[§5](#5-google-maps-key-加限制防盗刷)） |
+| `GOOGLE_PLACES_SERVER_KEY` | ✅ 生产必须 | 服务端 Place Details 拉取 | **不能** `NEXT_PUBLIC_`，只服务端用。若 NEXT_PUBLIC_ key 加了 referrer 限制（[§5](#5-google-maps-key-加限制防盗刷)），服务端调用无 Referer → Google 403；这把走"无 referrer 限制 + API 限制 + 预算告警"。dev 不填会回退到 NEXT_PUBLIC_ |
 | `NEXT_PUBLIC_APP_URL` | ✅ | OAuth / 邮件回调基址 | 同上；**生产填 Vercel 域名**，否则验证邮件里的链接指向 localhost（[§3](#3-第一次部署--回填-next_public_app_url)） |
 | `GEMINI_API_KEY` | ✅ 实际必须 | App 默认 LLM | 不是 `NEXT_PUBLIC_`，只在服务端用。**不配的话 /chat 对所有没自带 key 的用户都报错** |
 | `ANTHROPIC_API_KEY` | ⬜ 可选 | 用户可在 Settings 选 | 不配就少一个 provider 选项，不影响主流程 |
@@ -94,6 +95,17 @@ Google Cloud Console → APIs & Services → Credentials → 该 key：
 - **API restrictions**：只勾 `Maps JavaScript API` + `Places API (New)`（按需加 Geocoding）
 - Billing → 设个**预算告警**（比如 $5），刷爆前先收到邮件
 
+> ⚠️ **加 referrer 限制后**，服务端 `fetchPlaceDetails`（quick-add 确认页拉店铺详情）
+> 会被 Google 403：`Requests from referer <empty> are blocked`——服务端 fetch 没 Referer 头。
+> 必须**另起一把服务端专用 key**：
+>
+> - GCP Console → Credentials → 新建 API key
+> - **Application restrictions = None**（关键，不能设 referrer，否则同样被 403）
+> - **API restrictions** = `Places API (New)` + `Geocoding API`（按需）
+> - Billing 预算告警
+> - 拿到 key 加到 Vercel Env Vars 作 `GOOGLE_PLACES_SERVER_KEY`（**不要** `NEXT_PUBLIC_`
+>   前缀，别让它进浏览器 bundle），保存后会自动 redeploy
+
 ---
 
 ## 6. 部署前本地自查
@@ -147,6 +159,7 @@ git status                                           # 确认 .env.local 没被 
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
+GOOGLE_PLACES_SERVER_KEY=       # 生产 + NEXT_PUBLIC_ 已加 referrer 限制时必须
 NEXT_PUBLIC_APP_URL=            # = https://<你的域名>，不带结尾斜杠
 GEMINI_API_KEY=
 

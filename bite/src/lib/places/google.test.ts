@@ -1,5 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { inferCuisineFromTypes } from "./google";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import {
+  inferCuisineFromTypes,
+  getClientApiKey,
+  getServerApiKey,
+} from "./google";
 
 describe("inferCuisineFromTypes", () => {
   it("基础单 type 映射", () => {
@@ -90,5 +94,52 @@ describe("inferCuisineFromTypes", () => {
     expect(inferCuisineFromTypes(null, ["chinese_restaurant"])).toEqual([
       "中餐",
     ]);
+  });
+});
+
+describe("getClientApiKey / getServerApiKey 拆 key 回退", () => {
+  const savedPublic = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const savedServer = process.env.GOOGLE_PLACES_SERVER_KEY;
+
+  beforeEach(() => {
+    delete process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    delete process.env.GOOGLE_PLACES_SERVER_KEY;
+  });
+
+  afterEach(() => {
+    if (savedPublic === undefined) {
+      delete process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    } else {
+      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = savedPublic;
+    }
+    if (savedServer === undefined) {
+      delete process.env.GOOGLE_PLACES_SERVER_KEY;
+    } else {
+      process.env.GOOGLE_PLACES_SERVER_KEY = savedServer;
+    }
+  });
+
+  it("getClientApiKey 读 NEXT_PUBLIC_", () => {
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = "client-abc";
+    expect(getClientApiKey()).toBe("client-abc");
+  });
+
+  it("getClientApiKey 缺值时抛", () => {
+    expect(() => getClientApiKey()).toThrow(/NEXT_PUBLIC_GOOGLE_MAPS_API_KEY/);
+  });
+
+  it("getServerApiKey 优先 GOOGLE_PLACES_SERVER_KEY", () => {
+    process.env.GOOGLE_PLACES_SERVER_KEY = "server-xyz";
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = "client-abc";
+    expect(getServerApiKey()).toBe("server-xyz");
+  });
+
+  it("getServerApiKey unset → 回退到 NEXT_PUBLIC_（dev 用）", () => {
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = "client-abc";
+    expect(getServerApiKey()).toBe("client-abc");
+  });
+
+  it("getServerApiKey 两个都没 → 抛", () => {
+    expect(() => getServerApiKey()).toThrow(/GOOGLE_PLACES_SERVER_KEY/);
   });
 });

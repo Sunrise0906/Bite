@@ -1,15 +1,17 @@
 // Google Places API (New) - REST 调用封装
-// 既可在浏览器（autocomplete 实时下拉），也可在服务端（details 拉取详情）调用。
-// 同一个 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY 两侧通用，前提：
-//   - 浏览器侧依赖 HTTP referrer 限制（Google Cloud 控制台可设）
-//   - 服务端调用没有 referrer，因此 key 必须**没设严格 referrer 限制**，
-//     或额外创建一个仅 IP/无限制的服务端专用 key（生产建议）
+// 拆两把 key：
+//   - getClientApiKey(): NEXT_PUBLIC_GOOGLE_MAPS_API_KEY，浏览器侧（autocomplete 实时下拉、地图渲染）。
+//     生产建议在 GCP 加 HTTP referrer 限制（白名单本站域名 + localhost）防盗刷。
+//   - getServerApiKey(): 优先 GOOGLE_PLACES_SERVER_KEY，仅服务端用（fetchPlaceDetails 等）。
+//     服务端请求没有 Referer 头，若 NEXT_PUBLIC 的 key 加了 referrer 限制，复用会被 403。
+//     因此服务端 key 应**不设 referrer 限制**，靠 API restrictions + 预算告警兜底。
+//     dev 阶段未设 GOOGLE_PLACES_SERVER_KEY 时回退到 NEXT_PUBLIC（dev 用 key 通常未加限制），方便本地跑通。
 //
 // 文档：https://developers.google.com/maps/documentation/places/web-service/place-autocomplete
 
 const PLACES_BASE = "https://places.googleapis.com/v1";
 
-function getApiKey(): string {
+export function getClientApiKey(): string {
   const k = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!k) {
     throw new Error(
@@ -17,6 +19,20 @@ function getApiKey(): string {
     );
   }
   return k;
+}
+
+export function getServerApiKey(): string {
+  const serverKey = process.env.GOOGLE_PLACES_SERVER_KEY;
+  if (serverKey) return serverKey;
+  // 回退：dev / 未拆 key 时用 NEXT_PUBLIC。生产若 NEXT_PUBLIC 加了 referrer 限制，
+  // 这里会因没有 Referer 头被 Google 403——错误信息会指向"Requests from referer <empty>"。
+  const fallback = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  if (!fallback) {
+    throw new Error(
+      "缺少 GOOGLE_PLACES_SERVER_KEY（或 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY 作为 dev 回退）。",
+    );
+  }
+  return fallback;
 }
 
 export type PlaceSuggestion = {
@@ -71,11 +87,14 @@ export async function autocompletePlace(
     };
   }
 
+  // 注意：此服务端 autocompletePlace 当前没有任何调用方（浏览器侧 autocomplete 由
+  // src/components/places/quick-add-input.tsx 直接打 Google）。如果将来要从 server action
+  // 触发 autocomplete，用 server key（无 referrer 限制）。
   const res = await fetch(`${PLACES_BASE}/places:autocomplete`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Goog-Api-Key": getApiKey(),
+      "X-Goog-Api-Key": getServerApiKey(),
     },
     body: JSON.stringify(body),
     signal: options?.signal,
@@ -121,7 +140,7 @@ export async function getPlaceDetails(
   const res = await fetch(url, {
     method: "GET",
     headers: {
-      "X-Goog-Api-Key": getApiKey(),
+      "X-Goog-Api-Key": getServerApiKey(),
       "X-Goog-FieldMask": fields,
     },
   });
