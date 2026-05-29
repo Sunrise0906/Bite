@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { logVisit, updateVisit } from "@/lib/actions/visits";
 import type { VisitLog, VisitSentiment } from "@/lib/db/types";
+import { PhotoUpload } from "@/components/places/photo-upload";
 
 const SENTIMENT_OPTIONS: Array<{
   value: VisitSentiment;
@@ -52,6 +53,9 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
 
   const initialStar = mode.kind === "edit" ? mode.log.star_rating : null;
   const [star, setStar] = useState<number | null>(initialStar);
+
+  const initialPhotos = mode.kind === "edit" ? (mode.log.photos ?? []) : [];
+  const [photoUrls, setPhotoUrls] = useState<string[]>(initialPhotos);
 
   if (!open) return null;
 
@@ -211,6 +215,52 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
             rows={3}
             placeholder="点了什么？等位多久？环境怎么样？"
             className="field-input mt-1.5 resize-y text-sm"
+          />
+        </div>
+
+        {/* photos */}
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            图片（可选）
+          </label>
+          {/* 提交时由父表单一并带上：每行一个 URL，与 places 的 photo_urls_text 对齐 */}
+          <input
+            type="hidden"
+            name="photos_text"
+            value={photoUrls.join("\n")}
+          />
+          {photoUrls.length > 0 && (
+            <ul className="mt-1.5 grid grid-cols-4 gap-2 sm:grid-cols-6">
+              {photoUrls.map((url, i) => (
+                <li
+                  key={`${url}-${i}`}
+                  className="relative aspect-square overflow-hidden rounded-md border border-[var(--border-subtle)]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt={`图 ${i + 1}`}
+                    className="h-full w-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                  <button
+                    type="button"
+                    aria-label="移除"
+                    onClick={() =>
+                      setPhotoUrls((prev) => prev.filter((_, idx) => idx !== i))
+                    }
+                    className="absolute right-1 top-1 rounded-full bg-black/60 px-1.5 text-[10px] text-white hover:bg-black/80"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <PhotoUpload
+            className="mt-2"
+            currentCount={photoUrls.length}
+            onUploaded={(url) => setPhotoUrls((prev) => [...prev, url])}
           />
         </div>
 

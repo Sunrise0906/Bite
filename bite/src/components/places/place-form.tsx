@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { createPlace, updatePlace } from "@/lib/actions/places";
 import type { Place } from "@/lib/db/types";
 import { PhotoCarousel } from "./photo-carousel";
+import { PhotoUpload } from "./photo-upload";
 
 const LABEL_CLS =
   "block text-sm font-medium text-[var(--text-default)]";
@@ -235,8 +236,17 @@ export function PlaceForm(props: Mode) {
         )}
         {previewUrls.length === 0 && !showPhotoEditor && (
           <p className="mt-1.5 rounded-md border border-dashed border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-3 py-4 text-center text-xs text-zinc-500">
-            暂无图片 · 点右上「编辑 URL」贴链接
+            暂无图片 · 点下方上传，或右上「编辑 URL」贴链接
           </p>
+        )}
+        {!readOnly && (
+          <PhotoUpload
+            className="mt-2"
+            currentCount={previewUrls.length}
+            onUploaded={(url) =>
+              setPhotoText((prev) => (prev ? `${prev}\n${url}` : url))
+            }
+          />
         )}
         {/* textarea 始终在 DOM（form 要提交），用 hidden 控制可见 */}
         <textarea

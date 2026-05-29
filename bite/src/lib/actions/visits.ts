@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
-import type { VisitSentiment } from "@/lib/db/types";
+import {
+  normalize,
+  parseSentiment,
+  parseStar,
+  parseVisitedAt,
+} from "@/lib/visits/parse";
 
 export type VisitFormState = {
   error: string | null;
@@ -12,53 +17,13 @@ export type VisitFormState = {
   version?: number;
 };
 
-const VALID_SENTIMENTS: VisitSentiment[] = [
-  "will_return",
-  "okay",
-  "wont_return",
-];
-
-function normalize(v: FormDataEntryValue | null): string | null {
-  if (typeof v !== "string") return null;
-  const t = v.trim();
-  return t.length > 0 ? t : null;
-}
-
-function parseStar(formData: FormData): {
-  ok: true;
-  value: number | null;
-} | {
-  ok: false;
-  error: string;
-} {
-  const raw = formData.get("star_rating");
-  if (typeof raw !== "string" || raw.trim() === "") {
-    return { ok: true, value: null };
-  }
-  const n = Number(raw);
-  if (!Number.isInteger(n) || n < 1 || n > 5) {
-    return { ok: false, error: "星级要在 1-5 之间" };
-  }
-  return { ok: true, value: n };
-}
-
-function parseVisitedAt(formData: FormData): { ok: true; iso: string } | { ok: false; error: string } {
-  const raw = normalize(formData.get("visited_at"));
-  if (!raw) return { ok: true, iso: new Date().toISOString() };
-  // 用户填的是 YYYY-MM-DD（本地）；补 12:00 防止 UTC 偏移到前一天
-  const d = new Date(`${raw}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return { ok: false, error: "日期格式不对" };
-  return { ok: true, iso: d.toISOString() };
-}
-
-function parseSentiment(formData: FormData):
-  | { ok: true; value: VisitSentiment }
-  | { ok: false; error: string } {
-  const raw = String(formData.get("sentiment") ?? "");
-  if (!VALID_SENTIMENTS.includes(raw as VisitSentiment)) {
-    return { ok: false, error: "请选择体验评价" };
-  }
-  return { ok: true, value: raw as VisitSentiment };
+// 与 places.ts 的 photo_urls_text 解析对齐：split \n、trim、保留 https://
+function parsePhotosText(raw: FormDataEntryValue | null): string[] {
+  if (typeof raw !== "string") return [];
+  return raw
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter((s) => /^https?:\/\//i.test(s));
 }
 
 // ---- 创建 visit log ------------------------------------------------------
@@ -88,6 +53,8 @@ export async function logVisit(
     return { error: "同行者不超过 100 字" };
   }
 
+  const photos = parsePhotosText(formData.get("photos_text"));
+
   const supabase = await createClient();
 
   // 拿 list_id 用来 revalidate；同时知道当前 status 决定是否 flip
@@ -106,6 +73,7 @@ export async function logVisit(
     star_rating: star.value,
     note,
     companions,
+    photos,
   });
   if (insErr) return { error: `记录失败：${insErr.message}` };
 
@@ -127,7 +95,7 @@ export async function updateVisit(
   prev: VisitFormState,
   formData: FormData,
 ): Promise<VisitFormState> {
-  await requireUser();
+  const user = await requireUser();
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "缺少 log id" };
 
@@ -141,7 +109,17 @@ export async function updateVisit(
   if (!visitedAt.ok) return { error: visitedAt.error };
 
   const note = normalize(formData.get("note"));
+  if (note && note.length > 1000) return { error: "笔记不超过 1000 字" };
+
   const companions = normalize(formData.get("companions"));
+  if (companions && companions.length > 100) {
+    return { error: "同行者不超过 100 字" };
+  }
+
+  // photos_text 不在表单时不动；空字符串 → 清空
+  const photosRaw = formData.get("photos_text");
+  const photosUpdate =
+    photosRaw !== null ? { photos: parsePhotosText(photosRaw) } : {};
 
   const supabase = await createClient();
   const { data: log } = await supabase
@@ -150,7 +128,8 @@ export async function updateVisit(
     .eq("id", id)
     .maybeSingle<{ place_id: string; places: { list_id: string } | null }>();
 
-  const { error } = await supabase
+  // 显式作用域 + RLS 双保险：拿别人的 id 时 0 行命中，返回明确错误而不是假成功
+  const { data: updated, error } = await supabase
     .from("visit_logs")
     .update({
       sentiment: s.value,
@@ -158,9 +137,15 @@ export async function updateVisit(
       visited_at: visitedAt.iso,
       note,
       companions,
+      ...photosUpdate,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("id");
   if (error) return { error: `更新失败：${error.message}` };
+  if (!updated || updated.length === 0) {
+    return { error: "未找到这条记录或无权限编辑" };
+  }
 
   if (log?.places?.list_id) {
     revalidatePath(`/lists/${log.places.list_id}`);
@@ -173,7 +158,7 @@ export async function updateVisit(
 
 // ---- 删除 visit log -----------------------------------------------------
 export async function deleteVisit(formData: FormData): Promise<void> {
-  await requireUser();
+  const user = await requireUser();
   const id = String(formData.get("id") ?? "");
   if (!id) redirect("/lists?error=missing_id");
 
@@ -184,9 +169,20 @@ export async function deleteVisit(formData: FormData): Promise<void> {
     .eq("id", id)
     .maybeSingle<{ place_id: string; places: { list_id: string } | null }>();
 
-  const { error } = await supabase.from("visit_logs").delete().eq("id", id);
+  // 显式作用域 + select 让 RLS 拦截能被识别为"未命中"而非"假成功"
+  const { data: deleted, error } = await supabase
+    .from("visit_logs")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("id");
   if (error) {
     redirect(`/lists?error=${encodeURIComponent(error.message)}`);
+  }
+  if (!deleted || deleted.length === 0) {
+    redirect(
+      `/lists?error=${encodeURIComponent("未找到这条记录或无权限删除")}`,
+    );
   }
 
   if (log?.places?.list_id) {
