@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { appendReasonDedup, unionStrings } from "@/lib/places/merge";
+import { escapeLikePattern } from "@/lib/sql/escape-like";
 import type { Place, PlacePrice } from "@/lib/db/types";
 
 // 推荐时快照下来的字段（不要带 user-specific 的 reasons / id / list_id）
@@ -47,10 +48,12 @@ export async function sendRecommendation(args: {
   const supabase = await createClient();
 
   // 1. 找朋友 profile
+  // ilike 用来做大小写不敏感匹配；但 `%`/`_` 是 LIKE 通配符，
+  // 用户输入未转义会让 `%@x.com` 这种 pattern 枚举别人邮箱。先转义。
   const { data: recipient } = await supabase
     .from("profiles")
     .select("id, email")
-    .ilike("email", toEmail)
+    .ilike("email", escapeLikePattern(toEmail))
     .maybeSingle<{ id: string; email: string }>();
   if (!recipient) {
     return {
