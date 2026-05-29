@@ -20,6 +20,7 @@ import {
   type MemberDisplay,
 } from "@/components/lists/members-panel";
 import { LeaveListButton } from "@/components/lists/leave-list-button";
+import { safeDecodeURIComponent } from "@/lib/url/safe-decode";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ error?: string; toast?: string }>;
@@ -206,7 +207,7 @@ export default async function ListDetailPage({
 
       {errorParam && (
         <p role="alert" className="mb-4 alert-error">
-          {decodeURIComponent(errorParam)}
+          {safeDecodeURIComponent(errorParam)}
         </p>
       )}
 

@@ -3,6 +3,7 @@ import { SignInForm } from "@/components/auth/sign-in-form";
 import { MagicLinkForm } from "@/components/auth/magic-link-form";
 import { GoogleButton } from "@/components/auth/google-button";
 import { AuthDivider } from "@/components/auth/divider";
+import { safeDecodeURIComponent } from "@/lib/url/safe-decode";
 
 export const metadata = {
   title: "登录 · Bite",
@@ -26,7 +27,7 @@ export default async function LoginPage({
 
       {error && (
         <p role="alert" className="alert-error">
-          {decodeURIComponent(error)}
+          {safeDecodeURIComponent(error)}
         </p>
       )}
 
