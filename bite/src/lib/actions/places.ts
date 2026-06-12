@@ -141,9 +141,13 @@ export async function updatePlace(
 
   if (error) return { error: `保存失败：${error.message}` };
 
-  // 单独处理 reasons：v1 用户只能改 / 删自己的那一条
+  // 单独处理 reasons：v1 用户只能改 / 删自己的那一条。
+  // 失败不阻断（主字段已保存成功），留痕排查
   const reasonText = String(formData.get("reason") ?? "").trim();
-  await syncOwnReason(placeId, user.id, reasonText);
+  const reasonSync = await syncOwnReason(placeId, user.id, reasonText);
+  if (reasonSync.error) {
+    console.error(`updatePlace: 主字段已保存但 reason 同步失败（place=${placeId}）：${reasonSync.error}`);
+  }
 
   revalidatePath(`/lists/${listId}`);
   revalidatePath(`/lists/${listId}/places/${placeId}/edit`);
@@ -154,13 +158,15 @@ async function syncOwnReason(
   placeId: string,
   userId: string,
   newText: string,
-) {
+): Promise<{ error?: string }> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error: selErr } = await supabase
     .from("places")
     .select("reasons")
     .eq("id", placeId)
     .single();
+  // select 失败时不能拿空数组当现状覆盖回去——会把所有人的 reason 清掉
+  if (selErr) return { error: selErr.message };
 
   const existing: Array<{ user_id: string; text: string }> =
     Array.isArray(data?.reasons) ? data.reasons : [];
@@ -168,7 +174,12 @@ async function syncOwnReason(
   const next = existing.filter((r) => r.user_id !== userId);
   if (newText) next.push({ user_id: userId, text: newText });
 
-  await supabase.from("places").update({ reasons: next }).eq("id", placeId);
+  const { error: updErr } = await supabase
+    .from("places")
+    .update({ reasons: next })
+    .eq("id", placeId);
+  if (updErr) return { error: updErr.message };
+  return {};
 }
 
 // ---- 快速改 place 状态（卡片上一键切换）--------------------------------

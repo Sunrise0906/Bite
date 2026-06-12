@@ -58,6 +58,8 @@ sql/0005_photo_urls_array.sql      # photo_urls text[]
 sql/0006_llm_and_chat.sql          # user_llm_settings + conversations + messages
 sql/0007_add_gemini_provider.sql   # gemini 加入 provider check
 sql/0008_list_invites.sql          # list 共享邀请表 + RLS
+sql/0009_storage_photos.sql        # photos storage bucket + RLS
+sql/0010_list_members_policies.sql # ★ 修复邀请接受被 RLS 拒 + 改角色静默失效
 ```
 
 ## 项目结构

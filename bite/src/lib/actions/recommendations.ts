@@ -255,11 +255,18 @@ export async function acceptRecommendation(args: {
     placeId = newPlace.id;
   }
 
-  // 4. 标推荐 accepted
-  await supabase
+  // 4. 标推荐 accepted。place 已写入，这步失败会让推荐卡在 pending（再点会重复合并），
+  // 必须告知用户而不是假装全成功
+  const { error: markErr } = await supabase
     .from("recommendations")
     .update({ status: "accepted", resolved_at: new Date().toISOString() })
     .eq("id", args.id);
+  if (markErr) {
+    revalidatePath(`/lists/${args.target_list_id}`);
+    return {
+      error: `店已加入 list，但推荐状态更新失败（${markErr.message}）。刷新后若仍显示待处理，请勿重复接受。`,
+    };
+  }
 
   revalidatePath("/recommendations");
   revalidatePath(`/lists/${args.target_list_id}`);

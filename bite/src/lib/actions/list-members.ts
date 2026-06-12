@@ -19,12 +19,18 @@ export async function changeMemberRole(
     .maybeSingle<{ owner_id: string }>();
   if (!list || list.owner_id !== user.id) return { error: "无权限" };
 
-  const { error } = await supabase
+  // .select() 验证真的改到了行：无 UPDATE policy / 成员不存在时 update 匹配
+  // 0 行且不报错，不能让 UI 假装成功
+  const { data: updated, error } = await supabase
     .from("list_members")
     .update({ role: newRole })
     .eq("list_id", listId)
-    .eq("user_id", memberUserId);
+    .eq("user_id", memberUserId)
+    .select("user_id");
   if (error) return { error: `失败：${error.message}` };
+  if (!updated || updated.length === 0) {
+    return { error: "修改没有生效：找不到该成员，或数据库缺少权限（检查 sql/0010 是否已执行）" };
+  }
 
   revalidatePath(`/lists/${listId}`);
   return { ok: true };

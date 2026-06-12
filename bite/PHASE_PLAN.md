@@ -12,10 +12,11 @@
 
 ## 待用户跑的 SQL migrations
 
-按顺序在 Supabase SQL Editor 跑（前 7 个用户已跑）：
+按顺序在 Supabase SQL Editor 跑（前 7 个用户已跑；0008 已跑）：
 
 ```text
-sql/0008_list_invites.sql       # ★ 新加，list 共享邀请用
+sql/0009_storage_photos.sql        # 拍照上传 storage bucket（iter-15 产出，若未跑）
+sql/0010_list_members_policies.sql # ★★ P0：不跑则接受邀请必失败 + 改角色静默失效
 ```
 
 ## 硬约束（不能做的事）

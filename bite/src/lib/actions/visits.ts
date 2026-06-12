@@ -77,12 +77,16 @@ export async function logVisit(
   });
   if (insErr) return { error: `记录失败：${insErr.message}` };
 
-  // 首次 / 仍处于 want_to_go：自动 flip 到 visited
+  // 首次 / 仍处于 want_to_go：自动 flip 到 visited。
+  // 失败不阻断（visit 本身已记录成功），但留痕便于排查状态不同步
   if (place.status === "want_to_go") {
-    await supabase
+    const { error: flipErr } = await supabase
       .from("places")
       .update({ status: "visited" })
       .eq("id", placeId);
+    if (flipErr) {
+      console.error(`logVisit: visit 已记录但状态翻转失败（place=${placeId}）：${flipErr.message}`);
+    }
   }
 
   revalidatePath(`/lists/${place.list_id}`);

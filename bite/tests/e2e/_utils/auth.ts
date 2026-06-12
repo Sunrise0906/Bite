@@ -1,12 +1,16 @@
 import type { Page } from "@playwright/test";
 
 /**
- * E2E 登录辅助：使用 E2E_TEST_EMAIL / E2E_TEST_PASSWORD（放在 bite/.env.local）。
+ * E2E 登录辅助：默认使用 E2E_TEST_EMAIL / E2E_TEST_PASSWORD（放在 bite/.env.local）。
+ * 双账号用例（如 invite 接受流）可传入第二账号的凭据覆盖。
  * 文案优先匹配中文（项目 UI 全中文），同时兼容英文以防回归。
  */
-export async function login(page: Page): Promise<void> {
-  const email = process.env.E2E_TEST_EMAIL;
-  const password = process.env.E2E_TEST_PASSWORD;
+export async function login(
+  page: Page,
+  creds?: { email: string; password: string },
+): Promise<void> {
+  const email = creds?.email ?? process.env.E2E_TEST_EMAIL;
+  const password = creds?.password ?? process.env.E2E_TEST_PASSWORD;
   if (!email || !password) {
     throw new Error(
       "Set E2E_TEST_EMAIL+PASSWORD in bite/.env.local",

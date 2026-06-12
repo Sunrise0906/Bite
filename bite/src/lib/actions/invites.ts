@@ -143,14 +143,18 @@ export async function acceptListInvite(token: string): Promise<AcceptResult> {
     if (insErr) return { error: `加入失败：${insErr.message}` };
   }
 
-  // 标 used
-  await supabase
+  // 标 used。失败不阻断用户（成员已加入），但要留痕：token 没标掉意味着
+  // 链接还能被再次使用，owner 可在 ActiveInvitesPanel 手动撤销
+  const { error: usedErr } = await supabase
     .from("list_invites")
     .update({
       used_at: new Date().toISOString(),
       used_by: user.id,
     })
     .eq("token", token);
+  if (usedErr) {
+    console.error(`acceptListInvite: 加入成功但标记 used 失败（token=${token}）：${usedErr.message}`);
+  }
 
   revalidatePath("/lists");
   revalidatePath(`/lists/${invite.list_id}`);
