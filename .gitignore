@@ -47,3 +47,7 @@ dist/
 
 # Claude Code session state（loop schedules, etc.）
 .claude/
+
+# UI 验收截图（session 产物，不入库）
+bite/design-preview/app-*.png
+bite/design-preview/fix-*.png

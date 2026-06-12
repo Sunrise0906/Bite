@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/icons";
 
 type DisplayMessage = {
+  /** 客户端稳定 key：regenerate 会删/插尾部消息，index key 会让 React 错位复用 */
+  uid: number;
   role: "user" | "assistant";
   content: LlmContentBlock[];
   createdAt?: string;
@@ -31,9 +33,15 @@ type DisplayMessage = {
   streaming?: boolean;
 };
 
+/** 服务端传入的消息没有 uid，进 state 时统一分配 */
+type IncomingMessage = Omit<DisplayMessage, "uid">;
+
+let uidCounter = 0;
+const nextUid = () => ++uidCounter;
+
 type Props = {
   initialConversationId: string | null;
-  initialMessages: DisplayMessage[];
+  initialMessages: IncomingMessage[];
   headerTitle: string | null;
   headerProviderLabel: string;
   headerModel: string;
@@ -63,7 +71,9 @@ export function ChatView({
   const [conversationId, setConversationId] = useState<string | null>(
     initialConversationId,
   );
-  const [messages, setMessages] = useState<DisplayMessage[]>(initialMessages);
+  const [messages, setMessages] = useState<DisplayMessage[]>(() =>
+    initialMessages.map((m) => ({ ...m, uid: nextUid() })),
+  );
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -122,8 +132,8 @@ export function ChatView({
       // 立即把用户消息推上去 + assistant 占位
       setMessages((prev) => [
         ...prev,
-        { role: "user", content: [{ type: "text", text }] },
-        { role: "assistant", content: [], streaming: true },
+        { uid: nextUid(), role: "user", content: [{ type: "text", text }] },
+        { uid: nextUid(), role: "assistant", content: [], streaming: true },
       ]);
     } else {
       // 重新生成：弹掉最后一条 assistant（含 tool 卡），换成新占位
@@ -132,7 +142,12 @@ export function ChatView({
         while (next.length > 0 && next[next.length - 1].role === "assistant") {
           next.pop();
         }
-        next.push({ role: "assistant", content: [], streaming: true });
+        next.push({
+          uid: nextUid(),
+          role: "assistant",
+          content: [],
+          streaming: true,
+        });
         return next;
       });
     }
@@ -167,7 +182,9 @@ export function ChatView({
         if (currentText) finalBlocks.push({ type: "text", text: currentText });
         setMessages((prev) => {
           const next = [...prev];
+          // 原位替换内容，uid 保持不变（React 不重挂气泡）
           next[next.length - 1] = {
+            ...next[next.length - 1],
             role: "assistant",
             content: finalBlocks,
             streaming: true,
@@ -379,7 +396,7 @@ export function ChatView({
               m.content.length > 0;
             return (
               <MessageBubble
-                key={i}
+                key={m.uid}
                 message={m}
                 placeMap={placeMap}
                 onRegenerate={

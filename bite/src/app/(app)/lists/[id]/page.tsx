@@ -52,19 +52,22 @@ export default async function ListDetailPage({
   const user = await requireUser();
   const supabase = await createClient();
 
-  const [{ data: list }, { data: placesData }] = await Promise.all([
-    supabase
-      .from("lists")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle<List>(),
-    supabase
-      .from("places")
-      .select("*")
-      .eq("list_id", id)
-      .order("updated_at", { ascending: false }),
-  ]);
+  const [{ data: list, error: listErr }, { data: placesData }] =
+    await Promise.all([
+      supabase
+        .from("lists")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle<List>(),
+      supabase
+        .from("places")
+        .select("*")
+        .eq("list_id", id)
+        .order("updated_at", { ascending: false }),
+    ]);
 
+  // 查询本身失败（网络 / DB 故障）要走 error.tsx 给重试，而不是误报 404
+  if (listErr) throw new Error(`加载 list 失败：${listErr.message}`);
   if (!list) notFound();
 
   const places = (placesData ?? []) as Place[];

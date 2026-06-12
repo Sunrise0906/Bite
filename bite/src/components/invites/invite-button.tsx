@@ -49,7 +49,7 @@ export function InviteButton({ listId }: { listId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="btn-secondary px-3 py-1.5 text-xs"
+        className="btn-secondary shrink-0 whitespace-nowrap px-3 py-1.5 text-xs"
       >
         + 邀请
       </button>

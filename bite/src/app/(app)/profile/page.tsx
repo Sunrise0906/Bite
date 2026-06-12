@@ -179,32 +179,6 @@ export default async function ProfilePage() {
         </a>
       </section>
 
-      <section className="mb-8">
-        <div className="section-heading mb-3">
-          <h2 className="text-lg text-[var(--text-strong)]">即将上线</h2>
-        </div>
-        <ul className="space-y-2 text-sm text-[var(--text-muted)]">
-          <li className="flex gap-2">
-            <span className="text-[var(--primary)]">·</span>
-            <span>
-              <span className="font-medium text-[var(--text-default)]">
-                Phase 4
-              </span>{" "}
-              我去了 / VisitLog / 地图
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="text-[var(--primary)]">·</span>
-            <span>
-              <span className="font-medium text-[var(--text-default)]">
-                Phase 5
-              </span>{" "}
-              邀请朋友 / 接受推荐
-            </span>
-          </li>
-        </ul>
-      </section>
-
       <section className="border-t border-[var(--border-subtle)] pt-6">
         <form action={signOut}>
           <button

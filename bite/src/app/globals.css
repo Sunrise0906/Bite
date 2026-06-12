@@ -377,13 +377,14 @@ body {
   .card-interactive {
     cursor: pointer;
   }
+  /* hover 只用阴影/边框反馈，不位移——transform 位移会让 Playwright
+     的 stability 检查反复重试（也避免视觉抖动） */
   .card-interactive:hover {
     border-color: var(--border-default);
     box-shadow: var(--shadow-card-hover);
-    transform: translateY(-1px);
   }
   .card-interactive:active {
-    transform: translateY(0) scale(0.995);
+    transform: scale(0.995);
   }
 
   /* 状态徽章（带圆点） */
