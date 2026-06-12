@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>方向 B · 美食杂志</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Libre+Bodoni:ital,wght@0,400;0,600;1,400&family=Public+Sans:wght@400;500;600;700&display=swap');
+:root{
+  --ink:#101012; --ink-2:#3F3F46; --muted:#8E8E95; --accent:#E64980;
+  --bg:#FAFAF8; --surface:#FFFFFF; --line:#E8E8E4;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Public Sans",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);padding-bottom:90px}
+.serif{font-family:"Libre Bodoni",Georgia,"Songti SC",serif}
+header{padding:30px 22px 0;border-bottom:2.5px solid var(--ink);margin:0 0 0;padding-bottom:18px}
+.kicker{font-size:11px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;color:var(--accent)}
+header h1{font-size:40px;line-height:1.05;margin-top:8px;font-weight:600;letter-spacing:-.01em}
+header .date{margin-top:10px;font-size:12px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;display:flex;justify-content:space-between}
+.toolbar{display:flex;gap:10px;margin:18px 22px 0}
+.toolbar .box{flex:1;display:flex;align-items:center;gap:10px;background:var(--surface);border:1.5px solid var(--ink);padding:12px 16px;color:var(--muted);font-size:13.5px}
+.toolbar .add{width:46px;border:1.5px solid var(--ink);background:var(--ink);display:grid;place-items:center}
+.idx{margin:28px 22px 0;display:grid;grid-template-columns:1fr 1fr 1fr;border:1.5px solid var(--ink)}
+.idx .cell{padding:14px 12px;border-right:1.5px solid var(--ink)}
+.idx .cell:last-child{border-right:none}
+.idx .n{font-size:24px;font-weight:600}
+.idx .l{font-size:11px;color:var(--ink-2);margin-top:2px}
+.idx .cell.shared{background:var(--ink);color:#fff}
+.idx .cell.shared .l{color:#C9C9CF}
+.sec{margin:30px 22px 10px;display:flex;align-items:baseline;justify-content:space-between;border-bottom:1.5px solid var(--ink);padding-bottom:8px}
+.sec h2{font-size:14px;letter-spacing:.18em;font-weight:700;text-transform:uppercase}
+.sec .no{font-size:12px;color:var(--muted)}
+article{margin:18px 22px;display:grid;grid-template-columns:108px 1fr;gap:16px}
+article .photo{width:108px;height:128px;background:url('https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=400&q=70') center/cover,#DDD;filter:saturate(.92)}
+article h3{font-size:22px;font-weight:600;line-height:1.15}
+article h3 .num{color:var(--accent);font-style:italic;margin-right:8px}
+article .meta{margin-top:5px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+article .quote{margin-top:9px;font-size:13.5px;line-height:1.55;color:var(--ink-2)}
+article .quote em{font-family:"Libre Bodoni",serif}
+.flag{display:inline-block;margin-top:9px;font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:4px 9px;border:1.2px solid var(--ink)}
+.flag.pink{border-color:var(--accent);color:var(--accent)}
+.rule{margin:6px 22px;border-top:1px dashed var(--line)}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:2px solid var(--ink);display:flex;justify-content:space-around;padding:10px 0 22px}
+nav .item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;letter-spacing:.1em;color:var(--muted);font-weight:700;text-transform:uppercase}
+nav .item.active{color:var(--ink)}
+nav .item.active .dot{width:4px;height:4px;border-radius:99px;background:var(--accent)}
+nav svg{width:22px;height:22px}
+.dot{width:4px;height:4px}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">Bite · 私人食志</div>
+  <h1 class="serif">本周想吃</h1>
+  <div class="date"><span>VOL.24 · IRVINE</span><span>JUN 2026</span></div>
+</header>
+<div class="toolbar">
+  <div class="box">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    检索店名 / 菜系 / 标签
+  </div>
+  <div class="add"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></div>
+</div>
+
+<div class="idx">
+  <div class="cell"><div class="n">12</div><div class="l">Irvine 想吃的</div></div>
+  <div class="cell"><div class="n">8</div><div class="l">罗兰岗暴走</div></div>
+  <div class="cell shared"><div class="n">4</div><div class="l">约会清单 · 共享</div></div>
+</div>
+
+<div class="sec"><h2 class="serif">最近添加</h2><span class="no">№ 01—02</span></div>
+
+<article>
+  <div class="photo"></div>
+  <div>
+    <h3 class="serif"><span class="num">01</span>上水小馆</h3>
+    <div class="meta">Irvine · 粤菜 · $$</div>
+    <p class="quote"><em>"炒饭烧鸭都好吃，分量大，没吃完打包。"</em>——来自小红书，你标了「想去」。</p>
+    <span class="flag pink">想去</span>
+  </div>
+</article>
+<div class="rule"></div>
+<article>
+  <div class="photo" style="background-image:url('https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=400&q=70')"></div>
+  <div>
+    <h3 class="serif"><span class="num">02</span>鼎泰丰</h3>
+    <div class="meta">Spectrum · 台菜 · $$$ · 去过 2 次 ★★★★</div>
+    <p class="quote">AI 备注：<em>麻酱小面好吃，芋泥小笼包偏腻；周五等位 4 小时，建议错峰。</em></p>
+    <span class="flag">去过 · 会再来</span>
+  </div>
+</article>
+
+<nav>
+  <div class="item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>清单<span class="dot"></span></div>
+  <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>添加</div>
+  <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a8 8 0 1 1-4-6.9L21 4l-1 4.5A8 8 0 0 1 21 12z"/></svg>聊天</div>
+  <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>地图</div>
+  <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>我的</div>
+</nav>
+</body>
+</html>

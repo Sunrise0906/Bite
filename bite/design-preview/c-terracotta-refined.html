@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>方向 C · Terracotta 精修</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,450;0,9..144,560;1,9..144,450&family=Inter:wght@400;500;600&display=swap');
+:root{
+  --bg:#FAF5EF; --surface:#FFFFFF; --sunken:#F1EAE0;
+  --ink:#1F1A14; --ink-2:#4A4337; --muted:#8C8170;
+  --primary:#C75B3A; --primary-soft:#FBE9E0; --primary-deep:#9C4226;
+  --sage:#5F7155; --sage-soft:#E7EDE2; --gold:#B98A2F; --gold-soft:#F7EDD8;
+  --line:#EBE2D3; --r:18px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Inter,system-ui,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);padding-bottom:92px}
+.serif{font-family:Fraunces,Georgia,"Songti SC",serif}
+header{padding:30px 22px 0}
+.brand-row{display:flex;justify-content:space-between;align-items:center}
+.brand{font-family:Fraunces,serif;font-weight:560;font-size:19px;color:var(--primary-deep)}
+.avatar{width:34px;height:34px;border-radius:99px;background:linear-gradient(135deg,#C75B3A,#9C4226);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:600}
+header h1{font-size:30px;line-height:1.18;margin-top:20px;font-weight:560;letter-spacing:-.01em}
+header h1 em{color:var(--primary);font-style:italic}
+header .sub{margin-top:6px;font-size:13.5px;color:var(--muted)}
+.search{margin:18px 22px 0;display:flex;gap:10px}
+.search .box{flex:1;display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px 16px;color:var(--muted);font-size:14px;box-shadow:0 1px 3px rgba(31,26,20,.04)}
+.search .add{width:48px;height:48px;border-radius:14px;background:var(--primary);display:grid;place-items:center;box-shadow:0 5px 14px rgba(199,91,58,.3)}
+.sec{margin:30px 22px 12px;display:flex;justify-content:space-between;align-items:baseline}
+.sec h2{font-size:19px;font-weight:560}
+.sec a{font-size:13px;color:var(--primary);font-weight:600;text-decoration:none}
+.lists{display:flex;gap:12px;overflow-x:auto;padding:2px 22px 8px}
+.lcard{min-width:148px;background:var(--surface);border-radius:var(--r);padding:16px;border:1px solid var(--line);box-shadow:0 1px 3px rgba(31,26,20,.04)}
+.lcard .top{display:flex;justify-content:space-between;align-items:center}
+.lcard .count{font-family:Fraunces,serif;font-size:26px;font-weight:560}
+.lcard .badge{font-size:10px;font-weight:600;color:var(--sage);background:var(--sage-soft);border-radius:99px;padding:3px 8px}
+.lcard .name{font-size:13px;margin-top:4px;color:var(--ink-2);font-weight:500}
+.lcard .meta{margin-top:12px;font-size:11px;color:var(--muted)}
+.place{margin:0 22px 16px;background:var(--surface);border-radius:var(--r);overflow:hidden;border:1px solid var(--line);box-shadow:0 2px 12px rgba(31,26,20,.05)}
+.place .photo{height:164px;background:url('https://images.unsplash.com/photo-1563245372-f21724e3856d?w=800&q=70') center/cover,linear-gradient(120deg,#E8CDB8,#D9B49A);position:relative}
+.place .photo .chip{position:absolute;left:12px;bottom:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;background:rgba(255,255,255,.94);color:var(--ink)}
+.chip .dot{width:7px;height:7px;border-radius:99px;background:var(--gold)}
+.chip.visited .dot{background:var(--sage)}
+.place .body{padding:15px 18px 17px}
+.place h3{font-family:Fraunces,serif;font-size:20px;font-weight:560}
+.place .sub{margin-top:4px;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:7px}
+.tags{display:flex;gap:6px;margin-top:11px;flex-wrap:wrap}
+.tag{font-size:12px;color:var(--primary-deep);background:var(--primary-soft);border-radius:99px;padding:4px 11px;font-weight:500}
+.tag.neutral{color:var(--ink-2);background:var(--sunken)}
+.quote{margin-top:12px;font-size:13.5px;line-height:1.55;color:var(--ink-2)}
+.quote .who{color:var(--muted);font-size:12px}
+.signal{margin-top:11px;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.signal strong{color:var(--sage);font-weight:600}
+nav{position:fixed;bottom:0;left:0;right:0;background:rgba(250,245,239,.92);backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:10px 0 22px}
+nav .item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--muted);font-weight:600}
+nav .item.active{color:var(--primary-deep)}
+nav .item.active svg{stroke:var(--primary)}
+nav svg{width:23px;height:23px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand-row"><span class="brand">Bite</span><span class="avatar">C</span></div>
+  <h1 class="serif">今晚吃啥，<em>我帮你挑</em></h1>
+  <div class="sub">3 个清单 · 24 家店 · 8 家还没去过</div>
+</header>
+<div class="search">
+  <div class="box">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    搜店名、菜系、标签…
+  </div>
+  <div class="add"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></div>
+</div>
+
+<div class="sec"><h2 class="serif">我的清单</h2><a href="#">管理 ›</a></div>
+<div class="lists">
+  <div class="lcard"><div class="top"><span class="count">12</span></div><div class="name">Irvine 想吃的</div><div class="meta">昨天更新</div></div>
+  <div class="lcard"><div class="top"><span class="count">8</span></div><div class="name">罗兰岗暴走</div><div class="meta">3 天前</div></div>
+  <div class="lcard"><div class="top"><span class="count">4</span><span class="badge">共享 · 2人</span></div><div class="name">和宝贝的约会清单</div><div class="meta">by @caleb</div></div>
+</div>
+
+<div class="sec"><h2 class="serif">最近添加</h2></div>
+<div class="place">
+  <div class="photo"><span class="chip"><span class="dot"></span>想去</span></div>
+  <div class="body">
+    <h3>上水小馆</h3>
+    <div class="sub">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Irvine · 粤菜 · $$
+    </div>
+    <div class="tags"><span class="tag">炒饭一绝</span><span class="tag">分量大</span><span class="tag neutral">小红书</span></div>
+    <p class="quote">"炒饭烧鸭都好吃，没吃完打包" <span class="who">—— 你的理由</span></p>
+  </div>
+</div>
+<div class="place">
+  <div class="body" style="padding-top:17px">
+    <h3>鼎泰丰 <span style="font-family:Inter;font-size:12px;color:var(--muted);font-weight:500">· Spectrum</span></h3>
+    <div class="sub">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Irvine Spectrum · 台菜 · $$$
+    </div>
+    <div class="signal"><strong>去过 2 次 · 会再来</strong>· 上周 · ★★★★ · 和女朋友</div>
+    <p class="quote">AI 备注：麻酱小面好吃，芋泥小笼包偏腻；周五等位 4h 建议错峰 <span class="who">—— 提取自小红书评论区</span></p>
+  </div>
+</div>
+
+<nav>
+  <div class="item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>清单</div>
+  <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>添加</div>
+  <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a8 8 0 1 1-4-6.9L21 4l-1 4.5A8 8 0 0 1 21 12z"/></svg>聊天</div>
+  <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>地图</div>
+  <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>我的</div>
+</nav>
+</body>
+</html>

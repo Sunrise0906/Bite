@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CreateListForm } from "@/components/lists/create-list-form";
 import { ListCardMenu } from "@/components/lists/list-card-menu";
 import { QuickAddInput } from "@/components/places/quick-add-input";
+import { ChevronRightIcon, UsersIcon } from "@/components/ui/icons";
 import { createClient, requireUser } from "@/lib/supabase/server";
 
 export const metadata = {
@@ -85,20 +86,30 @@ export default async function ListsPage() {
     }
   }
 
+  const totalPlaces = lists.reduce((n, l) => n + (l.places?.length ?? 0), 0);
+  const totalWant = lists.reduce(
+    (n, l) => n + (l.places ?? []).filter((p) => p.status === "want_to_go").length,
+    0,
+  );
+
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">
-      <header className="mb-7">
-        <h1 className="heading-display text-3xl sm:text-4xl">我的 list</h1>
-        <p className="mt-1.5 text-sm text-zinc-500">
-          按用途分组管理你的餐厅收藏
+    <main className="mx-auto w-full max-w-2xl px-5 py-7 sm:py-12">
+      <header className="mb-8">
+        <h1 className="heading-display text-[2rem] leading-tight sm:text-4xl">
+          今天吃啥，<em className="italic text-[var(--primary)]">从这里挑</em>
+        </h1>
+        <p className="mt-2 text-sm text-[var(--text-muted)]">
+          {lists.length === 0
+            ? "建一个 list，把想吃的店都收进来"
+            : `${lists.length} 个清单 · ${totalPlaces} 家店${totalWant > 0 ? ` · ${totalWant} 家还没去过` : ""}`}
         </p>
       </header>
 
-      <div className="mb-5">
+      <div className="mb-4">
         <QuickAddInput />
       </div>
 
-      <div className="mb-6">
+      <div className="mb-8">
         <CreateListForm />
       </div>
 
@@ -111,21 +122,26 @@ export default async function ListsPage() {
       {lists.length === 0 ? (
         <EmptyState />
       ) : (
-        <ul className="space-y-2.5">
-          {lists.map((list) => (
-            <li key={list.id}>
-              <ListCard
-                list={list}
-                currentUserId={user.id}
-                ownerName={
-                  list.owner_id === user.id
-                    ? null
-                    : (ownerNames[list.owner_id] ?? null)
-                }
-              />
-            </li>
-          ))}
-        </ul>
+        <>
+          <div className="section-heading mb-3">
+            <h2 className="text-xl">我的清单</h2>
+          </div>
+          <ul className="space-y-3">
+            {lists.map((list) => (
+              <li key={list.id}>
+                <ListCard
+                  list={list}
+                  currentUserId={user.id}
+                  ownerName={
+                    list.owner_id === user.id
+                      ? null
+                      : (ownerNames[list.owner_id] ?? null)
+                  }
+                />
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </main>
   );
@@ -175,54 +191,66 @@ function ListCard({
     <article className="card relative">
       <Link
         href={`/lists/${list.id}`}
-        className="card-interactive block px-4 py-3.5"
+        className="card-interactive flex items-center gap-4 px-5 py-4"
       >
-        <div className="min-w-0 pr-8">
+        {/* 左侧：店数（serif 大数字） */}
+        <div className="flex w-12 shrink-0 flex-col items-center">
+          <span className="heading-display text-[1.75rem] leading-none text-[var(--text-strong)]">
+            {total}
+          </span>
+          <span className="mt-1 text-[10px] font-medium tracking-wide text-[var(--text-faint)]">
+            家店
+          </span>
+        </div>
+
+        <div className="min-w-0 flex-1 border-l border-[var(--border-subtle)] pl-4 pr-6">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="truncate text-base font-medium text-[var(--text-strong)]">
+            <span className="truncate text-[15px] font-semibold text-[var(--text-strong)]">
               {list.name}
             </span>
             {isShared && (
               <span
-                className="chip chip-neutral"
+                className="inline-flex items-center gap-1 rounded-full bg-[var(--sage-soft)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--sage-text)]"
                 title={ownerName ? `这个 list 属于 @${ownerName}` : undefined}
               >
-                {ownerName ? `共享 · by @${ownerName}` : "共享"}
+                <UsersIcon size={11} />
+                {ownerName ? `共享 · @${ownerName}` : "共享"}
               </span>
             )}
           </div>
-          <p className="mt-0.5 text-xs text-zinc-500">
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
             {total === 0 ? (
-              "还没有店"
+              "还没有店——点进去加第一家"
             ) : (
               <>
-                <span className="text-[var(--text-default)]">{total}</span> 家
-                {wantCount > 0 && (
-                  <span className="ml-1.5">· 想去 {wantCount}</span>
-                )}
-                {visitedCount > 0 && (
-                  <span className="ml-1.5">· 已去 {visitedCount}</span>
-                )}
-                {" · "}
+                {wantCount > 0 && <span>想去 {wantCount}</span>}
+                {wantCount > 0 && visitedCount > 0 && <span> · </span>}
+                {visitedCount > 0 && <span>已去 {visitedCount}</span>}
+                {(wantCount > 0 || visitedCount > 0) && " · "}
                 {relativeTime(lastUpdate)}
               </>
             )}
           </p>
-          {topCuisines.length > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-1">
+          {(topCuisines.length > 0 || mostRecent) && (
+            <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
               {topCuisines.map((c) => (
-                <span key={c} className="chip chip-neutral">
+                <span key={c} className="tag tag-neutral">
                   {c}
                 </span>
               ))}
+              {mostRecent && (
+                <span className="min-w-0 truncate text-xs text-[var(--text-faint)]">
+                  最新 · {mostRecent.name}
+                </span>
+              )}
             </div>
           )}
-          {mostRecent && (
-            <p className="mt-1.5 truncate text-xs italic text-zinc-500">
-              最新：{mostRecent.name}
-            </p>
-          )}
         </div>
+
+        <ChevronRightIcon
+          size={16}
+          className="shrink-0 text-[var(--text-faint)]"
+        />
       </Link>
       {canDelete && (
         <div className="absolute right-2 top-2.5">
@@ -239,24 +267,26 @@ function ListCard({
 
 function EmptyState() {
   return (
-    <div className="card flex flex-col items-center px-6 py-14 text-center">
+    <div className="card flex flex-col items-center px-6 py-16 text-center">
       <svg
         aria-hidden="true"
-        width="56"
-        height="56"
+        width="64"
+        height="64"
         viewBox="0 0 64 64"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
-        className="mb-4 text-[var(--primary)]"
+        className="mb-5 text-[var(--primary)]"
       >
         <circle cx="32" cy="32" r="22" />
         <circle cx="32" cy="32" r="15" strokeDasharray="2 3" opacity="0.5" />
         <path d="M22 28c0-2.5 2-4 4-4M42 28c0-2.5-2-4-4-4" strokeLinecap="round" />
         <path d="M28 38c1.5 1.5 4 2 4 2s2.5-.5 4-2" strokeLinecap="round" />
       </svg>
-      <p className="text-sm text-zinc-600">还没有 list</p>
-      <p className="mt-1 text-xs text-zinc-500">
+      <p className="heading-display text-lg text-[var(--text-strong)]">
+        还没有 list
+      </p>
+      <p className="mt-1.5 text-sm text-[var(--text-muted)]">
         在上面输入一个名字，比如「Irvine 想吃的」
       </p>
     </div>
