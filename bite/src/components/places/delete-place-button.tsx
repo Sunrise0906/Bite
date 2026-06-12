@@ -1,6 +1,7 @@
 "use client";
 
 import { deletePlace } from "@/lib/actions/places";
+import { TrashIcon } from "@/components/ui/icons";
 
 export function DeletePlaceButton({
   placeId,
@@ -24,8 +25,9 @@ export function DeletePlaceButton({
       <input type="hidden" name="list_id" value={listId} />
       <button
         type="submit"
-        className="text-sm text-red-700 hover:underline dark:text-red-400"
+        className="inline-flex items-center gap-1.5 rounded-xl border border-[color-mix(in_srgb,var(--danger)_30%,transparent)] px-3.5 py-2 text-sm font-medium text-[var(--danger-text)] transition-colors hover:bg-[var(--danger-bg)]"
       >
+        <TrashIcon size={14} />
         删除店铺
       </button>
     </form>

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { revokeListInvite } from "@/lib/actions/invites";
+import { LinkIcon } from "@/components/ui/icons";
 
 export type ActiveInvite = {
   token: string;
@@ -38,8 +39,9 @@ export function ActiveInvitesPanel({ invites }: { invites: ActiveInvite[] }) {
   if (items.length === 0) return null;
 
   return (
-    <section className="mb-6">
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+    <section className="mb-8">
+      <h3 className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+        <LinkIcon size={13} className="text-[var(--text-faint)]" />
         活跃邀请链接 · {items.length}
       </h3>
       <ul className="space-y-2">
@@ -49,12 +51,12 @@ export function ActiveInvitesPanel({ invites }: { invites: ActiveInvite[] }) {
           return (
             <li
               key={inv.token}
-              className="card flex flex-wrap items-center gap-2 px-3 py-2 text-xs"
+              className="card flex flex-wrap items-center gap-2 px-5 py-3 text-xs"
             >
-              <span className="chip chip-neutral">
+              <span className="inline-flex items-center rounded-full bg-[var(--sage-soft)] px-2.5 py-1 font-semibold text-[var(--sage-text)]">
                 {inv.role === "co_owner" ? "共同所有者" : "查看者"}
               </span>
-              <span className="text-zinc-500">
+              <span className="text-[var(--text-faint)]">
                 到期：{expires.toLocaleString("zh-CN")}
               </span>
               {isExpired && (
@@ -64,7 +66,7 @@ export function ActiveInvitesPanel({ invites }: { invites: ActiveInvite[] }) {
                 <button
                   type="button"
                   onClick={() => copyUrl(inv.token)}
-                  className="rounded-md px-2 py-1 text-zinc-700 hover:bg-[var(--surface-muted)]"
+                  className="rounded-lg px-2 py-1 text-[var(--text-default)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)]"
                 >
                   {copiedToken === inv.token ? "已复制" : "复制链接"}
                 </button>
@@ -72,7 +74,7 @@ export function ActiveInvitesPanel({ invites }: { invites: ActiveInvite[] }) {
                   type="button"
                   onClick={() => revoke(inv.token)}
                   disabled={pendingToken === inv.token}
-                  className="rounded-md px-2 py-1 text-red-700 hover:bg-[var(--surface-muted)] disabled:opacity-50"
+                  className="rounded-lg px-2 py-1 text-[var(--danger)] transition-colors hover:bg-[var(--danger-bg)] disabled:opacity-50"
                 >
                   {pendingToken === inv.token ? "..." : "撤销"}
                 </button>

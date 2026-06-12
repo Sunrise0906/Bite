@@ -21,8 +21,12 @@ export default async function LoginPage({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="heading-display text-3xl">欢迎回来</h1>
-        <p className="mt-2 text-sm text-zinc-500">登录你的 Bite 账号</p>
+        <h1 className="heading-display text-3xl text-[var(--text-strong)]">
+          欢迎回来
+        </h1>
+        <p className="mt-2 text-sm text-[var(--text-muted)]">
+          登录你的 Bite 账号
+        </p>
       </div>
 
       {error && (
@@ -41,11 +45,11 @@ export default async function LoginPage({
 
       <GoogleButton next={next} />
 
-      <p className="text-center text-sm text-zinc-500">
+      <p className="text-center text-sm text-[var(--text-muted)]">
         还没有账号？{" "}
         <Link
           href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}
-          className="font-medium text-[var(--text-strong)] underline underline-offset-2 decoration-zinc-300"
+          className="font-medium text-[var(--text-strong)] underline underline-offset-2 decoration-[var(--border-strong)] transition-colors hover:decoration-[var(--primary)]"
         >
           创建账号
         </Link>

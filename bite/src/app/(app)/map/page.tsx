@@ -1,5 +1,6 @@
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { PlacesMap } from "@/components/map/places-map";
+import { AlertIcon } from "@/components/ui/icons";
 
 export const metadata = {
   title: "地图 · Bite",
@@ -46,10 +47,10 @@ export default async function MapPage() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-10">
-      <header className="mb-5">
+    <main className="mx-auto w-full max-w-5xl px-5 py-7 sm:py-10">
+      <header className="mb-8">
         <h1 className="heading-display text-3xl sm:text-4xl">地图</h1>
-        <p className="mt-1.5 text-sm text-zinc-500">
+        <p className="mt-2 text-sm text-[var(--text-muted)]">
           {places.length > 0
             ? `${places.length} 家有坐标 · 点圆点看详情`
             : "还没有带坐标的店"}
@@ -57,8 +58,11 @@ export default async function MapPage() {
       </header>
 
       {!apiKey ? (
-        <div className="card px-6 py-10 text-center text-sm text-zinc-600">
-          ⚠ 缺少 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY 环境变量，地图无法加载。
+        <div className="card flex flex-col items-center gap-3 px-6 py-12 text-center">
+          <AlertIcon size={28} className="text-[var(--gold)]" />
+          <p className="text-sm text-[var(--text-default)]">
+            缺少 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY 环境变量，地图无法加载。
+          </p>
         </div>
       ) : (
         <PlacesMap places={places} apiKey={apiKey} />

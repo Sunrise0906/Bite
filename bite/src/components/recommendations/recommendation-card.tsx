@@ -8,6 +8,7 @@ import {
   withdrawRecommendation,
   type SnapshottedPlace,
 } from "@/lib/actions/recommendations";
+import { BotIcon } from "@/components/ui/icons";
 
 type RecInput = {
   id: string;
@@ -98,39 +99,49 @@ export function RecommendationCard({
     rec.status === "pending" && rec.direction === "outgoing";
 
   return (
-    <article className="card p-4">
+    <article
+      className={`card px-5 py-4 ${
+        rec.status === "pending"
+          ? "border-l-4 border-l-[var(--gold)]"
+          : ""
+      }`}
+    >
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-[var(--text-muted)]">
             {rec.direction === "incoming" ? "来自 " : "给 "}
             <span className="font-medium text-[var(--text-default)]">
               @{rec.fromLabel}
             </span>
-            <span className="ml-2 text-zinc-400">{relTime(rec.createdAt)}</span>
+            <span className="ml-2 text-[var(--text-faint)]">
+              {relTime(rec.createdAt)}
+            </span>
           </p>
-          <h3 className="mt-1 text-base font-medium text-[var(--text-strong)]">
+          <h3 className="mt-1.5 text-base font-semibold text-[var(--text-strong)]">
             {rec.place.name}
           </h3>
-          <p className="text-sm text-zinc-600">{rec.place.address}</p>
+          <p className="mt-0.5 text-sm text-[var(--text-muted)]">
+            {rec.place.address}
+          </p>
         </div>
         <span className={status.chip}>{status.label}</span>
       </header>
 
       {rec.place.cuisine.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
           {rec.place.cuisine.map((c) => (
-            <span key={c} className="chip chip-neutral">
+            <span key={c} className="tag tag-neutral">
               {c}
             </span>
           ))}
           {rec.place.price_range && (
-            <span className="chip chip-neutral">{rec.place.price_range}</span>
+            <span className="tag tag-neutral">{rec.place.price_range}</span>
           )}
         </div>
       )}
 
       {rec.place.message && (
-        <p className="mt-2 rounded-md bg-[var(--surface-subtle)] px-2 py-1.5 text-sm italic text-zinc-700">
+        <p className="mt-3 rounded-lg bg-[var(--surface-muted)] px-3 py-2 text-sm italic text-[var(--text-default)]">
           <span className="text-[var(--primary)]">「</span>
           {rec.place.message}
           <span className="text-[var(--primary)]">」</span>
@@ -138,19 +149,20 @@ export function RecommendationCard({
       )}
 
       {rec.place.notes && (
-        <p className="mt-2 line-clamp-2 text-xs text-zinc-500">
-          🤖 {rec.place.notes}
+        <p className="mt-2.5 flex items-start gap-1.5 text-xs text-[var(--text-muted)]">
+          <BotIcon size={13} className="mt-0.5 shrink-0" />
+          <span className="line-clamp-2">{rec.place.notes}</span>
         </p>
       )}
 
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-700">
+        <p role="alert" className="alert-error mt-3">
           {error}
         </p>
       )}
 
       {isPendingIncoming && (
-        <div className="mt-3">
+        <div className="mt-4">
           {!picking ? (
             <div className="flex gap-2">
               <button
@@ -171,8 +183,8 @@ export function RecommendationCard({
               </button>
             </div>
           ) : (
-            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-3">
-              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-4">
+              <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                 加到哪个 list
               </label>
               <select
@@ -209,12 +221,12 @@ export function RecommendationCard({
       )}
 
       {isPendingOutgoing && (
-        <div className="mt-3">
+        <div className="mt-4">
           <button
             type="button"
             onClick={withdraw}
             disabled={pending}
-            className="btn-secondary px-3 py-1.5 text-xs text-red-700"
+            className="btn-secondary px-3 py-1.5 text-xs text-[var(--danger)]"
           >
             撤回
           </button>

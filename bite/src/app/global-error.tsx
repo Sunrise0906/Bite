@@ -28,20 +28,35 @@ export default function GlobalError({
           alignItems: "center",
           justifyContent: "center",
           padding: "48px 24px",
-          background: "#FAF5EF",
-          color: "#1f2937",
+          background: "#faf5ef",
+          color: "#1f1a14",
           fontFamily:
             'ui-sans-serif, system-ui, -apple-system, "PingFang SC", sans-serif',
           textAlign: "center",
         }}
       >
-        <div style={{ fontSize: 56, marginBottom: 8 }}>🍵</div>
+        <svg
+          aria-hidden="true"
+          width="56"
+          height="56"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#c75b3a"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ marginBottom: 12 }}
+        >
+          <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
+          <path d="M3 8h14v6a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z" />
+          <path d="M6.5 2v3M10 2v3M13.5 2v3" opacity="0.5" />
+        </svg>
         <h1
           style={{
             margin: "0 0 12px",
             fontSize: 28,
             fontWeight: 600,
-            color: "#1f2937",
+            color: "#1f1a14",
           }}
         >
           应用初始化失败
@@ -50,7 +65,7 @@ export default function GlobalError({
           style={{
             margin: "0 0 16px",
             fontSize: 14,
-            color: "#525252",
+            color: "#4a4337",
             maxWidth: 420,
           }}
         >
@@ -62,7 +77,8 @@ export default function GlobalError({
             style={{
               marginTop: 8,
               padding: "8px 12px",
-              background: "#f3f4f6",
+              background: "#f1eae0",
+              color: "#4a4337",
               borderRadius: 6,
               fontSize: 12,
               maxWidth: "100%",
@@ -80,8 +96,8 @@ export default function GlobalError({
             marginTop: 24,
             padding: "8px 20px",
             fontSize: 14,
-            color: "white",
-            background: "#D97757",
+            color: "#ffffff",
+            background: "#c75b3a",
             border: "none",
             borderRadius: 8,
             cursor: "pointer",

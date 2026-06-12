@@ -32,7 +32,7 @@ export function AcceptInviteForm({ token }: { token: string }) {
         {pending ? "加入中..." : "加入这个 list"}
       </button>
       {error && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="alert-error">
           {error}
         </p>
       )}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { VisitLogForm } from "./visit-log-form";
+import { CheckIcon } from "@/components/ui/icons";
 
 export function VisitLogButton({
   placeId,
@@ -29,7 +30,8 @@ export function VisitLogButton({
         }
         title="记一次造访"
       >
-        ✓ 我去了
+        <CheckIcon size={12} />
+        我去了
       </button>
       <VisitLogForm
         mode={{ kind: "create", placeId }}

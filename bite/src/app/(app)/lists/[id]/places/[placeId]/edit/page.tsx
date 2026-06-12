@@ -23,6 +23,46 @@ export async function generateMetadata(props: { params: Params }) {
   };
 }
 
+/** lucide 风格 chevron-left（icons.tsx 暂缺，先内联） */
+function ChevronLeftIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="m15 5-7 7 7 7" />
+    </svg>
+  );
+}
+
+/** lucide 风格 eye（只读提示用，icons.tsx 暂缺） */
+function EyeIcon({ size = 16, className }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
 export default async function EditPlacePage({ params }: { params: Params }) {
   const { id: listId, placeId } = await params;
 
@@ -84,14 +124,15 @@ export default async function EditPlacePage({ params }: { params: Params }) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-xl px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-xl px-5 py-7 sm:py-12">
       <Link
         href={`/lists/${listId}`}
-        className="mb-5 inline-flex items-center text-sm text-zinc-500 transition-colors hover:text-[var(--text-strong)]"
+        className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
       >
-        ‹ 返回所在 list
+        <ChevronLeftIcon size={15} />
+        返回所在 list
       </Link>
-      <div className="mb-6 flex items-start justify-between gap-3">
+      <div className="mb-8 flex items-start justify-between gap-3">
         <h1 className="heading-display text-3xl">
           {canEdit ? "编辑店铺" : place.name}
         </h1>
@@ -101,8 +142,17 @@ export default async function EditPlacePage({ params }: { params: Params }) {
       </div>
 
       {!canEdit && (
-        <div className="card mb-4 px-4 py-3 text-sm text-zinc-600">
-          只读模式：你是这个 list 的查看者。要编辑请让 owner 把你升成共同所有者。
+        <div className="mb-5 flex items-start gap-2.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3">
+          <EyeIcon
+            size={16}
+            className="mt-0.5 shrink-0 text-[var(--text-muted)]"
+          />
+          <div className="text-sm">
+            <p className="font-medium text-[var(--text-strong)]">只读模式</p>
+            <p className="mt-0.5 text-[var(--text-muted)]">
+              你是这个 list 的查看者。要编辑请让 owner 把你升成共同所有者。
+            </p>
+          </div>
         </div>
       )}
 
@@ -114,7 +164,7 @@ export default async function EditPlacePage({ params }: { params: Params }) {
         readOnly={!canEdit}
       />
 
-      <div className="mt-10 border-t border-[var(--border-subtle)] pt-6">
+      <div className="mt-12 border-t border-[var(--border-subtle)] pt-8">
         <VisitHistory
           placeId={place.id}
           logs={logs}
@@ -125,15 +175,20 @@ export default async function EditPlacePage({ params }: { params: Params }) {
       </div>
 
       {canEdit && (
-        <div className="mt-12 border-t border-[var(--border-subtle)] pt-6">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            危险操作
-          </h2>
-          <DeletePlaceButton
-            placeId={place.id}
-            listId={listId}
-            name={place.name}
-          />
+        <div className="mt-12 border-t border-[var(--border-subtle)] pt-8">
+          <div className="section-heading mb-3">
+            <h2 className="text-lg text-[var(--danger-text)]">危险操作</h2>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[color-mix(in_srgb,var(--danger)_25%,transparent)] bg-[var(--surface-elevated)] px-5 py-4">
+            <p className="text-sm text-[var(--text-muted)]">
+              删除后店铺与造访记录无法恢复
+            </p>
+            <DeletePlaceButton
+              placeId={place.id}
+              listId={listId}
+              name={place.name}
+            />
+          </div>
         </div>
       )}
     </main>

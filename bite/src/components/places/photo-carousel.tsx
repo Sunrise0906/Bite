@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ImageIcon } from "@/components/ui/icons";
 
 export function PhotoCarousel({ urls }: { urls: string[] }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -42,12 +43,10 @@ export function PhotoCarousel({ urls }: { urls: string[] }) {
           broken.has(i) ? (
             <div
               key={i}
-              className="flex aspect-video w-full shrink-0 snap-center flex-col items-center justify-center bg-[var(--surface-subtle)] text-sm text-zinc-500"
+              className="flex aspect-video w-full shrink-0 snap-center flex-col items-center justify-center bg-[var(--surface-sunken)] text-[var(--text-muted)]"
             >
-              <span className="text-2xl" aria-hidden>
-                🖼️
-              </span>
-              <span className="mt-1 text-xs">图片加载失败</span>
+              <ImageIcon size={28} className="text-[var(--text-faint)]" />
+              <span className="mt-1.5 text-xs">图片加载失败</span>
             </div>
           ) : (
             /* eslint-disable-next-line @next/next/no-img-element */

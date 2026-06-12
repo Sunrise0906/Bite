@@ -167,7 +167,7 @@ export default async function ChatPage(props: {
   return (
     <div className="mx-auto flex h-[calc(100dvh-64px)] w-full max-w-6xl flex-col sm:flex-row">
       {/* ---- Sidebar：会话列表 ---- */}
-      <aside className="border-b border-[var(--border-subtle)] bg-[var(--surface-subtle)] sm:w-64 sm:border-b-0 sm:border-r">
+      <aside className="border-b border-[var(--border-subtle)] bg-[var(--surface-muted)] sm:w-64 sm:border-b-0 sm:border-r">
         <div className="flex items-center justify-between px-4 py-3 sm:flex-col sm:items-stretch sm:gap-3">
           <h1 className="heading-display text-lg sm:text-xl">聊天</h1>
           <Link
@@ -179,7 +179,7 @@ export default async function ChatPage(props: {
         </div>
         <nav className="hidden max-h-[calc(100dvh-64px-72px)] overflow-y-auto px-2 pb-3 sm:block">
           {conversations.length === 0 ? (
-            <p className="px-2 text-xs text-zinc-500">还没有对话</p>
+            <p className="px-3 text-xs text-[var(--text-muted)]">还没有对话</p>
           ) : (
             <div className="space-y-3">
               {BUCKET_ORDER.map((bucket) => {
@@ -187,7 +187,7 @@ export default async function ChatPage(props: {
                 if (!items || items.length === 0) return null;
                 return (
                   <div key={bucket}>
-                    <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                    <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                       {BUCKET_LABEL[bucket]}
                     </p>
                     <ul className="space-y-0.5">
@@ -199,8 +199,8 @@ export default async function ChatPage(props: {
                               href={`/chat?c=${c.id}`}
                               className={`block line-clamp-2 rounded-lg py-2 pl-3 pr-10 text-sm leading-snug transition ${
                                 isActive
-                                  ? "bg-[var(--primary-soft)] text-[var(--primary-soft-text)]"
-                                  : "text-zinc-700 hover:bg-white"
+                                  ? "bg-[var(--primary-soft)] font-medium text-[var(--primary-soft-text)]"
+                                  : "text-[var(--text-default)] hover:bg-[var(--surface-elevated)]"
                               }`}
                             >
                               {c.title ?? "新对话"}
@@ -238,10 +238,10 @@ export default async function ChatPage(props: {
                   <li key={c.id} className="relative shrink-0">
                     <Link
                       href={`/chat?c=${c.id}`}
-                      className={`block max-w-[160px] truncate rounded-full py-1 pl-3 pr-9 text-xs ${
+                      className={`block max-w-[160px] truncate rounded-full border py-1 pl-3 pr-9 text-xs transition ${
                         isActive
-                          ? "bg-[var(--primary-soft)] text-[var(--primary-soft-text)]"
-                          : "bg-white text-zinc-600"
+                          ? "border-transparent bg-[var(--primary-soft)] font-medium text-[var(--primary-soft-text)]"
+                          : "border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-default)]"
                       }`}
                     >
                       {c.title ?? "新对话"}

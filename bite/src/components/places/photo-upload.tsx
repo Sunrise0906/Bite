@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { uploadPhoto } from "@/lib/actions/photos";
+import { CameraIcon, CheckIcon, XIcon } from "@/components/ui/icons";
 
 type PendingStatus = "uploading" | "done" | "error";
 
@@ -178,13 +179,14 @@ export function PhotoUpload({
         disabled={disabled || noRemaining}
         className="btn-secondary w-full justify-center border-dashed py-3 text-sm"
       >
+        <CameraIcon size={16} className="text-[var(--text-muted)]" />
         {noRemaining
           ? `已达上限 (${maxFiles} 张)`
           : `上传图片（剩 ${remaining} 张 / 共 ${maxFiles}）`}
       </button>
 
       {warning && (
-        <p className="mt-1.5 text-xs text-amber-600">{warning}</p>
+        <p className="mt-1.5 text-xs text-[var(--gold-text)]">{warning}</p>
       )}
 
       {pendings.length > 0 && (
@@ -194,7 +196,7 @@ export function PhotoUpload({
               key={p.id}
               className={`relative aspect-square overflow-hidden rounded-md border ${
                 p.status === "error"
-                  ? "border-red-400 ring-1 ring-red-300"
+                  ? "border-[var(--danger)] ring-1 ring-[var(--danger)]/40"
                   : "border-[var(--border-subtle)]"
               }`}
             >
@@ -215,8 +217,8 @@ export function PhotoUpload({
               )}
               {p.status === "done" && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                  <span className="rounded-full bg-[var(--primary)] px-2 py-0.5 text-[10px] font-medium text-white">
-                    ✓
+                  <span className="inline-flex items-center justify-center rounded-full bg-[var(--primary)] p-1 text-[var(--primary-foreground)]">
+                    <CheckIcon size={12} strokeWidth={2.6} />
                   </span>
                 </div>
               )}
@@ -224,7 +226,7 @@ export function PhotoUpload({
                 <>
                   <div
                     title={p.error ?? "上传失败"}
-                    className="absolute inset-x-0 bottom-0 truncate bg-red-600/85 px-1 py-0.5 text-[10px] text-white"
+                    className="absolute inset-x-0 bottom-0 truncate bg-[var(--danger)]/85 px-1 py-0.5 text-[10px] text-white"
                   >
                     {p.error ?? "失败"}
                   </div>
@@ -240,10 +242,10 @@ export function PhotoUpload({
                     <button
                       type="button"
                       onClick={() => removePending(p.id)}
-                      className="rounded bg-black/60 px-1 text-[10px] text-white hover:bg-black/80"
+                      className="inline-flex items-center justify-center rounded bg-black/60 p-0.5 text-white hover:bg-black/80"
                       aria-label="移除"
                     >
-                      ✕
+                      <XIcon size={11} />
                     </button>
                   </div>
                 </>

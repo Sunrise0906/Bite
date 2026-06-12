@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { MapPinIcon } from "@/components/ui/icons";
 
 type MapPlace = {
   id: string;
@@ -12,10 +13,12 @@ type MapPlace = {
   has_visited?: boolean;
 };
 
+// Maps JS marker 画在 canvas 上，必须用 hex；取设计 token 的 light 值
+// （与图例的 var(--gold) / var(--sage) / var(--status-archived-dot) 对应）
 const STATUS_COLOR: Record<MapPlace["status"], string> = {
-  want_to_go: "#D97757", // terracotta (主色)
-  visited: "#10b981", // emerald
-  archived: "#9ca3af",
+  want_to_go: "#b98a2f", // gold（想去）
+  visited: "#5f7155", // sage（已去过）
+  archived: "#a89c84", // 暖灰（归档）
 };
 
 const STATUS_LABEL: Record<MapPlace["status"], string> = {
@@ -85,9 +88,9 @@ export function PlacesMap({
           const link = `/lists/${p.list_id}/places/${p.id}/edit`;
           infoWindow.setContent(`
             <div style="padding:4px 6px; min-width:160px;">
-              <div style="font-weight:600; color:#1f2937;">${escapeHtml(p.name)}</div>
-              <div style="margin-top:2px; font-size:11px; color:${STATUS_COLOR[p.status]};">● ${STATUS_LABEL[p.status]}</div>
-              <a href="${link}" style="display:inline-block; margin-top:4px; font-size:11px; color:#D97757; text-decoration:underline;">查看详情 ›</a>
+              <div style="font-weight:600; color:#1f1a14;">${escapeHtml(p.name)}</div>
+              <div style="margin-top:2px; font-size:11px; color:#6b6253;"><span style="color:${STATUS_COLOR[p.status]};">●</span> ${STATUS_LABEL[p.status]}</div>
+              <a href="${link}" style="display:inline-block; margin-top:4px; font-size:11px; color:#9c4226; text-decoration:underline;">查看详情 ›</a>
             </div>
           `);
           infoWindow.open({ map, anchor: marker });
@@ -128,10 +131,11 @@ export function PlacesMap({
   if (places.length === 0) {
     return (
       <div className="card flex flex-col items-center px-6 py-16 text-center">
-        <p className="text-base font-medium text-[var(--text-strong)]">
+        <MapPinIcon size={32} className="mb-4 text-[var(--primary)]" />
+        <p className="heading-display text-lg text-[var(--text-strong)]">
           地图还是空的
         </p>
-        <p className="mt-2 max-w-sm text-sm text-zinc-600">
+        <p className="mt-2 max-w-sm text-sm text-[var(--text-muted)]">
           目前你的店都没有坐标。从 /quick-add 用 Google Places autocomplete 添加店时会自动带上 lat/lng。
         </p>
       </div>
@@ -141,20 +145,29 @@ export function PlacesMap({
   return (
     <div className="card overflow-hidden p-0">
       <div ref={ref} className="h-[calc(100dvh-200px)] min-h-[400px] w-full" />
-      <div className="border-t border-[var(--border-subtle)] px-4 py-2 text-xs text-zinc-500">
-        <span className="inline-flex items-center gap-1.5 mr-3">
-          <span className="h-2 w-2 rounded-full" style={{ background: STATUS_COLOR.want_to_go }} />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-[var(--border-subtle)] px-5 py-3 text-xs text-[var(--text-muted)]">
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ background: "var(--gold)" }}
+          />
           想去
         </span>
-        <span className="inline-flex items-center gap-1.5 mr-3">
-          <span className="h-2 w-2 rounded-full" style={{ background: STATUS_COLOR.visited }} />
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ background: "var(--sage)" }}
+          />
           已去过
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ background: STATUS_COLOR.archived }} />
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ background: "var(--status-archived-dot)" }}
+          />
           归档
         </span>
-        <span className="ml-3 text-zinc-400">· 点击圆点看详情</span>
+        <span className="text-[var(--text-faint)]">点击圆点看详情</span>
       </div>
     </div>
   );

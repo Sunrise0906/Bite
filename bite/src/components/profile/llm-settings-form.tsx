@@ -13,6 +13,12 @@ import {
   PROVIDER_PRESETS,
   type ProviderId,
 } from "@/lib/llm/types";
+import {
+  AlertIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+} from "@/components/ui/icons";
 
 type Props = {
   initial: {
@@ -105,7 +111,7 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
     <form action={action} className="flex flex-col gap-5">
       {/* ---- provider 选择 ---- */}
       <div className="flex flex-col gap-2">
-        <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+        <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
           Provider
         </label>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -120,21 +126,25 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
                   setProvider(id);
                   setTestResult(null);
                 }}
-                className={`relative rounded-xl border px-3 py-2.5 text-left text-sm transition ${
+                className={`relative rounded-xl border px-3.5 py-3 text-left text-sm transition ${
                   active
-                    ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary-soft-text)]"
-                    : "border-[var(--border-subtle)] bg-white text-[var(--text-default)] hover:border-[var(--primary)]/40"
+                    ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary-soft-text)] shadow-[0_0_0_1px_var(--primary)]"
+                    : "border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-default)] hover:border-[var(--border-strong)]"
                 }`}
               >
                 <div className="flex items-center gap-1.5">
                   <span className="font-medium">{PROVIDER_LABELS[id]}</span>
                   {isFree && (
-                    <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-emerald-700">
+                    <span className="rounded-full bg-[var(--sage-soft)] px-1.5 py-0.5 text-[10px] font-semibold uppercase text-[var(--sage-text)]">
                       免费
                     </span>
                   )}
                 </div>
-                <div className="text-xs text-zinc-500">
+                <div
+                  className={`mt-0.5 truncate text-xs ${
+                    active ? "opacity-80" : "text-[var(--text-faint)]"
+                  }`}
+                >
                   {PROVIDER_PRESETS[id].defaultExtractModel}
                 </div>
               </button>
@@ -149,7 +159,7 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
         <div className="flex items-baseline justify-between">
           <label
             htmlFor="api_key"
-            className="text-xs font-semibold uppercase tracking-wider text-zinc-500"
+            className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
           >
             API Key（可选）
           </label>
@@ -174,14 +184,15 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
           }
           className="field-input font-mono text-sm"
         />
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-[var(--text-muted)]">
           {hasAppDefault ? (
             <>
               已配置 app 默认 key —— 留空即用我们的额度，填入则走你自己的额度。
             </>
           ) : (
-            <span className="text-amber-700">
-              ⚠ {PROVIDER_LABELS[provider]} 没有 app 默认 key，必须填入才能用。
+            <span className="inline-flex items-center gap-1 text-[var(--gold-text)]">
+              <AlertIcon size={13} className="shrink-0" />
+              {PROVIDER_LABELS[provider]} 没有 app 默认 key，必须填入才能用。
             </span>
           )}
         </p>
@@ -192,17 +203,22 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
         <button
           type="button"
           onClick={() => setAdvanced((v) => !v)}
-          className="text-xs text-[var(--primary)] hover:underline"
+          className="inline-flex items-center gap-1 text-xs text-[var(--primary)] hover:underline"
         >
-          {advanced ? "▾ 收起进阶设置" : "▸ 进阶设置（自定义 base URL / 模型）"}
+          {advanced ? (
+            <ChevronDownIcon size={13} className="shrink-0" />
+          ) : (
+            <ChevronRightIcon size={13} className="shrink-0" />
+          )}
+          {advanced ? "收起进阶设置" : "进阶设置（自定义 base URL / 模型）"}
         </button>
 
         {advanced && (
-          <div className="mt-3 flex flex-col gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-3">
+          <div className="mt-3 flex flex-col gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-4">
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="base_url"
-                className="text-xs font-medium text-zinc-600"
+                className="text-xs font-medium text-[var(--text-default)]"
               >
                 Base URL
               </label>
@@ -221,7 +237,7 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
               <div className="flex flex-col gap-1.5">
                 <label
                   htmlFor="extract_model"
-                  className="text-xs font-medium text-zinc-600"
+                  className="text-xs font-medium text-[var(--text-default)]"
                 >
                   Extract Model
                 </label>
@@ -244,7 +260,7 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
               <div className="flex flex-col gap-1.5">
                 <label
                   htmlFor="chat_model"
-                  className="text-xs font-medium text-zinc-600"
+                  className="text-xs font-medium text-[var(--text-default)]"
                 >
                   Chat Model
                 </label>
@@ -271,20 +287,26 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
 
       {/* ---- 错误 / 成功提示 ---- */}
       {state.error && (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+        <p role="alert" className="alert-error">
           {state.error}
         </p>
       )}
       {state.ok && !state.error && (
-        <p className="text-sm text-emerald-700">已保存 ✓</p>
+        <p className="alert-success inline-flex items-center gap-1.5">
+          <CheckIcon size={14} className="shrink-0" />
+          已保存
+        </p>
       )}
 
       {/* ---- 测试结果 ---- */}
       {testResult && "ok" in testResult && (
-        <p className="text-sm text-emerald-700">连接成功 ✓ 模型有响应</p>
+        <p className="alert-success inline-flex items-center gap-1.5">
+          <CheckIcon size={14} className="shrink-0" />
+          连接成功 · 模型有响应
+        </p>
       )}
       {testResult && "error" in testResult && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="alert-error">
           连接失败：{testResult.error}
         </p>
       )}

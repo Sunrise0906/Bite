@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Place, PlacePrice, PlaceStatus } from "@/lib/db/types";
+import { SearchIcon } from "@/components/ui/icons";
 import { PlaceCard } from "./place-card";
 
 const STATUS_ORDER: PlaceStatus[] = ["want_to_go", "visited", "archived"];
@@ -149,18 +150,16 @@ export function PlacesView({
       {/* 搜索框 */}
       <div className="mb-3">
         <div className="relative">
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
-          >
-            🔍
-          </span>
+          <SearchIcon
+            size={16}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-faint)]"
+          />
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="搜店名 / 地址 / 菜系 / 备注…"
-            className="field-input pl-9"
+            className="field-input pl-10"
           />
         </div>
       </div>
@@ -187,7 +186,7 @@ export function PlacesView({
       {/* 菜系（多选） */}
       {counts.cuisines.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="mr-1 text-zinc-500">菜系</span>
+          <span className="mr-1 font-medium text-[var(--text-muted)]">菜系</span>
           {counts.cuisines.map(([c, n]) => (
             <FilterPill
               key={c}
@@ -201,8 +200,8 @@ export function PlacesView({
       )}
 
       {/* 价位（多选） */}
-      <div className="mb-4 flex flex-wrap items-center gap-1.5 text-xs">
-        <span className="mr-1 text-zinc-500">价位</span>
+      <div className="mb-6 flex flex-wrap items-center gap-1.5 text-xs">
+        <span className="mr-1 font-medium text-[var(--text-muted)]">价位</span>
         {PRICE_ORDER.map((p) => (
           <FilterPill
             key={p}
@@ -216,7 +215,7 @@ export function PlacesView({
           <button
             type="button"
             onClick={clearAll}
-            className="ml-auto text-zinc-500 underline-offset-2 hover:text-[var(--text-strong)] hover:underline"
+            className="ml-auto text-[var(--text-muted)] underline-offset-2 transition-colors hover:text-[var(--text-strong)] hover:underline"
           >
             清除筛选
           </button>
@@ -225,21 +224,28 @@ export function PlacesView({
 
       {/* 结果 */}
       {filtered.length === 0 ? (
-        <div className="card flex flex-col items-center px-6 py-10 text-center">
-          <p className="text-sm text-zinc-600">没有匹配的店</p>
-          <p className="mt-1 text-xs text-zinc-500">试试换个关键词或清除筛选</p>
+        <div className="card flex flex-col items-center px-6 py-12 text-center">
+          <p className="text-sm text-[var(--text-default)]">没有匹配的店</p>
+          <p className="mt-1.5 text-xs text-[var(--text-muted)]">
+            试试换个关键词或清除筛选
+          </p>
         </div>
       ) : (
-        <div className="space-y-7">
+        <div className="space-y-8">
           {STATUS_ORDER.map((status) => {
             const items = grouped.get(status) ?? [];
             if (items.length === 0) return null;
             return (
               <section key={status}>
-                <h2 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                  {STATUS_LABEL[status]} · {items.length}
-                </h2>
-                <ul className="space-y-2.5">
+                <div className="section-heading mb-3">
+                  <h2 className="text-lg text-[var(--text-strong)]">
+                    {STATUS_LABEL[status]}
+                    <span className="ml-2 font-sans text-sm font-normal text-[var(--text-faint)]">
+                      {items.length}
+                    </span>
+                  </h2>
+                </div>
+                <ul className="space-y-3">
                   {items.map((p) => (
                     <li key={p.id}>
                       <PlaceCard
@@ -276,8 +282,8 @@ function FilterPill({
       onClick={onClick}
       className={
         active
-          ? "rounded-full bg-[var(--primary)] px-2.5 py-1 font-medium text-[var(--primary-foreground)] transition-colors"
-          : "rounded-full border border-[var(--border-default)] px-2.5 py-1 text-[var(--text-default)] transition-colors hover:bg-[var(--surface-muted)]"
+          ? "rounded-full bg-[var(--primary)] px-3 py-1.5 font-medium text-[var(--primary-foreground)] transition-colors"
+          : "rounded-full border border-[var(--border-default)] bg-[var(--surface-elevated)] px-3 py-1.5 text-[var(--text-default)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--surface-muted)]"
       }
     >
       {children}

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { sendRecommendation } from "@/lib/actions/recommendations";
+import { CheckIcon, SendIcon } from "@/components/ui/icons";
 
 type State =
   | { phase: "idle" }
@@ -62,7 +63,7 @@ export function RecommendButton({
         }
         title="推荐给朋友"
       >
-        📤 推荐
+        <SendIcon size={13} className="text-[var(--text-muted)]" /> 推荐
       </button>
 
       {open && (
@@ -72,23 +73,24 @@ export function RecommendButton({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
+            className="w-full max-w-sm rounded-2xl bg-[var(--surface-elevated)] p-5 shadow-[var(--shadow-card-hover)]"
           >
-            <h3 className="heading-display text-lg">推荐给朋友</h3>
-            <p className="mt-1 text-sm text-zinc-600">
+            <h3 className="heading-display text-xl">推荐给朋友</h3>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">
               把「{placeName}」推荐给一个 Bite 用户
             </p>
 
             {state.phase === "ok" ? (
-              <p className="mt-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                ✓ 已发送给 {state.recipient}
+              <p className="alert-success mt-4 flex items-center gap-1.5">
+                <CheckIcon size={14} className="shrink-0" />
+                已发送给 {state.recipient}
               </p>
             ) : (
               <>
                 <div className="mt-4">
                   <label
                     htmlFor="to_email"
-                    className="text-xs font-semibold uppercase tracking-wider text-zinc-500"
+                    className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
                   >
                     朋友的邮箱
                   </label>
@@ -106,7 +108,7 @@ export function RecommendButton({
                 <div className="mt-3">
                   <label
                     htmlFor="rec_message"
-                    className="text-xs font-semibold uppercase tracking-wider text-zinc-500"
+                    className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
                   >
                     一句话理由（可选）
                   </label>
@@ -122,10 +124,7 @@ export function RecommendButton({
                 </div>
 
                 {state.phase === "error" && (
-                  <p
-                    role="alert"
-                    className="mt-2 text-sm text-red-700"
-                  >
+                  <p role="alert" className="alert-error mt-2">
                     {state.message}
                   </p>
                 )}

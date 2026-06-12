@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { RecommendationCard } from "@/components/recommendations/recommendation-card";
+import { InboxIcon } from "@/components/ui/icons";
 import type { SnapshottedPlace } from "@/lib/actions/recommendations";
 
 export const metadata = {
@@ -86,23 +87,29 @@ export default async function RecommendationsPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">
-      <header className="mb-6">
+    <main className="mx-auto w-full max-w-2xl px-5 py-7 sm:py-10">
+      <header className="mb-8">
         <h1 className="heading-display text-3xl sm:text-4xl">收件箱</h1>
-        <p className="mt-1.5 text-sm text-zinc-500">
+        <p className="mt-2 text-sm text-[var(--text-muted)]">
           朋友推荐的店 · 你发出的推荐
         </p>
       </header>
 
       {/* ---- 收到的待处理 ---- */}
       <section className="mb-8">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          待处理 · 收到 {pendingIncoming.length}
-        </h2>
+        <div className="section-heading mb-3">
+          <h2 className="text-lg">待处理</h2>
+          <span className="text-xs text-[var(--text-muted)]">
+            收到 {pendingIncoming.length} 条
+          </span>
+        </div>
         {pendingIncoming.length === 0 ? (
-          <p className="card px-4 py-6 text-center text-sm text-zinc-500">
-            没有待处理的推荐
-          </p>
+          <div className="card flex flex-col items-center px-5 py-8 text-center">
+            <InboxIcon size={24} className="mb-2 text-[var(--text-faint)]" />
+            <p className="text-sm text-[var(--text-muted)]">
+              没有待处理的推荐
+            </p>
+          </div>
         ) : (
           <ul className="space-y-3">
             {pendingIncoming.map((r) => (
@@ -127,10 +134,13 @@ export default async function RecommendationsPage() {
       {/* ---- 收到的已处理 ---- */}
       {resolvedIncoming.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            已处理 · 收到
-          </h2>
-          <ul className="space-y-2">
+          <div className="section-heading mb-3">
+            <h2 className="text-lg">已处理</h2>
+            <span className="text-xs text-[var(--text-muted)]">
+              收到的推荐
+            </span>
+          </div>
+          <ul className="space-y-3">
             {resolvedIncoming.map((r) => (
               <li key={r.id}>
                 <RecommendationCard
@@ -153,10 +163,10 @@ export default async function RecommendationsPage() {
       {/* ---- 发出 ---- */}
       {outgoingRows.length > 0 && (
         <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            我发出的
-          </h2>
-          <ul className="space-y-2">
+          <div className="section-heading mb-3">
+            <h2 className="text-lg">我发出的</h2>
+          </div>
+          <ul className="space-y-3">
             {outgoingRows.map((r) => (
               <li key={r.id}>
                 <RecommendationCard
@@ -179,14 +189,17 @@ export default async function RecommendationsPage() {
       {pendingIncoming.length === 0 &&
         resolvedIncoming.length === 0 &&
         outgoingRows.length === 0 && (
-          <div className="card flex flex-col items-center px-6 py-10 text-center">
-            <p className="text-sm text-zinc-600">还没有任何推荐</p>
-            <p className="mt-1 text-xs text-zinc-500">
+          <div className="card flex flex-col items-center px-6 py-12 text-center">
+            <InboxIcon size={32} className="mb-4 text-[var(--primary)]" />
+            <p className="heading-display text-lg text-[var(--text-strong)]">
+              还没有任何推荐
+            </p>
+            <p className="mt-1.5 text-sm text-[var(--text-muted)]">
               在 list 里点店铺卡片可以推荐给朋友
             </p>
             <Link
               href="/lists"
-              className="btn-secondary mt-4 px-4 py-2 text-xs"
+              className="btn-secondary mt-5 px-4 py-2 text-xs"
             >
               去 lists
             </Link>

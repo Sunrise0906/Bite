@@ -3,14 +3,48 @@
 import { useState } from "react";
 import { useTransition, useRef } from "react";
 import type { VisitLog } from "@/lib/db/types";
+import {
+  FlameIcon,
+  PencilIcon,
+  StarIcon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
+  TrashIcon,
+  UtensilsIcon,
+} from "@/components/ui/icons";
 import { VisitLogForm } from "./visit-log-form";
 import { VisitLogButton } from "./visit-log-button";
 import { deleteVisit } from "@/lib/actions/visits";
 
-const SENTIMENT_LABEL: Record<VisitLog["sentiment"], string> = {
-  will_return: "❤️ 还想再来",
-  okay: "🟡 一般般",
-  wont_return: "👎 不会再来",
+const SENTIMENT_META: Record<
+  VisitLog["sentiment"],
+  {
+    label: string;
+    Icon: typeof FlameIcon;
+    /** 时间线圆点的配色 */
+    dotCls: string;
+    /** 行内文字标签配色 */
+    textCls: string;
+  }
+> = {
+  will_return: {
+    label: "会再来",
+    Icon: FlameIcon,
+    dotCls: "bg-[var(--primary-soft)] text-[var(--primary-soft-text)]",
+    textCls: "text-[var(--primary-soft-text)]",
+  },
+  okay: {
+    label: "还行",
+    Icon: ThumbsUpIcon,
+    dotCls: "bg-[var(--sage-soft)] text-[var(--sage-text)]",
+    textCls: "text-[var(--sage-text)]",
+  },
+  wont_return: {
+    label: "不会再来",
+    Icon: ThumbsDownIcon,
+    dotCls: "bg-[var(--surface-muted)] text-[var(--text-muted)]",
+    textCls: "text-[var(--text-muted)]",
+  },
 };
 
 function fmtDate(iso: string): string {
@@ -42,76 +76,115 @@ export function VisitHistory({
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          造访记录 {logs.length > 0 && `· ${logs.length}`}
+      <div className="section-heading mb-4">
+        <h2 className="text-lg">
+          造访记录
+          {logs.length > 0 && (
+            <span className="ml-1.5 text-sm text-[var(--text-faint)]">
+              · {logs.length}
+            </span>
+          )}
         </h2>
         {canEdit && <VisitLogButton placeId={placeId} variant="btn" />}
       </div>
 
       {logs.length === 0 ? (
-        <p className="card px-4 py-6 text-center text-sm text-zinc-500">
-          还没有造访记录。去过之后记一笔，AI 决策时会参考。
-        </p>
+        <div className="card flex flex-col items-center gap-2 px-5 py-8 text-center">
+          <UtensilsIcon size={22} className="text-[var(--text-faint)]" />
+          <p className="text-sm text-[var(--text-muted)]">
+            还没有造访记录。去过之后记一笔，AI 决策时会参考。
+          </p>
+        </div>
       ) : (
-        <ul className="space-y-2.5">
-          {logs.map((log) => {
-            const isOwn = currentUserId && log.user_id === currentUserId;
-            const authorLabel = isOwn ? null : visitAuthors[log.user_id] ?? "朋友";
-            return (
-              <li key={log.id} className="card p-3.5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-                      {authorLabel && (
-                        <span className="inline-flex items-baseline rounded-full bg-[var(--surface-subtle)] px-1.5 py-0.5 text-[10px] font-medium text-zinc-700">
-                          @{authorLabel}
-                        </span>
-                      )}
-                      <span className="text-sm font-medium text-[var(--text-strong)]">
-                        {fmtDate(log.visited_at)}
-                      </span>
-                      <span className="text-xs text-zinc-500">
-                        {SENTIMENT_LABEL[log.sentiment]}
-                      </span>
-                      {log.star_rating !== null && (
-                        <span className="text-xs text-amber-500">
-                          {"★".repeat(log.star_rating)}
-                          <span className="text-zinc-300">
-                            {"★".repeat(5 - log.star_rating)}
+        <div className="relative">
+          {/* 时间线竖线 */}
+          <div
+            aria-hidden
+            className="absolute bottom-5 left-4 top-5 w-px bg-[var(--border-default)]"
+          />
+          <ul className="space-y-4">
+            {logs.map((log) => {
+              const isOwn = currentUserId && log.user_id === currentUserId;
+              const authorLabel = isOwn
+                ? null
+                : visitAuthors[log.user_id] ?? "朋友";
+              const meta = SENTIMENT_META[log.sentiment];
+              const SentimentIcon = meta.Icon;
+              return (
+                <li key={log.id} className="relative flex items-start gap-3">
+                  {/* 时间线节点：sentiment 图标 */}
+                  <span
+                    className={`relative z-10 mt-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${meta.dotCls}`}
+                    title={meta.label}
+                  >
+                    <SentimentIcon size={15} />
+                  </span>
+
+                  <div className="card min-w-0 flex-1 px-4 py-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                          <span className="text-sm font-medium text-[var(--text-strong)]">
+                            {fmtDate(log.visited_at)}
                           </span>
-                        </span>
+                          <span className={`text-xs font-medium ${meta.textCls}`}>
+                            {meta.label}
+                          </span>
+                          {log.star_rating !== null && (
+                            <span className="inline-flex items-center gap-px">
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <StarIcon
+                                  key={n}
+                                  size={11}
+                                  filled={n <= (log.star_rating ?? 0)}
+                                  className={
+                                    n <= (log.star_rating ?? 0)
+                                      ? "text-[var(--gold)]"
+                                      : "text-[var(--border-strong)]"
+                                  }
+                                />
+                              ))}
+                            </span>
+                          )}
+                          {authorLabel && (
+                            <span className="inline-flex items-center rounded-full bg-[var(--sage-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--sage-text)]">
+                              @{authorLabel}
+                            </span>
+                          )}
+                        </div>
+                        {log.companions && (
+                          <p className="mt-1 text-xs text-[var(--text-muted)]">
+                            和 {log.companions}
+                          </p>
+                        )}
+                        {log.note && (
+                          <p className="mt-1.5 whitespace-pre-wrap text-sm text-[var(--text-default)]">
+                            {log.note}
+                          </p>
+                        )}
+                      </div>
+                      {/* 编辑/删除仅 own log + canEdit 时；不能改朋友的记录 */}
+                      {canEdit && isOwn && (
+                        <div className="flex shrink-0 gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setEditingLog(log)}
+                            aria-label="编辑"
+                            title="编辑"
+                            className="rounded-md p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)]"
+                          >
+                            <PencilIcon size={13} />
+                          </button>
+                          <DeleteVisitButton logId={log.id} />
+                        </div>
                       )}
                     </div>
-                    {log.companions && (
-                      <p className="mt-0.5 text-xs text-zinc-500">
-                        和 {log.companions}
-                      </p>
-                    )}
-                    {log.note && (
-                      <p className="mt-1.5 whitespace-pre-wrap text-sm text-zinc-700">
-                        {log.note}
-                      </p>
-                    )}
                   </div>
-                  {/* 编辑/删除仅 own log + canEdit 时；不能改朋友的记录 */}
-                  {canEdit && isOwn && (
-                    <div className="flex shrink-0 gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setEditingLog(log)}
-                        className="rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)]"
-                      >
-                        ✎
-                      </button>
-                      <DeleteVisitButton logId={log.id} />
-                    </div>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
 
       {editingLog && (
@@ -139,9 +212,11 @@ function DeleteVisitButton({ logId }: { logId: string }) {
             formRef.current?.requestSubmit();
           });
         }}
-        className="rounded-md px-2 py-1 text-xs text-red-600 hover:bg-[var(--surface-muted)] disabled:opacity-50"
+        aria-label="删除"
+        title="删除"
+        className="rounded-md p-1.5 text-[var(--danger-text)] transition-colors hover:bg-[var(--danger-bg)] disabled:opacity-50"
       >
-        {pending ? "..." : "🗑"}
+        {pending ? "…" : <TrashIcon size={13} />}
       </button>
       <form ref={formRef} action={deleteVisit} className="hidden">
         <input type="hidden" name="id" value={logId} />

@@ -5,6 +5,7 @@ import {
   changeMemberRole,
   removeMember,
 } from "@/lib/actions/list-members";
+import { UsersIcon } from "@/components/ui/icons";
 
 export type MemberDisplay = {
   user_id: string;
@@ -53,24 +54,25 @@ export function MembersPanel({
   if (items.length === 0) return null;
 
   return (
-    <section className="mb-6">
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+    <section className="mb-8">
+      <h3 className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+        <UsersIcon size={13} className="text-[var(--text-faint)]" />
         成员 · {items.length}
       </h3>
       <ul className="space-y-2">
         {items.map((m) => (
           <li
             key={m.user_id}
-            className="card flex flex-wrap items-center gap-2 px-3 py-2 text-xs"
+            className="card flex flex-wrap items-center gap-2 px-5 py-3 text-xs"
           >
-            <span className="font-medium text-[var(--text-strong)]">
+            <span className="inline-flex items-center rounded-full bg-[var(--sage-soft)] px-2.5 py-1 font-semibold text-[var(--sage-text)]">
               @{m.display_name}
             </span>
             <button
               type="button"
               onClick={() => toggleRole(m.user_id, m.role)}
               disabled={pendingUid === m.user_id}
-              className="chip chip-neutral cursor-pointer hover:opacity-80"
+              className="chip chip-neutral cursor-pointer transition-opacity hover:opacity-80 disabled:opacity-50"
               title="点击切换角色"
             >
               {m.role === "co_owner" ? "共同所有者" : "查看者"}
@@ -79,7 +81,7 @@ export function MembersPanel({
               type="button"
               onClick={() => remove(m.user_id, m.display_name)}
               disabled={pendingUid === m.user_id}
-              className="ml-auto rounded-md px-2 py-1 text-red-700 hover:bg-[var(--surface-muted)] disabled:opacity-50"
+              className="ml-auto rounded-lg px-2 py-1 text-[var(--danger)] transition-colors hover:bg-[var(--danger-bg)] disabled:opacity-50"
             >
               {pendingUid === m.user_id ? "..." : "移除"}
             </button>

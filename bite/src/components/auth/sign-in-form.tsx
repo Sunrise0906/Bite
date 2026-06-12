@@ -30,7 +30,7 @@ export function SignInForm({ next }: { next?: string }) {
       />
       <input type="hidden" name="next" value={next ?? ""} />
       {state.error && (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+        <p role="alert" className="alert-error">
           {state.error}
         </p>
       )}
@@ -41,7 +41,7 @@ export function SignInForm({ next }: { next?: string }) {
       >
         {pending ? "登录中…" : "登录"}
       </button>
-      <p className="text-center text-xs text-zinc-500">
+      <p className="text-center text-xs text-[var(--text-muted)]">
         忘了密码？下面的「魔法链接登录」也能进，不用密码
       </p>
     </form>

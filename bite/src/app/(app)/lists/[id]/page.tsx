@@ -20,6 +20,7 @@ import {
   type MemberDisplay,
 } from "@/components/lists/members-panel";
 import { LeaveListButton } from "@/components/lists/leave-list-button";
+import { UsersIcon } from "@/components/ui/icons";
 import { safeDecodeURIComponent } from "@/lib/url/safe-decode";
 
 type Params = Promise<{ id: string }>;
@@ -166,15 +167,28 @@ export default async function ListDetailPage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-2xl px-5 py-7 sm:py-12">
       <Link
         href="/lists"
-        className="mb-5 inline-flex items-center text-sm text-zinc-500 transition-colors hover:text-[var(--text-strong)]"
+        className="mb-5 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
       >
-        ‹ 返回所有 list
+        <svg
+          aria-hidden="true"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m15 5-7 7 7 7" />
+        </svg>
+        返回所有 list
       </Link>
 
-      <header className="sticky top-0 z-20 -mx-4 mb-6 border-b border-[var(--border-subtle)] bg-[var(--background)]/90 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/70">
+      <header className="sticky top-0 z-20 -mx-5 mb-8 border-b border-[var(--border-subtle)] bg-[var(--background)]/90 px-5 py-3.5 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/70">
         <div className="flex items-start justify-between gap-3">
           {isOwner ? (
             <RenameListForm id={list.id} currentName={list.name} />
@@ -185,19 +199,23 @@ export default async function ListDetailPage({
           )}
           {isOwner && <InviteButton listId={list.id} />}
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]">
           <span>{places.length} 家店</span>
           {!isOwner && (
             <>
               <span
-                className="chip chip-neutral"
+                className="inline-flex items-center gap-1 rounded-full bg-[var(--sage-soft)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--sage-text)]"
                 title={ownerName ? `这个 list 属于 @${ownerName}` : ""}
               >
+                <UsersIcon size={11} />
                 {memberRole === "co_owner" ? "共享 · 共同所有者" : "共享 · 只读"}
               </span>
               {ownerName && (
-                <span className="text-xs text-zinc-500">
-                  by <span className="font-medium text-[var(--text-default)]">@{ownerName}</span>
+                <span className="text-xs text-[var(--text-faint)]">
+                  by{" "}
+                  <span className="font-medium text-[var(--text-default)]">
+                    @{ownerName}
+                  </span>
                 </span>
               )}
             </>
@@ -212,7 +230,7 @@ export default async function ListDetailPage({
       )}
 
       {canEdit && (
-        <div className="mb-6">
+        <div className="mb-8">
           <Link
             href={`/lists/${list.id}/places/new`}
             className="btn-primary w-full py-3 text-base"
@@ -244,21 +262,21 @@ export default async function ListDetailPage({
 
       {isOwner ? (
         <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             设置
           </h3>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-zinc-500">危险操作</span>
+            <span className="text-sm text-[var(--text-muted)]">危险操作</span>
             <DeleteListButton id={list.id} name={list.name} />
           </div>
         </section>
       ) : (
         <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             成员操作
           </h3>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-zinc-500">不再关注</span>
+            <span className="text-sm text-[var(--text-muted)]">不再关注</span>
             <LeaveListButton listId={list.id} listName={list.name} />
           </div>
         </section>
@@ -269,7 +287,7 @@ export default async function ListDetailPage({
 
 function EmptyPlaces() {
   return (
-    <div className="card flex flex-col items-center px-6 py-14 text-center">
+    <div className="card flex flex-col items-center px-6 py-16 text-center">
       <svg
         aria-hidden="true"
         width="56"
@@ -278,14 +296,18 @@ function EmptyPlaces() {
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
-        className="mb-4 text-[var(--primary)]"
+        className="mb-5 text-[var(--primary)]"
       >
         <ellipse cx="32" cy="34" rx="22" ry="6" />
         <path d="M10 34v4c0 3 10 6 22 6s22-3 22-6v-4" />
         <path d="M18 24v-6M28 22v-8M38 24v-6M46 22v-8" strokeLinecap="round" />
       </svg>
-      <p className="text-sm text-zinc-600">这个 list 还没有店铺</p>
-      <p className="mt-1 text-xs text-zinc-500">点上面 “+ 新增店铺” 添加一家</p>
+      <p className="heading-display text-lg text-[var(--text-strong)]">
+        这个 list 还没有店铺
+      </p>
+      <p className="mt-1.5 text-sm text-[var(--text-muted)]">
+        点上面 “+ 新增店铺” 添加一家
+      </p>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { createClient, requireUser } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/db/types";
 import { LlmSettingsForm } from "@/components/profile/llm-settings-form";
 import { ProfileEditForm } from "@/components/profile/profile-edit-form";
+import { ChevronRightIcon, InboxIcon } from "@/components/ui/icons";
 import { PROVIDER_PRESETS, type ProviderId } from "@/lib/llm/types";
 import type { UserLlmSettings } from "@/lib/llm/router";
 
@@ -21,13 +22,15 @@ function UsageBox({
 }) {
   const total = inTok + outTok;
   return (
-    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-3">
-      <p className="text-xs font-medium text-zinc-500">{label}</p>
-      <p className="mt-0.5 text-xl font-semibold text-[var(--text-strong)]">
+    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-3">
+      <p className="text-xs font-medium text-[var(--text-muted)]">{label}</p>
+      <p className="heading-display mt-1 text-xl text-[var(--text-strong)]">
         {total.toLocaleString()}
-        <span className="ml-1 text-xs font-normal text-zinc-500">tokens</span>
+        <span className="ml-1 font-sans text-xs font-normal text-[var(--text-muted)]">
+          tokens
+        </span>
       </p>
-      <p className="mt-1 text-[11px] text-zinc-500">
+      <p className="mt-1 text-[11px] text-[var(--text-faint)]">
         in {inTok.toLocaleString()} · out {outTok.toLocaleString()}
       </p>
     </div>
@@ -100,12 +103,12 @@ export default async function ProfilePage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">
-      <header className="mb-6">
+    <main className="mx-auto w-full max-w-2xl px-5 py-7 sm:py-10">
+      <header className="mb-8">
         <h1 className="heading-display text-3xl sm:text-4xl">我的</h1>
       </header>
 
-      <section className="card mb-8 p-5">
+      <section className="card mb-8 px-5 py-5">
         <ProfileEditForm
           initialName={profile?.name ?? null}
           initialAvatarUrl={profile?.avatar_url ?? null}
@@ -114,12 +117,10 @@ export default async function ProfilePage() {
       </section>
 
       {/* ---- AI 用量 ---- */}
-      <section className="card mb-8 p-5">
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-base font-semibold text-[var(--text-strong)]">
-            AI 用量
-          </h2>
-          <span className="text-xs text-zinc-500">
+      <section className="card mb-8 px-5 py-5">
+        <div className="section-heading mb-4">
+          <h2 className="text-lg text-[var(--text-strong)]">AI 用量</h2>
+          <span className="text-xs text-[var(--text-muted)]">
             {turns > 0 ? `${turns} 轮对话` : "还没有数据"}
           </span>
         </div>
@@ -127,18 +128,18 @@ export default async function ProfilePage() {
           <UsageBox label="本月" inTok={monthIn} outTok={monthOut} />
           <UsageBox label="全部" inTok={allIn} outTok={allOut} />
         </div>
-        <p className="mt-3 text-[11px] text-zinc-500">
+        <p className="mt-3 text-[11px] text-[var(--text-faint)]">
           tokens 直接来自 provider 返回。Gemini 在免费 tier 内不计费；其他 provider 自带 key 时按各自计费。
         </p>
       </section>
 
       {/* ---- AI Provider 设置 ---- */}
-      <section className="card mb-8 p-5">
+      <section className="card mb-8 px-5 py-5">
         <div className="mb-4">
-          <h2 className="text-base font-semibold text-[var(--text-strong)]">
-            AI 模型设置
-          </h2>
-          <p className="mt-1 text-xs text-zinc-500">
+          <div className="section-heading">
+            <h2 className="text-lg text-[var(--text-strong)]">AI 模型设置</h2>
+          </div>
+          <p className="mt-1.5 text-xs text-[var(--text-muted)]">
             选你喜欢的 provider。可以用我们提供的默认额度，也可以填自己的 key 走自己额度。
           </p>
         </div>
@@ -149,32 +150,40 @@ export default async function ProfilePage() {
       </section>
 
       <section className="mb-8">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          其他
-        </h2>
+        <div className="section-heading mb-3">
+          <h2 className="text-lg text-[var(--text-strong)]">其他</h2>
+        </div>
         <a
           href="/recommendations"
-          className="card-interactive flex items-center justify-between rounded-xl px-4 py-3 text-sm"
+          className="card card-interactive flex items-center justify-between px-5 py-4 text-sm"
         >
-          <span className="flex items-center gap-2">
-            <span>📬</span>
+          <span className="flex min-w-0 items-center gap-2.5">
+            <InboxIcon
+              size={18}
+              className="shrink-0 text-[var(--primary)]"
+            />
             <span className="font-medium text-[var(--text-strong)]">收件箱</span>
-            <span className="text-zinc-500">朋友推荐的店</span>
+            <span className="truncate text-[var(--text-muted)]">
+              朋友推荐的店
+            </span>
             {pendingRecCount && pendingRecCount > 0 ? (
-              <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--primary)] px-1.5 text-[11px] font-semibold text-white">
+              <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--primary)] px-1.5 text-[11px] font-semibold text-[var(--primary-foreground)]">
                 {pendingRecCount}
               </span>
             ) : null}
           </span>
-          <span className="text-zinc-400">›</span>
+          <ChevronRightIcon
+            size={16}
+            className="shrink-0 text-[var(--text-faint)]"
+          />
         </a>
       </section>
 
       <section className="mb-8">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          即将上线
-        </h2>
-        <ul className="space-y-2 text-sm text-zinc-600">
+        <div className="section-heading mb-3">
+          <h2 className="text-lg text-[var(--text-strong)]">即将上线</h2>
+        </div>
+        <ul className="space-y-2 text-sm text-[var(--text-muted)]">
           <li className="flex gap-2">
             <span className="text-[var(--primary)]">·</span>
             <span>

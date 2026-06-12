@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { UtensilsIcon } from "@/components/ui/icons";
 
 /**
  * PlaceCard 左侧封面图 + 图片数计数 badge。
@@ -20,10 +21,13 @@ export function PlaceCardCover({
   const [broken, setBroken] = useState(false);
 
   return (
-    <Link href={href} className="relative block shrink-0">
+    <Link
+      href={href}
+      className="relative block h-24 w-24 shrink-0 overflow-hidden rounded-xl"
+    >
       {broken ? (
-        <div className="flex h-full max-h-32 w-24 items-center justify-center bg-[var(--surface-subtle)] text-xl text-zinc-400 sm:w-28">
-          🍽️
+        <div className="flex h-full w-full items-center justify-center bg-[var(--surface-muted)] text-[var(--text-faint)]">
+          <UtensilsIcon size={22} />
         </div>
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
@@ -31,7 +35,7 @@ export function PlaceCardCover({
           src={url}
           alt=""
           onError={() => setBroken(true)}
-          className="h-full max-h-32 w-24 object-cover sm:w-28"
+          className="h-full w-full object-cover"
           loading="lazy"
           referrerPolicy="no-referrer"
         />

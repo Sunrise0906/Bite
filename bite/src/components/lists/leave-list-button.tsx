@@ -27,7 +27,7 @@ export function LeaveListButton({
           }
         });
       }}
-      className="btn-secondary text-red-700 hover:text-red-800 px-3 py-1.5 text-sm disabled:opacity-50"
+      className="btn-secondary px-3 py-1.5 text-sm text-[var(--danger)] disabled:opacity-50"
     >
       {pending ? "..." : "离开 list"}
     </button>

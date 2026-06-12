@@ -6,6 +6,7 @@ import {
   deleteConversationAction,
   renameConversationAction,
 } from "@/lib/actions/conversations";
+import { PencilIcon, TrashIcon } from "@/components/ui/icons";
 
 export function ConvoMenu({
   conversationId,
@@ -82,10 +83,24 @@ export function ConvoMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="会话操作"
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-white hover:text-[var(--text-strong)] disabled:opacity-50"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-elevated)] hover:text-[var(--text-strong)] disabled:opacity-50"
       >
         {/* 用纵向三点跟标题 truncate 的水平 "..." 区分开，肉眼一看就知道是按钮 */}
-        <span aria-hidden="true" className="text-base leading-none">⋮</span>
+        <svg
+          aria-hidden="true"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="5" r="0.8" />
+          <circle cx="12" cy="12" r="0.8" />
+          <circle cx="12" cy="19" r="0.8" />
+        </svg>
       </button>
 
       {/* dropdown 用 portal 渲染到 document.body，逃出侧栏 overflow-y-auto 的裁剪 */}
@@ -109,25 +124,25 @@ export function ConvoMenu({
                 right: anchor.right,
                 zIndex: 70,
               }}
-              className="min-w-[7rem] overflow-hidden rounded-lg border border-[var(--border-default)] bg-[var(--surface-elevated)] py-1 shadow-lg"
+              className="min-w-[7rem] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--surface-elevated)] py-1 shadow-[var(--shadow-card-hover)]"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 type="button"
                 onClick={onRename}
                 role="menuitem"
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-[var(--text-default)] hover:bg-[var(--surface-muted)]"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-[var(--text-default)] hover:bg-[var(--surface-muted)]"
               >
-                <span aria-hidden="true">✎</span>
+                <PencilIcon size={13} className="text-[var(--text-muted)]" />
                 <span>重命名</span>
               </button>
               <button
                 type="button"
                 onClick={onDelete}
                 role="menuitem"
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-red-600 hover:bg-[var(--surface-muted)]"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-[var(--danger)] hover:bg-[var(--danger-bg)]"
               >
-                <span aria-hidden="true">🗑</span>
+                <TrashIcon size={13} />
                 <span>删除</span>
               </button>
             </div>
@@ -145,9 +160,11 @@ export function ConvoMenu({
             <form
               action={handleRenameSubmit}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl"
+              className="w-full max-w-sm rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-5 shadow-xl"
             >
-              <h3 className="mb-3 text-sm font-semibold">重命名会话</h3>
+              <h3 className="mb-3 text-sm font-semibold text-[var(--text-strong)]">
+                重命名会话
+              </h3>
               <input type="hidden" name="id" value={conversationId} />
               <input
                 type="text"
@@ -160,7 +177,7 @@ export function ConvoMenu({
                 placeholder="给这个对话起个名字"
               />
               {renameError && (
-                <p role="alert" className="mt-2 text-xs text-red-700">
+                <p role="alert" className="mt-2 text-xs text-[var(--danger-text)]">
                   {renameError}
                 </p>
               )}

@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { renameList } from "@/lib/actions/lists";
+import { PencilIcon } from "@/components/ui/icons";
 
 export function RenameListForm({
   id,
@@ -18,15 +19,13 @@ export function RenameListForm({
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="heading-display group inline-flex items-baseline gap-2 text-3xl text-[var(--text-strong)] outline-none hover:opacity-80"
+        className="heading-display group inline-flex items-center gap-2 text-3xl text-[var(--text-strong)] outline-none hover:opacity-80"
       >
         {currentName}
-        <span
-          aria-hidden="true"
-          className="text-sm font-sans font-normal text-zinc-400 group-hover:text-[var(--primary)]"
-        >
-          ✎
-        </span>
+        <PencilIcon
+          size={15}
+          className="shrink-0 text-[var(--text-faint)] transition-colors group-hover:text-[var(--primary)]"
+        />
       </button>
     );
   }
@@ -66,7 +65,7 @@ export function RenameListForm({
         </button>
       </div>
       {state.error && (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+        <p role="alert" className="text-sm text-[var(--danger-text)]">
           {state.error}
         </p>
       )}

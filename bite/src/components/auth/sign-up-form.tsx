@@ -37,7 +37,7 @@ export function SignUpForm({ next }: { next?: string }) {
       />
       <input type="hidden" name="next" value={next ?? ""} />
       {state.error && (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+        <p role="alert" className="alert-error">
           {state.error}
         </p>
       )}

@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { processTextDraft } from "@/lib/actions/quick-add";
+import { RefreshIcon } from "@/components/ui/icons";
 
 export function RetryExtract({ initial }: { initial: string }) {
   const [open, setOpen] = useState(false);
@@ -15,9 +16,10 @@ export function RetryExtract({ initial }: { initial: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-sm text-zinc-500 underline-offset-2 hover:text-[var(--text-strong)] hover:underline"
+        className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] underline-offset-2 transition-colors hover:text-[var(--text-strong)] hover:underline"
       >
-        🔁 AI 解析得不对？改一下原始输入重新解析
+        <RefreshIcon size={14} className="shrink-0" />
+        AI 解析得不对？改一下原始输入重新解析
       </button>
     );
   }

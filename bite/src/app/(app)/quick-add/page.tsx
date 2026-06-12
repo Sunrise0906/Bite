@@ -10,6 +10,7 @@ import {
 } from "@/components/places/place-confirm-form";
 import { RetryExtract } from "@/components/places/retry-extract";
 import { InlineCreateList } from "@/components/lists/inline-create-list";
+import { AlertIcon } from "@/components/ui/icons";
 import type { ExtractedPlace } from "@/lib/llm/extract-place";
 
 export const metadata = {
@@ -60,14 +61,14 @@ export default async function QuickAddPage({
 
   if (writableLists.length === 0) {
     return (
-      <main className="mx-auto w-full max-w-xl px-4 py-10">
+      <main className="mx-auto w-full max-w-xl px-5 py-10">
         <Link
           href="/lists"
-          className="mb-5 inline-flex items-center text-sm text-zinc-500 transition-colors hover:text-[var(--text-strong)]"
+          className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
         >
           ‹ 取消并返回
         </Link>
-        <h1 className="heading-display mb-3 text-2xl">先建一个 list</h1>
+        <h1 className="heading-display mb-4 text-2xl">先建一个 list</h1>
         <InlineCreateList />
       </main>
     );
@@ -145,31 +146,35 @@ export default async function QuickAddPage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-xl px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-xl px-5 py-6 sm:py-10">
       <Link
         href="/lists"
-        className="mb-5 inline-flex items-center text-sm text-zinc-500 transition-colors hover:text-[var(--text-strong)]"
+        className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
       >
         ‹ 取消并返回
       </Link>
 
-      <h1 className="heading-display mb-2 text-3xl">确认店铺信息</h1>
-      <p className="mb-6 text-sm text-zinc-500">
-        检查字段、选择目标 list，然后保存
-      </p>
+      <header className="mb-8">
+        <h1 className="heading-display text-3xl">确认店铺信息</h1>
+        <p className="mt-2 text-sm text-[var(--text-muted)]">
+          检查字段、选择目标 list，然后保存
+        </p>
+      </header>
 
       {fetchError && (
-        <div className="alert-error mb-5" role="alert">
-          {fetchError}
+        <div className="alert-error mb-5 flex items-start gap-2" role="alert">
+          <AlertIcon size={15} className="mt-0.5 shrink-0" />
+          <span>{fetchError}</span>
         </div>
       )}
 
       {scrapeWarning && (
         <div
-          className="mb-5 rounded-xl border border-[var(--primary-soft)] bg-[var(--primary-soft)]/30 px-3 py-2.5 text-sm text-[var(--primary-soft-text)]"
+          className="mb-5 flex items-start gap-2 rounded-[0.875rem] border border-[var(--gold)]/30 bg-[var(--gold-soft)] px-3.5 py-2.5 text-sm text-[var(--gold-text)]"
           role="status"
         >
-          ⚠️ {scrapeWarning}
+          <AlertIcon size={15} className="mt-0.5 shrink-0" />
+          <span>{scrapeWarning}</span>
         </div>
       )}
 

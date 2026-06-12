@@ -5,6 +5,7 @@ import { readDraft } from "@/lib/actions/quick-add";
 import { MultiPlaceList } from "@/components/places/multi-place-list";
 import { RetryExtract } from "@/components/places/retry-extract";
 import { InlineCreateList } from "@/components/lists/inline-create-list";
+import { AlertIcon } from "@/components/ui/icons";
 import type { ListOption } from "@/components/places/place-confirm-form";
 
 export const metadata = {
@@ -47,14 +48,14 @@ export default async function QuickAddMultiPage() {
 
   if (writableLists.length === 0) {
     return (
-      <main className="mx-auto w-full max-w-xl px-4 py-10">
+      <main className="mx-auto w-full max-w-xl px-5 py-10">
         <Link
           href="/lists"
-          className="mb-5 inline-flex items-center text-sm text-zinc-500 transition-colors hover:text-[var(--text-strong)]"
+          className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
         >
           ‹ 取消并返回
         </Link>
-        <h1 className="heading-display mb-3 text-2xl">先建一个 list</h1>
+        <h1 className="heading-display mb-4 text-2xl">先建一个 list</h1>
         <InlineCreateList message="AI 已经从你的内容里识别出多家店，但你还没有可写的 list。建一个之后会自动回到这里继续。" />
       </main>
     );
@@ -81,25 +82,28 @@ export default async function QuickAddMultiPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-2xl px-5 py-6 sm:py-10">
       <Link
         href="/lists"
-        className="mb-5 inline-flex items-center text-sm text-zinc-500 transition-colors hover:text-[var(--text-strong)]"
+        className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
       >
         ‹ 取消并返回
       </Link>
 
-      <h1 className="heading-display mb-2 text-3xl">合集帖 · 多店选择</h1>
-      <p className="mb-6 text-sm text-zinc-500">
-        每家店勾选后会作为独立条目添加到同一个 list
-      </p>
+      <header className="mb-8">
+        <h1 className="heading-display text-3xl">合集帖 · 多店选择</h1>
+        <p className="mt-2 text-sm text-[var(--text-muted)]">
+          每家店勾选后会作为独立条目添加到同一个 list
+        </p>
+      </header>
 
       {draft.scrapeWarning && (
         <div
-          className="mb-5 rounded-xl border border-[var(--primary-soft)] bg-[var(--primary-soft)]/30 px-3 py-2.5 text-sm text-[var(--primary-soft-text)]"
+          className="mb-5 flex items-start gap-2 rounded-[0.875rem] border border-[var(--gold)]/30 bg-[var(--gold-soft)] px-3.5 py-2.5 text-sm text-[var(--gold-text)]"
           role="status"
         >
-          ⚠️ {draft.scrapeWarning}
+          <AlertIcon size={15} className="mt-0.5 shrink-0" />
+          <span>{draft.scrapeWarning}</span>
         </div>
       )}
 

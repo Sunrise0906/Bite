@@ -37,8 +37,8 @@ export function InlineCreateList({
   }
 
   return (
-    <div className="card p-5">
-      <p className="text-sm text-zinc-600">{message}</p>
+    <div className="card px-5 py-4">
+      <p className="text-sm text-[var(--text-default)]">{message}</p>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -65,7 +65,7 @@ export function InlineCreateList({
         </button>
       </form>
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-700">
+        <p role="alert" className="alert-error mt-2">
           {error}
         </p>
       )}

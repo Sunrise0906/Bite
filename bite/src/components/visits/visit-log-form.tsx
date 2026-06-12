@@ -4,15 +4,22 @@ import { useState, useTransition } from "react";
 import { logVisit, updateVisit } from "@/lib/actions/visits";
 import type { VisitLog, VisitSentiment } from "@/lib/db/types";
 import { PhotoUpload } from "@/components/places/photo-upload";
+import {
+  FlameIcon,
+  StarIcon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
+  XIcon,
+} from "@/components/ui/icons";
 
 const SENTIMENT_OPTIONS: Array<{
   value: VisitSentiment;
   label: string;
-  emoji: string;
+  Icon: typeof FlameIcon;
 }> = [
-  { value: "will_return", label: "还想再来", emoji: "❤️" },
-  { value: "okay", label: "一般般", emoji: "🟡" },
-  { value: "wont_return", label: "不会再来", emoji: "👎" },
+  { value: "will_return", label: "会再来", Icon: FlameIcon },
+  { value: "okay", label: "还行", Icon: ThumbsUpIcon },
+  { value: "wont_return", label: "不会再来", Icon: ThumbsDownIcon },
 ];
 
 type Mode =
@@ -85,9 +92,9 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
       <form
         action={handleSubmit}
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"
+        className="flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-2xl bg-[var(--surface-elevated)] p-5 shadow-[var(--shadow-card-hover)]"
       >
-        <h3 className="heading-display text-lg">
+        <h3 className="heading-display text-xl">
           {mode.kind === "create" ? "记一次造访" : "编辑造访记录"}
         </h3>
 
@@ -99,26 +106,27 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
 
         {/* sentiment */}
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             体验
           </label>
           <input type="hidden" name="sentiment" value={sentiment} />
           <div className="mt-1.5 grid grid-cols-3 gap-2">
             {SENTIMENT_OPTIONS.map((o) => {
               const active = sentiment === o.value;
+              const OptionIcon = o.Icon;
               return (
                 <button
                   key={o.value}
                   type="button"
                   onClick={() => setSentiment(o.value)}
-                  className={`rounded-xl border px-2 py-2 text-sm transition ${
+                  className={`flex flex-col items-center gap-1 rounded-xl border px-2 py-2.5 text-sm transition ${
                     active
                       ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary-soft-text)]"
-                      : "border-[var(--border-subtle)] bg-white text-[var(--text-default)] hover:border-[var(--primary)]/40"
+                      : "border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:border-[var(--primary)]/40 hover:text-[var(--text-default)]"
                   }`}
                 >
-                  <div className="text-lg">{o.emoji}</div>
-                  <div className="mt-0.5 text-xs">{o.label}</div>
+                  <OptionIcon size={18} filled={active} />
+                  <span className="text-xs font-medium">{o.label}</span>
                 </button>
               );
             })}
@@ -127,7 +135,7 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
 
         {/* star rating */}
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             星级（可选）
           </label>
           <input
@@ -142,20 +150,24 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
                 type="button"
                 onClick={() => setStar(star === n ? null : n)}
                 aria-label={`${n} 星`}
-                className="text-2xl leading-none transition hover:scale-110"
+                className="leading-none transition hover:scale-110"
               >
-                {star !== null && n <= star ? (
-                  <span className="text-amber-400">★</span>
-                ) : (
-                  <span className="text-zinc-300">☆</span>
-                )}
+                <StarIcon
+                  size={24}
+                  filled={star !== null && n <= star}
+                  className={
+                    star !== null && n <= star
+                      ? "text-[var(--gold)]"
+                      : "text-[var(--border-strong)]"
+                  }
+                />
               </button>
             ))}
             {star !== null && (
               <button
                 type="button"
                 onClick={() => setStar(null)}
-                className="ml-2 text-xs text-zinc-500 hover:underline"
+                className="ml-2 text-xs text-[var(--text-muted)] hover:underline"
               >
                 清除
               </button>
@@ -167,7 +179,7 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
         <div>
           <label
             htmlFor="visited_at"
-            className="text-xs font-semibold uppercase tracking-wider text-zinc-500"
+            className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
           >
             日期
           </label>
@@ -184,7 +196,7 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
         <div>
           <label
             htmlFor="companions"
-            className="text-xs font-semibold uppercase tracking-wider text-zinc-500"
+            className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
           >
             和谁去
           </label>
@@ -203,7 +215,7 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
         <div>
           <label
             htmlFor="note"
-            className="text-xs font-semibold uppercase tracking-wider text-zinc-500"
+            className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
           >
             笔记（可选）
           </label>
@@ -220,7 +232,7 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
 
         {/* photos */}
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             图片（可选）
           </label>
           {/* 提交时由父表单一并带上：每行一个 URL，与 places 的 photo_urls_text 对齐 */}
@@ -249,9 +261,9 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
                     onClick={() =>
                       setPhotoUrls((prev) => prev.filter((_, idx) => idx !== i))
                     }
-                    className="absolute right-1 top-1 rounded-full bg-black/60 px-1.5 text-[10px] text-white hover:bg-black/80"
+                    className="absolute right-1 top-1 inline-flex items-center justify-center rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
                   >
-                    ✕
+                    <XIcon size={10} />
                   </button>
                 </li>
               ))}
@@ -265,7 +277,7 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
         </div>
 
         {error && (
-          <p role="alert" className="text-sm text-red-700">
+          <p role="alert" className="alert-error">
             {error}
           </p>
         )}

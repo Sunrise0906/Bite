@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { updateProfile } from "@/lib/actions/profile";
+import { CheckIcon, PencilIcon } from "@/components/ui/icons";
 
 export function ProfileEditForm({
   initialName,
@@ -61,9 +62,12 @@ export function ProfileEditForm({
           <p className="truncate text-base font-medium text-[var(--text-strong)]">
             {display}
           </p>
-          <p className="truncate text-sm text-zinc-500">{email}</p>
+          <p className="truncate text-sm text-[var(--text-muted)]">{email}</p>
           {savedFlash && (
-            <p className="mt-0.5 text-xs text-emerald-700">已保存 ✓</p>
+            <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-[var(--success-text)]">
+              <CheckIcon size={12} />
+              已保存
+            </p>
           )}
         </div>
         <button
@@ -71,18 +75,19 @@ export function ProfileEditForm({
           onClick={() => setEditing(true)}
           className="btn-secondary px-3 py-1.5 text-xs"
         >
-          ✎ 编辑
+          <PencilIcon size={13} />
+          编辑
         </button>
       </div>
     );
   }
 
   return (
-    <form action={handleSave} className="flex flex-col gap-3">
+    <form action={handleSave} className="flex flex-col gap-4">
       <div>
         <label
           htmlFor="prof_name"
-          className="text-xs font-semibold uppercase tracking-wider text-zinc-500"
+          className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
         >
           显示名字
         </label>
@@ -96,7 +101,7 @@ export function ProfileEditForm({
           placeholder={email.split("@")[0]}
           className="field-input mt-1.5 text-sm"
         />
-        <p className="mt-1 text-[11px] text-zinc-500">
+        <p className="mt-1 text-[11px] text-[var(--text-faint)]">
           朋友在推荐 / 共享 list 时看到这个名字。留空使用邮箱前缀。
         </p>
       </div>
@@ -104,7 +109,7 @@ export function ProfileEditForm({
       <div>
         <label
           htmlFor="prof_avatar"
-          className="text-xs font-semibold uppercase tracking-wider text-zinc-500"
+          className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
         >
           头像 URL（可选）
         </label>
@@ -117,13 +122,13 @@ export function ProfileEditForm({
           placeholder="https://..."
           className="field-input mt-1.5 font-mono text-xs"
         />
-        <p className="mt-1 text-[11px] text-zinc-500">
+        <p className="mt-1 text-[11px] text-[var(--text-faint)]">
           贴一个公开图片 URL。Phase 5 暂未做上传，先用外链。
         </p>
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="alert-error">
           {error}
         </p>
       )}

@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { deletePlace } from "@/lib/actions/places";
+import { TrashIcon } from "@/components/ui/icons";
 
 export function PlaceCardMenu({
   placeId,
@@ -41,7 +42,7 @@ export function PlaceCardMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="店铺操作菜单"
-        className="flex h-6 w-6 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)] disabled:opacity-50"
+        className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--text-faint)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)] disabled:opacity-50"
       >
         {pending ? (
           <span className="text-sm">…</span>
@@ -63,16 +64,16 @@ export function PlaceCardMenu({
           />
           <div
             role="menu"
-            className="absolute right-0 top-8 z-40 min-w-[8rem] overflow-hidden rounded-lg border border-[var(--border-default)] bg-[var(--surface-elevated)] py-1 shadow-lg"
+            className="absolute right-0 top-8 z-40 min-w-[8rem] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--surface-elevated)] py-1 shadow-[var(--shadow-card-hover)]"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={onDelete}
               role="menuitem"
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 transition-colors hover:bg-[var(--surface-muted)] dark:text-red-400"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--danger)] transition-colors hover:bg-[var(--danger-bg)]"
             >
-              <span aria-hidden="true">🗑</span>
+              <TrashIcon size={14} className="shrink-0" />
               <span>删除店铺</span>
             </button>
           </div>

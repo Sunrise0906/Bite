@@ -20,8 +20,10 @@ export default async function SignUpPage({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="heading-display text-3xl">开个号</h1>
-        <p className="mt-2 text-sm text-zinc-500">
+        <h1 className="heading-display text-3xl text-[var(--text-strong)]">
+          开个号
+        </h1>
+        <p className="mt-2 text-sm text-[var(--text-muted)]">
           开始记录你的餐厅，做更好的决策
         </p>
       </div>
@@ -38,11 +40,11 @@ export default async function SignUpPage({
 
       <GoogleButton next={next} />
 
-      <p className="text-center text-sm text-zinc-500">
+      <p className="text-center text-sm text-[var(--text-muted)]">
         已经有账号？{" "}
         <Link
           href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
-          className="font-medium text-[var(--text-strong)] underline underline-offset-2 decoration-zinc-300"
+          className="font-medium text-[var(--text-strong)] underline underline-offset-2 decoration-[var(--border-strong)] transition-colors hover:decoration-[var(--primary)]"
         >
           登录
         </Link>

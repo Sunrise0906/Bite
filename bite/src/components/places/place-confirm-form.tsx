@@ -1,12 +1,47 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, type ReactNode } from "react";
 import {
   cancelQuickAdd,
   savePlaceFromDraft,
 } from "@/lib/actions/quick-add";
 import type { PlacePrice, PlaceStatus } from "@/lib/db/types";
 import { PhotoCarousel } from "./photo-carousel";
+import {
+  AlertIcon,
+  BookIcon,
+  BotIcon,
+  GlobeIcon,
+  PlusIcon,
+  RefreshIcon,
+} from "@/components/ui/icons";
+
+/** 图标库里没有锁形图标，按约定在本文件内联一个 lucide 风格 SVG */
+function LockIcon({
+  size = 16,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V7.5a4 4 0 0 1 8 0V11" />
+    </svg>
+  );
+}
 
 export type InitialPlaceData = {
   name: string;
@@ -34,7 +69,23 @@ export type ListOption = {
 };
 
 const LABEL_CLS = "block text-sm font-medium text-[var(--text-default)]";
-const HELP_CLS = "mt-1.5 text-xs text-zinc-500";
+const HELP_CLS = "mt-1.5 text-xs text-[var(--text-muted)]";
+
+/** 来源提示条（icon + 一句说明，分层收纳到小字） */
+function SourceBanner({
+  icon,
+  children,
+}: {
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)]/50 px-3.5 py-2.5 text-xs text-[var(--text-default)]">
+      <span className="mt-px shrink-0 text-[var(--text-muted)]">{icon}</span>
+      <span className="min-w-0">{children}</span>
+    </div>
+  );
+}
 
 export function PlaceConfirmForm({
   initial,
@@ -61,7 +112,7 @@ export function PlaceConfirmForm({
     lists.find((l) => l.id === selectedListId)?.name ?? "";
 
   return (
-    <form action={action} className="space-y-5">
+    <form action={action} className="space-y-6">
       <input type="hidden" name="source" value={initial.source} />
       {initial.source_url && (
         <input type="hidden" name="source_url" value={initial.source_url} />
@@ -91,22 +142,32 @@ export function PlaceConfirmForm({
       )}
 
       {confidence && confidence !== "high" && (
-        <div className="alert-error" role="alert">
-          <strong>
-            {confidence === "low" ? "信心较低" : "部分字段是推测"}
-          </strong>
-          ，请检查并修改。
+        <div
+          role="alert"
+          className={
+            confidence === "low"
+              ? "alert-error flex items-start gap-2"
+              : "flex items-start gap-2 rounded-[0.875rem] border border-[var(--gold)]/30 bg-[var(--gold-soft)] px-3.5 py-2.5 text-sm text-[var(--gold-text)]"
+          }
+        >
+          <AlertIcon size={15} className="mt-0.5 shrink-0" />
+          <span>
+            <strong>
+              {confidence === "low" ? "信心较低" : "部分字段是推测"}
+            </strong>
+            ，请检查并修改。
+          </span>
         </div>
       )}
 
       {source === "place" && (
-        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)]/50 px-3 py-2.5 text-xs text-zinc-600">
-          📍 来自 Google Places · 已自动填入店名 / 地址 / 菜系推断
-        </div>
+        <SourceBanner icon={<GlobeIcon size={14} />}>
+          来自 Google Places · 已自动填入店名 / 地址 / 菜系推断
+        </SourceBanner>
       )}
       {source === "text" && initial.source === "xhs" && (
-        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)]/50 px-3 py-2.5 text-xs text-zinc-600">
-          🔗 来自小红书链接 · 已抓取并由 Claude 解析
+        <SourceBanner icon={<BookIcon size={14} />}>
+          来自小红书链接 · 已抓取并由 Claude 解析
           {initial.source_url && (
             <>
               {" · "}
@@ -114,18 +175,18 @@ export function PlaceConfirmForm({
                 href={initial.source_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline decoration-zinc-400 underline-offset-2 hover:text-[var(--primary)]"
+                className="underline decoration-[var(--border-strong)] underline-offset-2 hover:text-[var(--primary)]"
               >
                 查看原帖
               </a>
             </>
           )}
-        </div>
+        </SourceBanner>
       )}
       {source === "text" && initial.source !== "xhs" && (
-        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)]/50 px-3 py-2.5 text-xs text-zinc-600">
-          ✨ 来自 Claude 解析 · 你可以修改任何字段
-        </div>
+        <SourceBanner icon={<BotIcon size={14} />}>
+          来自 Claude 解析 · 你可以修改任何字段
+        </SourceBanner>
       )}
 
       <div>
@@ -154,29 +215,46 @@ export function PlaceConfirmForm({
         {isDuplicateInList && (
           <div
             role="status"
-            className="mt-2 space-y-1.5 rounded-lg border border-[var(--primary-soft)] bg-[var(--primary-soft)]/40 px-3 py-2.5 text-sm text-[var(--primary-soft-text)]"
+            className="mt-2 space-y-2 rounded-xl border border-[var(--primary)]/20 bg-[var(--primary-soft)]/40 px-3.5 py-3 text-sm text-[var(--primary-soft-text)]"
           >
-            <p>
-              ⚠️ <strong>“{initial.name}”</strong> 已在
-              <strong>“{currentListName}”</strong> 里。提交会按以下规则合并：
+            <p className="flex items-start gap-1.5">
+              <AlertIcon size={14} className="mt-0.5 shrink-0" />
+              <span>
+                <strong>“{initial.name}”</strong> 已在
+                <strong>“{currentListName}”</strong> 里。提交会按以下规则合并：
+              </span>
             </p>
-            <ul className="space-y-0.5 pl-5 text-xs">
-              <li>
-                🔒 <strong>想去理由</strong> 和 <strong>AI 备注</strong>{" "}
-                ——保留你的修改（不被新 AI 输出覆盖）
+            <ul className="space-y-1 pl-5 text-xs">
+              <li className="flex items-start gap-1.5">
+                <LockIcon size={12} className="mt-0.5 shrink-0" />
+                <span>
+                  <strong>想去理由</strong> 和 <strong>AI 备注</strong>{" "}
+                  ——保留你的修改（不被新 AI 输出覆盖）
+                </span>
               </li>
-              <li>
-                ➕ <strong>图片 / 菜系 / 标签 / 场合</strong>{" "}
-                ——合并去重（既有 + 新抓的）
+              <li className="flex items-start gap-1.5">
+                <PlusIcon size={12} className="mt-0.5 shrink-0" />
+                <span>
+                  <strong>图片 / 菜系 / 标签 / 场合</strong>{" "}
+                  ——合并去重（既有 + 新抓的）
+                </span>
               </li>
-              <li>
-                ↻ <strong>地址 / 价位 / 状态 / 推荐来源</strong>{" "}
-                ——用新的覆盖
+              <li className="flex items-start gap-1.5">
+                <RefreshIcon size={12} className="mt-0.5 shrink-0" />
+                <span>
+                  <strong>地址 / 价位 / 状态 / 推荐来源</strong>{" "}
+                  ——用新的覆盖
+                </span>
               </li>
             </ul>
           </div>
         )}
       </div>
+
+      <section className="space-y-5 pt-1">
+        <div className="section-heading border-b border-[var(--border-subtle)] pb-2">
+          <h2 className="text-lg text-[var(--text-strong)]">基本信息</h2>
+        </div>
 
       <div>
         <label htmlFor="qf-name" className={LABEL_CLS}>
@@ -257,6 +335,12 @@ export function PlaceConfirmForm({
           </select>
         </div>
       </div>
+      </section>
+
+      <section className="space-y-5 pt-1">
+        <div className="section-heading border-b border-[var(--border-subtle)] pb-2">
+          <h2 className="text-lg text-[var(--text-strong)]">偏好与备注</h2>
+        </div>
 
       <div>
         <label htmlFor="qf-occasions" className={LABEL_CLS}>
@@ -335,6 +419,7 @@ export function PlaceConfirmForm({
           会持久保存到这家店，未来决策 agent 会读它做推荐
         </p>
       </div>
+      </section>
 
       {state.error && (
         <p role="alert" className="alert-error">

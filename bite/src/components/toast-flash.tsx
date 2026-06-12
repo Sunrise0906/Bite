@@ -32,7 +32,7 @@ const MESSAGES: Record<string, (args: ToastArgs) => string> = {
   list_renamed: () => "已重命名",
   list_deleted: () => "list 已删除",
   convo_deleted: () => "对话已删除",
-  invite_accepted: () => "已加入 list 🎉",
+  invite_accepted: () => "已加入 list",
   place_merged: () => "已合并到已有店铺",
 };
 

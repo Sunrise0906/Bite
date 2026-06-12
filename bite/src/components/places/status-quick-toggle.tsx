@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { updatePlaceStatus } from "@/lib/actions/places";
 import type { PlaceStatus } from "@/lib/db/types";
+import { CheckIcon, ChevronDownIcon } from "@/components/ui/icons";
 
 const STATUS_OPTIONS: Array<{ value: PlaceStatus; label: string; chip: string }> = [
   { value: "want_to_go", label: "想去", chip: "chip chip-want" },
@@ -52,7 +53,14 @@ export function StatusQuickToggle({
         aria-expanded={open}
         title="点击切换状态"
       >
-        {pending ? "…" : `${current.label} ▾`}
+        {pending ? (
+          "…"
+        ) : (
+          <>
+            {current.label}
+            <ChevronDownIcon size={10} className="opacity-70" />
+          </>
+        )}
       </button>
 
       {open && (
@@ -66,7 +74,7 @@ export function StatusQuickToggle({
           />
           <ul
             role="listbox"
-            className="absolute right-0 top-full z-40 mt-1 min-w-[7rem] overflow-hidden rounded-lg border border-[var(--border-default)] bg-[var(--surface-elevated)] py-1 shadow-lg"
+            className="absolute right-0 top-full z-40 mt-1 min-w-[7rem] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--surface-elevated)] py-1 shadow-[var(--shadow-card-hover)]"
             onClick={(e) => e.stopPropagation()}
           >
             {STATUS_OPTIONS.map((o) => (
@@ -86,7 +94,7 @@ export function StatusQuickToggle({
                 >
                   <span>{o.label}</span>
                   {o.value === status && (
-                    <span aria-hidden className="text-xs">✓</span>
+                    <CheckIcon size={12} className="shrink-0" />
                   )}
                 </button>
               </li>

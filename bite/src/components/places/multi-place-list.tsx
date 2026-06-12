@@ -8,6 +8,7 @@ import {
 import type { ExtractedPlace } from "@/lib/llm/extract-place";
 import type { ListOption } from "./place-confirm-form";
 import { PhotoCarousel } from "./photo-carousel";
+import { BotIcon } from "@/components/ui/icons";
 
 const PRICE_LABEL: Record<NonNullable<ExtractedPlace["price_range"]>, string> = {
   $: "$ · <$15",
@@ -71,21 +72,24 @@ export function MultiPlaceList({
 
   return (
     <form action={action} className="space-y-5">
-      <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)]/50 px-3 py-2.5 text-sm text-zinc-700">
-        🤖 AI 识别为<strong> 合集帖</strong>，共 <strong>{places.length}</strong> 家店。勾选要添加的：
-        {sourceUrl && (
-          <>
-            {" · "}
-            <a
-              href={sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline decoration-zinc-400 underline-offset-2 hover:text-[var(--primary)]"
-            >
-              查看原帖
-            </a>
-          </>
-        )}
+      <div className="flex items-start gap-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)]/50 px-3.5 py-2.5 text-sm text-[var(--text-default)]">
+        <BotIcon size={15} className="mt-0.5 shrink-0 text-[var(--text-muted)]" />
+        <span className="min-w-0">
+          AI 识别为<strong> 合集帖</strong>，共 <strong>{places.length}</strong> 家店。勾选要添加的：
+          {sourceUrl && (
+            <>
+              {" · "}
+              <a
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline decoration-[var(--border-strong)] underline-offset-2 hover:text-[var(--primary)]"
+              >
+                查看原帖
+              </a>
+            </>
+          )}
+        </span>
       </div>
 
       <div>
@@ -116,7 +120,7 @@ export function MultiPlaceList({
         </select>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-zinc-500">
+      <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
         <span>
           已勾选 <strong className="text-[var(--text-strong)]">{selected.size}</strong> /{" "}
           {places.length}
@@ -125,14 +129,14 @@ export function MultiPlaceList({
           <button
             type="button"
             onClick={selectAll}
-            className="underline-offset-2 hover:underline"
+            className="font-medium underline-offset-2 transition-colors hover:text-[var(--text-strong)] hover:underline"
           >
             全选
           </button>
           <button
             type="button"
             onClick={clearAll}
-            className="underline-offset-2 hover:underline"
+            className="font-medium underline-offset-2 transition-colors hover:text-[var(--text-strong)] hover:underline"
           >
             全不选
           </button>
@@ -154,7 +158,7 @@ export function MultiPlaceList({
           return (
             <li key={i}>
               <label
-                className={`card flex cursor-pointer items-start gap-3 p-4 transition-colors ${
+                className={`card flex cursor-pointer items-start gap-3 px-5 py-4 transition-colors ${
                   checked
                     ? "border-[var(--primary)] bg-[var(--primary-soft)]/20"
                     : ""
@@ -182,31 +186,32 @@ export function MultiPlaceList({
                       信心 {CONFIDENCE_LABEL[p.confidence]}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-sm text-zinc-500">{p.address}</p>
+                  <p className="mt-0.5 text-sm text-[var(--text-muted)]">{p.address}</p>
                   {p.cuisine.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1">
+                    <div className="mt-2 flex flex-wrap gap-1.5">
                       {p.cuisine.slice(0, 5).map((c) => (
-                        <span key={c} className="chip chip-neutral">
+                        <span key={c} className="tag tag-neutral">
                           {c}
                         </span>
                       ))}
                       {p.price_range && (
-                        <span className="chip chip-neutral">
+                        <span className="tag tag-neutral">
                           {PRICE_LABEL[p.price_range]}
                         </span>
                       )}
                     </div>
                   )}
                   {p.reason && (
-                    <p className="mt-2 line-clamp-2 text-sm text-zinc-600">
+                    <p className="mt-2 line-clamp-2 text-sm text-[var(--text-default)]">
                       <span className="text-[var(--primary)]">“</span>
                       {p.reason}
                       <span className="text-[var(--primary)]">”</span>
                     </p>
                   )}
                   {p.notes && (
-                    <p className="mt-1.5 line-clamp-3 rounded-md bg-[var(--surface-muted)]/60 px-2 py-1.5 text-xs italic text-zinc-500">
-                      🤖 {p.notes}
+                    <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-[var(--surface-muted)]/60 px-2.5 py-1.5 text-xs italic text-[var(--text-muted)]">
+                      <BotIcon size={13} className="mt-px shrink-0" />
+                      <span className="line-clamp-3">{p.notes}</span>
                     </p>
                   )}
                   {placePhotos.length > 0 && (
@@ -218,8 +223,9 @@ export function MultiPlaceList({
                         e.stopPropagation();
                       }}
                     >
-                      <p className="mb-1 text-[11px] text-zinc-500">
-                        🤖 AI 分图：{placePhotos.length} 张 · idx [
+                      <p className="mb-1.5 flex items-center gap-1 text-[11px] text-[var(--text-faint)]">
+                        <BotIcon size={12} className="shrink-0" />
+                        AI 分图：{placePhotos.length} 张 · idx [
                         {p.photo_indices?.join(", ")}]
                       </p>
                       <PhotoCarousel urls={placePhotos} />
@@ -261,7 +267,7 @@ export function MultiPlaceList({
         </button>
       </div>
 
-      <p className="text-center text-xs text-zinc-500">
+      <p className="text-center text-xs text-[var(--text-faint)]">
         保存后可在 list 详情页点单个店进编辑页细调字段
       </p>
     </form>

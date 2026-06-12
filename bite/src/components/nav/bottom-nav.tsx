@@ -53,17 +53,23 @@ export function BottomNav() {
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
-                className={`flex flex-col items-center gap-1 py-2.5 text-xs transition-colors ${
+                className={`relative flex flex-col items-center gap-1 py-2.5 text-xs transition-colors ${
                   active
                     ? "text-[var(--primary)]"
-                    : "text-zinc-500 hover:text-[var(--text-strong)]"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-strong)]"
                 }`}
                 aria-current={active ? "page" : undefined}
               >
                 <span aria-hidden="true">{item.icon}</span>
-                <span className={active ? "font-medium" : ""}>
+                <span className={active ? "font-semibold" : "font-medium"}>
                   {item.label}
                 </span>
+                <span
+                  aria-hidden="true"
+                  className={`absolute bottom-1 h-1 w-1 rounded-full transition-colors ${
+                    active ? "bg-[var(--primary)]" : "bg-transparent"
+                  }`}
+                />
               </Link>
             </li>
           );

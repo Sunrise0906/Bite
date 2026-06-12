@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { sendMagicLink } from "@/lib/actions/auth";
+import { SendIcon } from "@/components/ui/icons";
 
 export function MagicLinkForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(sendMagicLink, {
@@ -21,7 +22,7 @@ export function MagicLinkForm({ next }: { next?: string }) {
       />
       <input type="hidden" name="next" value={next ?? ""} />
       {state.error && (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+        <p role="alert" className="alert-error">
           {state.error}
         </p>
       )}
@@ -33,9 +34,16 @@ export function MagicLinkForm({ next }: { next?: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="btn-secondary w-full py-3 text-base"
+        className="btn-secondary w-full gap-2 py-3 text-base"
       >
-        {pending ? "发送中…" : "📩 发送登录链接到邮箱"}
+        {pending ? (
+          "发送中…"
+        ) : (
+          <>
+            <SendIcon size={16} className="text-[var(--text-muted)]" />
+            发送登录链接到邮箱
+          </>
+        )}
       </button>
     </form>
   );

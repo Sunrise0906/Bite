@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { processTextDraft } from "@/lib/actions/quick-add";
 import { detectInputType } from "@/lib/quick-add/detect";
 import type { PlaceSuggestion } from "@/lib/places/google";
+import {
+  AlertIcon,
+  LinkIcon,
+  MapPinIcon,
+  SearchIcon,
+  SparklesIcon,
+} from "@/components/ui/icons";
 
 type Status =
   | { phase: "idle" }
@@ -202,7 +209,13 @@ export function QuickAddInput() {
   return (
     <div className="space-y-2">
       <form action={formAction} className="relative space-y-2">
-        <div className="relative rounded-2xl border border-[var(--border-default)] bg-[var(--surface-elevated)] focus-within:border-[var(--primary)] focus-within:ring-3 focus-within:ring-[var(--primary-soft)] transition-colors">
+        <div className="relative rounded-2xl border border-[var(--border-default)] bg-[var(--surface-elevated)] shadow-[var(--shadow-card)] focus-within:border-[var(--primary)] focus-within:ring-3 focus-within:ring-[var(--primary-soft)] transition-colors">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute left-4 top-[15px] text-[var(--text-faint)]"
+          >
+            <SearchIcon size={18} />
+          </span>
           <textarea
             ref={textareaRef}
             name="text"
@@ -210,15 +223,22 @@ export function QuickAddInput() {
             onChange={(e) => setText(e.target.value)}
             rows={1}
             placeholder="粘贴小红书正文、写几句话、或搜店名…"
-            className="w-full resize-none rounded-2xl bg-transparent px-4 py-3 text-base outline-none placeholder:text-[var(--text-faint)]"
+            className="w-full resize-none rounded-2xl bg-transparent py-3 pl-11 pr-4 text-base outline-none placeholder:text-[var(--text-faint)]"
             maxLength={5000}
           />
           {detected.kind === "free_text" && (
-            <div className="flex items-center justify-between border-t border-[var(--border-subtle)] px-3 py-2">
-              <span className="text-xs text-zinc-500">
-                {detected.hasXhsUrl
-                  ? "🔗 小红书链接 · 抓取 + Claude 解析"
-                  : "✨ 长文本 · 使用 Claude 解析"}
+            <div className="flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] px-3.5 py-2">
+              <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-[var(--text-muted)]">
+                {detected.hasXhsUrl ? (
+                  <LinkIcon size={13} className="shrink-0" />
+                ) : (
+                  <SparklesIcon size={13} className="shrink-0" />
+                )}
+                <span className="truncate">
+                  {detected.hasXhsUrl
+                    ? "小红书链接 · 抓取 + Claude 解析"
+                    : "长文本 · 使用 Claude 解析"}
+                </span>
               </span>
               <button
                 type="submit"
@@ -266,51 +286,56 @@ function SuggestionsList({
 }) {
   if (!hasApiKey) {
     return (
-      <p className="text-xs text-zinc-500">
-        ⚠️ 未配置 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY，无法实时搜索。可继续输入更多内容用 AI 解析。
+      <p className="flex items-start gap-1.5 px-2 text-xs text-[var(--text-muted)]">
+        <AlertIcon size={13} className="mt-0.5 shrink-0" />
+        <span>
+          未配置 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY，无法实时搜索。可继续输入更多内容用 AI 解析。
+        </span>
       </p>
     );
   }
   if (status.phase === "idle") return null;
   if (status.phase === "searching") {
     return (
-      <p className="px-2 text-xs text-zinc-500">搜索中…</p>
+      <p className="px-2 text-xs text-[var(--text-muted)]">搜索中…</p>
     );
   }
   if (status.phase === "error") {
     return (
-      <p role="alert" className="px-2 text-xs text-red-600 dark:text-red-400">
+      <p role="alert" className="px-2 text-xs text-[var(--danger-text)]">
         {status.message}
       </p>
     );
   }
   if (status.suggestions.length === 0) {
     return (
-      <p className="px-2 text-xs text-zinc-500">没找到附近的店</p>
+      <p className="px-2 text-xs text-[var(--text-muted)]">没找到附近的店</p>
     );
   }
   return (
-    <ul className="overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-elevated)] shadow-sm">
+    <ul className="overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-elevated)] shadow-[var(--shadow-card-hover)] divide-y divide-[var(--border-subtle)]">
       {status.suggestions.map((s) => (
         <li key={s.placeId}>
           <button
             type="button"
             onClick={() => onPick(s)}
-            className="flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-muted)]"
+            className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-[var(--surface-muted)]"
           >
-            <span className="mt-0.5 text-[var(--primary)]">📍</span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--primary-soft)] text-[var(--primary)]">
+              <MapPinIcon size={15} />
+            </span>
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline justify-between gap-2">
                 <span className="truncate text-sm font-medium text-[var(--text-strong)]">
                   {s.mainText}
                 </span>
                 {s.distanceMeters !== undefined && (
-                  <span className="shrink-0 text-[11px] font-medium text-[var(--primary)]">
+                  <span className="shrink-0 text-[11px] font-semibold text-[var(--primary)]">
                     {formatDistance(s.distanceMeters)}
                   </span>
                 )}
               </span>
-              <span className="block truncate text-xs text-zinc-500">
+              <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
                 {s.secondaryText}
               </span>
             </span>

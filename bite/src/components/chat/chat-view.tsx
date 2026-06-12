@@ -10,6 +10,18 @@ import {
   tryPrettyJson,
 } from "@/lib/llm/tool-summary";
 import { parseLinkifiedSegments } from "@/lib/chat/linkify";
+import {
+  AlertIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  CopyIcon,
+  RefreshIcon,
+  SendIcon,
+  SparklesIcon,
+  XIcon,
+} from "@/components/ui/icons";
 
 type DisplayMessage = {
   role: "user" | "assistant";
@@ -350,7 +362,7 @@ export function ChatView({
       <div
         ref={scrollContainerRef}
         onScroll={onScroll}
-        className="flex-1 overflow-y-auto px-4 py-4"
+        className="flex-1 overflow-y-auto px-4 py-5"
       >
         <div className="mx-auto flex max-w-2xl flex-col gap-4">
           {messages.length === 0 && (
@@ -377,13 +389,16 @@ export function ChatView({
             );
           })}
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-              <div>⚠ {error}</div>
+            <div className="alert-error">
+              <div className="flex items-start gap-2">
+                <AlertIcon size={15} className="mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
               {lastFailedText && (
                 <button
                   type="button"
                   onClick={retry}
-                  className="mt-2 rounded-md bg-red-700 px-3 py-1 text-xs font-medium text-white hover:bg-red-800"
+                  className="btn-secondary mt-2.5 px-3 py-1.5 text-xs"
                 >
                   重试
                 </button>
@@ -395,7 +410,7 @@ export function ChatView({
       </div>
 
       {/* ---- 输入框 ---- */}
-      <div className="border-t border-[var(--border-subtle)] bg-[var(--surface)]/95 backdrop-blur">
+      <div className="border-t border-[var(--border-subtle)] bg-[var(--background)]/95 backdrop-blur">
         <div className="mx-auto max-w-2xl px-4 py-3">
           <form
             onSubmit={(e) => {
@@ -435,16 +450,19 @@ export function ChatView({
                 disabled={!input.trim() || overLimit}
                 className="btn-primary shrink-0 px-4 py-2.5 text-sm"
               >
+                <SendIcon size={14} />
                 发送
               </button>
             )}
           </form>
           <div className="mt-1.5 flex items-center justify-between text-[11px]">
-            <p className="text-zinc-400">Enter 发送，Shift+Enter 换行</p>
+            <p className="text-[var(--text-faint)]">Enter 发送，Shift+Enter 换行</p>
             {showCounter && (
               <p
                 className={
-                  overLimit ? "font-medium text-red-700" : "text-amber-700"
+                  overLimit
+                    ? "font-medium text-[var(--danger-text)]"
+                    : "text-[var(--gold-text)]"
                 }
               >
                 {inputLen.toLocaleString()} / {INPUT_MAX.toLocaleString()}
@@ -470,7 +488,7 @@ function ChatHeader({
   hasConvo: boolean;
 }) {
   return (
-    <div className="border-b border-[var(--border-subtle)] bg-[var(--surface)]/95 backdrop-blur">
+    <div className="border-b border-[var(--border-subtle)] bg-[var(--background)]/95 backdrop-blur">
       <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2.5">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-[var(--text-strong)]">
@@ -479,12 +497,14 @@ function ChatHeader({
         </div>
         {providerLabel && (
           <div
-            className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--surface-subtle)] px-2.5 py-1 text-[11px] text-zinc-600"
+            className="flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] text-[var(--text-muted)]"
             title={model ? `model: ${model}` : ""}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--sage)]" />
             <span className="font-medium">{providerLabel}</span>
-            {model && <span className="text-zinc-400">· {shortModel(model)}</span>}
+            {model && (
+              <span className="text-[var(--text-faint)]">· {shortModel(model)}</span>
+            )}
           </div>
         )}
       </div>
@@ -506,21 +526,24 @@ function EmptyState({
   disabled: boolean;
 }) {
   return (
-    <div className="card flex flex-col items-center px-6 py-10 text-center">
+    <div className="card flex flex-col items-center px-6 py-12 text-center">
+      <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primary-soft)] text-[var(--primary)]">
+        <SparklesIcon size={22} />
+      </div>
       <p className="heading-display text-xl text-[var(--text-strong)]">
         和你的餐厅库聊聊
       </p>
-      <p className="mt-2 max-w-sm text-sm text-zinc-600">
+      <p className="mt-2 max-w-sm text-sm text-[var(--text-muted)]">
         告诉我你想吃啥 / 跟谁 / 预算多少，我从你的 list 里挑 2-3 家并给出理由。
       </p>
-      <div className="mt-5 flex flex-wrap justify-center gap-1.5">
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
         {QUICK_PROMPTS.map((p) => (
           <button
             key={p}
             type="button"
             onClick={() => onPick(p)}
             disabled={disabled}
-            className="rounded-full border border-[var(--border-subtle)] bg-white px-3 py-1.5 text-xs text-zinc-700 hover:border-[var(--primary)] hover:text-[var(--primary)] disabled:opacity-50"
+            className="rounded-full border border-[var(--border-default)] bg-[var(--surface-elevated)] px-3.5 py-1.5 text-xs font-medium text-[var(--text-default)] transition hover:border-[var(--primary)] hover:bg-[var(--primary-soft)] hover:text-[var(--primary-soft-text)] disabled:opacity-50"
           >
             {p}
           </button>
@@ -591,12 +614,12 @@ function MessageBubble({
       <div
         className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
           isUser
-            ? "bg-[var(--primary)] text-white"
-            : "bg-white border border-[var(--border-subtle)] text-[var(--text-default)]"
+            ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+            : "border border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-default)]"
         }`}
       >
         {message.content.length === 0 && message.streaming && (
-          <span className="inline-flex gap-1 text-zinc-400">
+          <span className="inline-flex gap-1 text-[var(--text-faint)]">
             <Dot delay={0} />
             <Dot delay={150} />
             <Dot delay={300} />
@@ -610,7 +633,7 @@ function MessageBubble({
               placeMap={placeMap}
               linkClassName={
                 isUser
-                  ? "underline decoration-white/40 underline-offset-2 hover:decoration-white"
+                  ? "underline decoration-[var(--primary-foreground)]/40 underline-offset-2 hover:decoration-[var(--primary-foreground)]"
                   : "text-[var(--primary)] underline decoration-[var(--primary)]/40 underline-offset-2 hover:decoration-[var(--primary)]"
               }
             />
@@ -629,7 +652,7 @@ function MessageBubble({
 
       {/* 时间戳 + 复制按钮：触屏设备永远显示；hover 设备 hover 才显示 */}
       <div
-        className={`flex items-center gap-2 px-1 text-[10px] text-zinc-400 transition-opacity opacity-100 sm:opacity-0 sm:group-hover:opacity-100 ${
+        className={`flex items-center gap-2 px-1 text-[10px] text-[var(--text-faint)] transition-opacity opacity-100 sm:opacity-0 sm:group-hover:opacity-100 ${
           isUser ? "flex-row-reverse" : "flex-row"
         }`}
       >
@@ -649,10 +672,11 @@ function MessageBubble({
           <button
             type="button"
             onClick={onRegenerate}
-            className="rounded-md px-1.5 py-0.5 text-zinc-500 hover:bg-[var(--surface-subtle)] hover:text-[var(--text-strong)]"
+            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)]"
             title="重新生成这条回复"
           >
-            ↻ 重新生成
+            <RefreshIcon size={11} />
+            重新生成
           </button>
         )}
       </div>
@@ -703,10 +727,20 @@ function CopyButton({ text }: { text: string }) {
           // ignore
         }
       }}
-      className="rounded-md px-1.5 py-0.5 text-zinc-500 hover:bg-[var(--surface-subtle)] hover:text-[var(--text-strong)]"
+      className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)]"
       title="复制回复"
     >
-      {copied ? "已复制 ✓" : "复制"}
+      {copied ? (
+        <>
+          <CheckIcon size={11} />
+          已复制
+        </>
+      ) : (
+        <>
+          <CopyIcon size={11} />
+          复制
+        </>
+      )}
     </button>
   );
 }
@@ -757,44 +791,59 @@ function ToolCallCard({
   const expanded = userToggle === null ? Boolean(isError) : userToggle;
 
   return (
-    <div className="my-1.5 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-subtle)] text-xs">
+    <div className="my-1.5 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-muted)] text-xs">
       <button
         type="button"
         onClick={() => setUserToggle(!expanded)}
-        className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left hover:bg-white/50"
+        className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left transition-colors hover:bg-[var(--surface-elevated)]/60"
       >
         <span className="flex min-w-0 items-center gap-2">
           <span
-            className={`font-mono ${
-              isError ? "text-red-600" : "text-[var(--primary)]"
+            className={`inline-flex shrink-0 items-center gap-1.5 font-mono ${
+              isError ? "text-[var(--danger)]" : "text-[var(--primary)]"
             }`}
           >
-            {isRunning ? "⏳" : isError ? "✗" : "✓"} {labelForTool(use.name)}
+            {isRunning ? (
+              <ClockIcon size={12} className="animate-pulse" />
+            ) : isError ? (
+              <XIcon size={12} />
+            ) : (
+              <CheckIcon size={12} />
+            )}
+            {labelForTool(use.name)}
           </span>
-          <span className="truncate text-zinc-600">{status.summary}</span>
+          <span className="truncate text-[var(--text-muted)]">
+            {status.summary}
+          </span>
         </span>
-        <span className="shrink-0 text-zinc-400">{expanded ? "▾" : "▸"}</span>
+        <span className="shrink-0 text-[var(--text-faint)]">
+          {expanded ? (
+            <ChevronDownIcon size={12} />
+          ) : (
+            <ChevronRightIcon size={12} />
+          )}
+        </span>
       </button>
       {expanded && (
-        <div className="border-t border-[var(--border-subtle)] bg-white/60 px-2.5 py-2">
+        <div className="border-t border-[var(--border-subtle)] bg-[var(--surface-elevated)]/60 px-2.5 py-2">
           {use.input != null &&
             typeof use.input === "object" &&
             Object.keys(use.input as object).length > 0 && (
               <div className="mb-1.5">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                   参数
                 </div>
-                <pre className="mt-0.5 whitespace-pre-wrap break-words font-mono text-[11px] text-zinc-700">
+                <pre className="mt-0.5 whitespace-pre-wrap break-words font-mono text-[11px] text-[var(--text-default)]">
                   {JSON.stringify(use.input, null, 2)}
                 </pre>
               </div>
             )}
           {result && (
             <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                 结果
               </div>
-              <pre className="mt-0.5 max-h-48 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[11px] text-zinc-700">
+              <pre className="mt-0.5 max-h-48 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[11px] text-[var(--text-default)]">
                 {tryPrettyJson(result.content)}
               </pre>
             </div>
