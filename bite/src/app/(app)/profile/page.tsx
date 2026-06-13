@@ -6,6 +6,7 @@ import { ProfileEditForm } from "@/components/profile/profile-edit-form";
 import { ChevronRightIcon, InboxIcon } from "@/components/ui/icons";
 import { PROVIDER_PRESETS, type ProviderId } from "@/lib/llm/types";
 import type { UserLlmSettings } from "@/lib/llm/router";
+import { decryptSecret } from "@/lib/crypto/secret-box";
 
 export const metadata = {
   title: "我的 · Bite",
@@ -144,7 +145,11 @@ export default async function ProfilePage() {
           </p>
         </div>
         <LlmSettingsForm
-          initial={llmSettings ?? null}
+          initial={
+            llmSettings
+              ? { ...llmSettings, api_key: llmSettings.api_key ? decryptSecret(llmSettings.api_key) : null }
+              : null
+          }
           appKeyAvailable={appKeyAvailable}
         />
       </section>

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { buildProvider, resolveConfig } from "@/lib/llm/router";
 import { LlmProviderError, type ProviderId } from "@/lib/llm/types";
+import { encryptSecret } from "@/lib/crypto/secret-box";
 
 export type LlmSettingsFormState = {
   error: string | null;
@@ -56,6 +57,7 @@ export async function saveLlmSettings(
     return { error: "API key 看起来太短了，确认一下？" };
   }
 
+  // 落库前加密 api_key（BITE_SETTINGS_SECRET 未配置时 encryptSecret 原样返回明文）
   const supabase = await createClient();
   const { error } = await supabase
     .from("user_llm_settings")
@@ -63,7 +65,7 @@ export async function saveLlmSettings(
       {
         user_id: user.id,
         provider,
-        api_key: apiKey,
+        api_key: apiKey ? encryptSecret(apiKey) : null,
         base_url: baseUrl,
         chat_model: chatModel,
         extract_model: extractModel,

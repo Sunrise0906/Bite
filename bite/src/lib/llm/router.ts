@@ -2,6 +2,7 @@
 // 用户没在 Settings 配 → 走默认（anthropic + app 默认 key）
 
 import { createClient, getUser } from "@/lib/supabase/server";
+import { decryptSecret } from "@/lib/crypto/secret-box";
 import { AnthropicProvider } from "./anthropic";
 import { OpenAiCompatProvider } from "./openai-compat";
 import {
@@ -32,7 +33,13 @@ export async function loadUserLlmSettings(): Promise<UserLlmSettings | null> {
     .select("provider, api_key, base_url, chat_model, extract_model")
     .eq("user_id", user.id)
     .maybeSingle<UserLlmSettings>();
-  return data ?? null;
+  if (!data) return null;
+  // 落库的 api_key 可能是密文（见 secret-box）；解密回明文供 provider 使用。
+  // 解不开（secret 缺失/错配）→ null，resolveConfig 会退回 app 默认 key。
+  if (data.api_key) {
+    data.api_key = decryptSecret(data.api_key);
+  }
+  return data;
 }
 
 export function resolveConfig(

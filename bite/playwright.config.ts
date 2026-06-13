@@ -37,7 +37,8 @@ export default defineConfig({
   timeout: 60_000,
   reporter: "list",
   use: {
-    baseURL: "https://bite-sand.vercel.app",
+    // 默认打生产；本地测新代码时用 E2E_BASE_URL=http://localhost:3000 覆盖
+    baseURL: process.env.E2E_BASE_URL || "https://bite-sand.vercel.app",
     headless: true,
     viewport: { width: 1280, height: 800 },
     trace: "on-first-retry",

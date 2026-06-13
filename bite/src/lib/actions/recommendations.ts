@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { appendReasonDedup, unionStrings } from "@/lib/places/merge";
 import { escapeLikePattern } from "@/lib/sql/escape-like";
+import { notifyRecommendation } from "@/lib/email/send";
 import type { Place, PlacePrice } from "@/lib/db/types";
 
 // 推荐时快照下来的字段（不要带 user-specific 的 reasons / id / list_id）
@@ -122,6 +123,17 @@ export async function sendRecommendation(args: {
     place_data: snapshot,
   });
   if (error) return { error: `发送失败：${error.message}` };
+
+  // 6. best-effort 邮件通知（未配 RESEND_API_KEY/EMAIL_FROM 时静默跳过，绝不阻断发送）
+  const mail = await notifyRecommendation({
+    toEmail: recipient.email,
+    senderLabel,
+    placeName: place.name,
+    message,
+  });
+  if (!mail.ok && !mail.skipped) {
+    console.error(`sendRecommendation: 推荐已存但邮件通知失败：${mail.error}`);
+  }
 
   revalidatePath("/recommendations");
   return { ok: true, recipient_email: recipient.email };

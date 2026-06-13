@@ -13,6 +13,7 @@ import { LlmProviderError } from "@/lib/llm/types";
 import type { LlmContentBlock, LlmMessage } from "@/lib/llm/types";
 import { CHAT_TOOLS, executeChatTool } from "@/lib/llm/chat-tools";
 import { trimHistory, sanitizeTailOrphan } from "@/lib/llm/trim-history";
+import { checkChatRateLimit } from "@/lib/ratelimit/chat-limit";
 import {
   appendMessage,
   createConversation,
@@ -64,6 +65,15 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) {
     return new Response("Unauthorized", { status: 401 });
+  }
+
+  // 限流：保护开发者出资的默认 LLM key 不被刷爆（每分钟 / 每小时上限）
+  const rl = checkChatRateLimit(user.id);
+  if (!rl.ok) {
+    return new Response(rl.message, {
+      status: 429,
+      headers: { "Retry-After": String(rl.retryAfterSec) },
+    });
   }
 
   let body: RequestBody;
