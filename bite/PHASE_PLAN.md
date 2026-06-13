@@ -16,7 +16,8 @@
 
 ```text
 sql/0009_storage_photos.sql        # 拍照上传 storage bucket（iter-15 产出，若未跑）
-sql/0010_list_members_policies.sql # ★★ P0：不跑则接受邀请必失败 + 改角色静默失效
+sql/0010_list_members_policies.sql # ★★ P0：不跑则接受邀请必失败 + 改角色静默失效（已跑）
+sql/0011_invite_preview_function.sql # ★★ P0：不跑则受邀者看邀请页显示「链接无效」
 ```
 
 ## 硬约束（不能做的事）

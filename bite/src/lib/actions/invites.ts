@@ -60,36 +60,30 @@ export async function loadInvitePreview(
   const user = await requireUser();
   const supabase = await createClient();
 
-  const { data } = await supabase
-    .from("list_invites")
-    .select("token, list_id, role, expires_at, used_at, used_by")
-    .eq("token", token)
+  // 受邀者还不是成员，无法直接读 lists（RLS）。走 security-definer 函数
+  // get_invite_preview（见 sql/0011），凭 token 拿 list 名 + owner，绕过成员校验。
+  const { data, error } = await supabase
+    .rpc("get_invite_preview", { p_token: token })
     .maybeSingle<{
       token: string;
       list_id: string;
+      list_name: string;
       role: "co_owner" | "viewer";
       expires_at: string;
       used_at: string | null;
-      used_by: string | null;
+      owner_id: string;
     }>();
 
-  if (!data) return null;
-
-  const { data: list } = await supabase
-    .from("lists")
-    .select("name, owner_id")
-    .eq("id", data.list_id)
-    .maybeSingle<{ name: string; owner_id: string }>();
-  if (!list) return null;
+  if (error || !data) return null;
 
   const expired = new Date(data.expires_at) < new Date();
   const used = data.used_at !== null;
-  const is_owner = list.owner_id === user.id;
+  const is_owner = data.owner_id === user.id;
 
   return {
     token: data.token,
     list_id: data.list_id,
-    list_name: list.name,
+    list_name: data.list_name,
     role: data.role,
     expired,
     used,
