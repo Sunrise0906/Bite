@@ -61,7 +61,7 @@ export function DeckSection({
         {filtered.map((d) => (
           <Link
             key={d.placeId}
-            href={`/lists/${d.listId}/places/${d.placeId}/edit`}
+            href={`/lists/${d.listId}/places/${d.placeId}`}
             className="v2-dcard"
           >
             <div

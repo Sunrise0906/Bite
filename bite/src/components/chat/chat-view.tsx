@@ -619,10 +619,7 @@ function RecCard({ name, place }: { name: string; place: PlaceRef }) {
         {meta && <div className="mt">{meta}</div>}
         {place.why && <div className="why">{place.why}</div>}
         <div className="act">
-          <Link
-            href={`/lists/${place.list_id}/places/${place.id}/edit`}
-            className="b1"
-          >
+          <Link href={`/lists/${place.list_id}/places/${place.id}`} className="b1">
             看详情
           </Link>
         </div>

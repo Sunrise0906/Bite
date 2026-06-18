@@ -13,7 +13,7 @@ export function RandomPickButton({ picks }: { picks: Pick[] }) {
       return;
     }
     const p = picks[Math.floor(Math.random() * picks.length)];
-    router.push(`/lists/${p.listId}/places/${p.placeId}/edit`);
+    router.push(`/lists/${p.listId}/places/${p.placeId}`);
   }
   return (
     <button type="button" className="cta2" onClick={go}>

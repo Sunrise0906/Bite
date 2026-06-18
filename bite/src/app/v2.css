@@ -140,6 +140,10 @@
 .ui-v2 .v2-ainote .tx { font-size:13px; color:#7a3614; margin-top:6px; line-height:1.5; }
 .ui-v2 .v2-dactions { display:flex; gap:9px; margin:16px 0; }
 .ui-v2 .v2-dactions .v2-btn { flex:1; padding:12px; }
+/* 复用 V1 VisitLogButton（btn-secondary）在详情下统一成 v2 ghost 风格 */
+.ui-v2 .v2-dactions > button, .ui-v2 .v2-dactions > a { flex:1; }
+.ui-v2 .v2-dactions .btn-secondary { border-radius:14px; border:1px solid var(--v2-border2); background:var(--v2-surface); color:var(--v2-ink); font-weight:600; font-size:14px; padding:12px; box-shadow:none; }
+.ui-v2 .v2-reason .ra.sage { background:linear-gradient(135deg,#5f7155,#3f4f37); }
 
 /* ---------- 聊天 ---------- */
 .ui-v2 .v2-rc { display:flex; gap:11px; background:var(--v2-surface); border:1px solid var(--v2-border); border-radius:16px; padding:11px; margin-bottom:9px; box-shadow:var(--v2-shadow-sm); }
