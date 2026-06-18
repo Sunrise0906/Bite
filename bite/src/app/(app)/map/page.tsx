@@ -2,6 +2,7 @@ import { createClient, requireUser } from "@/lib/supabase/server";
 import { PlacesMap } from "@/components/map/places-map";
 import { AlertIcon } from "@/components/ui/icons";
 import { getUiVersion } from "@/lib/ui-version";
+import { BackfillCoordsButton } from "@/components/v2/backfill-coords-button";
 
 export const metadata = {
   title: "地图 · Bite",
@@ -35,6 +36,7 @@ export default async function MapPage() {
   ];
 
   let places: MapPlaceRow[] = [];
+  let missingCoords = 0;
   if (listIds.length > 0) {
     const { data } = await supabase
       .from("places")
@@ -43,6 +45,16 @@ export default async function MapPage() {
       .not("lat", "is", null)
       .not("lng", "is", null);
     places = (data ?? []) as MapPlaceRow[];
+
+    // 有地址但没坐标的店数量（可一键补坐标上图）
+    const { count } = await supabase
+      .from("places")
+      .select("id", { count: "exact", head: true })
+      .in("list_id", listIds)
+      .is("lat", null)
+      .not("address", "is", null)
+      .neq("address", "");
+    missingCoords = count ?? 0;
   }
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
@@ -64,8 +76,25 @@ export default async function MapPage() {
             <div className="t">地图无法加载</div>
             <div className="s">缺少 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY 环境变量</div>
           </div>
+        ) : places.length === 0 ? (
+          <div className="v2-empty">
+            <div className="t">地图还是空的</div>
+            <div className="s" style={{ marginBottom: 16 }}>
+              {missingCoords > 0
+                ? "你有些店只有文字地址、没坐标。一键补上就能标到地图。"
+                : "加店时用 Google 搜索会自动带坐标。"}
+            </div>
+            {missingCoords > 0 && <BackfillCoordsButton missing={missingCoords} />}
+          </div>
         ) : (
-          <PlacesMap places={places} apiKey={apiKey} />
+          <>
+            <PlacesMap places={places} apiKey={apiKey} />
+            {missingCoords > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <BackfillCoordsButton missing={missingCoords} />
+              </div>
+            )}
+          </>
         )}
       </main>
     );

@@ -172,6 +172,38 @@ export async function getPlaceDetails(
   };
 }
 
+// 地址 → 经纬度（Geocoding API，服务端 key）。用于给只有文字地址、没坐标的店补坐标，
+// 让它们能上地图。模糊地址（"尔湾"）会返回城市级坐标——够把 pin 放上去。
+// 需要 server key 启用 Geocoding API；失败/无结果一律返回 null（不抛，调用方跳过即可）。
+export async function geocodeAddress(
+  address: string,
+): Promise<{ lat: number; lng: number } | null> {
+  const a = address.trim();
+  if (!a) return null;
+  try {
+    const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
+    url.searchParams.set("address", a);
+    url.searchParams.set("key", getServerApiKey());
+    url.searchParams.set("language", "zh-CN");
+    // 限定美国：用户的店都在南加州，模糊中文地址（"尔湾"/"罗兰岗"）不限定会被
+    // 歧义解析到中国。如果将来有非美国的店，再放开这条。
+    url.searchParams.set("components", "country:US");
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data: {
+      status?: string;
+      results?: Array<{ geometry?: { location?: { lat?: number; lng?: number } } }>;
+    } = await res.json();
+    const loc = data.results?.[0]?.geometry?.location;
+    if (loc && typeof loc.lat === "number" && typeof loc.lng === "number") {
+      return { lat: loc.lat, lng: loc.lng };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // 从 Google primaryType / types 推断中文菜系标签
 export function inferCuisineFromTypes(
   primaryType: string | null,

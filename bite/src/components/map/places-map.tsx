@@ -119,7 +119,10 @@ export function PlacesMap({
     const script = document.createElement("script");
     script.id = scriptId;
     script.async = true;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async&language=zh-CN`;
+    // 不加 loading=async：经典同步加载下 onload 时 google.maps.*（Map / LatLngBounds /
+    // Marker / SymbolPath）已全部就绪，可直接 new。用 loading=async 则要走
+    // importLibrary 异步取，onload 时经典构造器还没挂上 → "LatLngBounds is not a constructor"。
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&language=zh-CN`;
     script.onload = init;
     document.head.appendChild(script);
 
