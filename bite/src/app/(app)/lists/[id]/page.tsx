@@ -22,6 +22,8 @@ import {
 import { LeaveListButton } from "@/components/lists/leave-list-button";
 import { UsersIcon } from "@/components/ui/icons";
 import { safeDecodeURIComponent } from "@/lib/url/safe-decode";
+import { getUiVersion } from "@/lib/ui-version";
+import { ListDetailV2 } from "@/components/v2/list-detail-v2";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ error?: string; toast?: string }>;
@@ -167,6 +169,24 @@ export default async function ListDetailPage({
         display_name: p?.name ?? p?.email.split("@")[0] ?? "（未知）",
       };
     });
+  }
+
+  // V2 清单详情：复用上面所有已算好的数据，只换渲染
+  if ((await getUiVersion()) === "v2") {
+    return (
+      <ListDetailV2
+        list={{ id: list.id, name: list.name }}
+        places={places}
+        currentUserId={user.id}
+        canEdit={canEdit}
+        isOwner={isOwner}
+        memberRole={memberRole}
+        ownerName={ownerName}
+        members={members}
+        activeInvites={activeInvites}
+        visitsByPlace={Object.fromEntries(visitsByPlace)}
+      />
+    );
   }
 
   return (
