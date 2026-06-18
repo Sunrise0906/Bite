@@ -39,13 +39,26 @@ type IncomingMessage = Omit<DisplayMessage, "uid">;
 let uidCounter = 0;
 const nextUid = () => ++uidCounter;
 
+/** 链接化用 {id,list_id} 即可；V2 推荐卡额外用 photo/cuisine/status/why */
+type PlaceRef = {
+  id: string;
+  list_id: string;
+  photo?: string | null;
+  cuisine?: string[];
+  status?: string | null;
+  price?: string | null;
+  why?: string | null;
+};
+
 type Props = {
   initialConversationId: string | null;
   initialMessages: IncomingMessage[];
   headerTitle: string | null;
   headerProviderLabel: string;
   headerModel: string;
-  placeMap: Record<string, { id: string; list_id: string }>;
+  placeMap: Record<string, PlaceRef>;
+  /** V2 时在 assistant 消息下渲染可操作推荐卡 */
+  uiVersion?: "v1" | "v2";
 };
 
 const QUICK_PROMPTS = [
@@ -66,6 +79,7 @@ export function ChatView({
   headerProviderLabel,
   headerModel,
   placeMap,
+  uiVersion = "v1",
 }: Props) {
   const router = useRouter();
   const [conversationId, setConversationId] = useState<string | null>(
@@ -399,6 +413,7 @@ export function ChatView({
                 key={m.uid}
                 message={m}
                 placeMap={placeMap}
+                v2={uiVersion === "v2"}
                 onRegenerate={
                   isLastAssistant && conversationId ? regenerate : undefined
                 }
@@ -570,16 +585,85 @@ function EmptyState({
   );
 }
 
+const REC_STATUS_LABEL: Record<string, string> = {
+  want_to_go: "想去",
+  visited: "去过",
+  archived: "归档",
+};
+
+/** V2 聊天里的可操作推荐卡（库内被 AI 提到的店） */
+function RecCard({ name, place }: { name: string; place: PlaceRef }) {
+  const cuisine = (place.cuisine ?? [])[0];
+  const meta = [cuisine, place.price].filter(Boolean).join(" · ");
+  const statusLabel = place.status ? REC_STATUS_LABEL[place.status] : undefined;
+  return (
+    <div className="v2-rc">
+      <div
+        className="img"
+        style={place.photo ? { backgroundImage: `url('${place.photo}')` } : undefined}
+      />
+      <div className="ci">
+        <div className="nm">
+          {name}
+          {statusLabel && (
+            <span
+              className={`v2-pill ${
+                place.status === "visited" ? "v2-pill-visited" : "v2-pill-want"
+              }`}
+              style={{ padding: "2px 7px" }}
+            >
+              {statusLabel}
+            </span>
+          )}
+        </div>
+        {meta && <div className="mt">{meta}</div>}
+        {place.why && <div className="why">{place.why}</div>}
+        <div className="act">
+          <Link
+            href={`/lists/${place.list_id}/places/${place.id}/edit`}
+            className="b1"
+          >
+            看详情
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MessageBubble({
   message,
   placeMap,
+  v2,
   onRegenerate,
 }: {
   message: DisplayMessage;
-  placeMap: Record<string, { id: string; list_id: string }>;
+  placeMap: Record<string, PlaceRef>;
+  v2?: boolean;
   onRegenerate?: () => void;
 }) {
   const isUser = message.role === "user";
+
+  // V2：从 assistant 文本里的 «店名» 提取库内店，渲染成可操作推荐卡（去重保序）
+  const recCards = useMemo(() => {
+    if (!v2 || isUser) return [];
+    const seen = new Set<string>();
+    const out: Array<{ name: string; ref: PlaceRef }> = [];
+    for (const b of message.content) {
+      if (b.type !== "text") continue;
+      const re = /«([^»]+)»/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(b.text)) !== null) {
+        const name = m[1].trim();
+        const ref = placeMap[name];
+        if (ref && !seen.has(name)) {
+          seen.add(name);
+          out.push({ name, ref });
+        }
+      }
+    }
+    return out;
+  }, [v2, isUser, message.content, placeMap]);
 
   // 把 tool_use 和它对应的 tool_result 配对渲染
   const paired = useMemo(() => {
@@ -666,6 +750,15 @@ function MessageBubble({
           <span className="ml-1 inline-block h-3 w-1.5 animate-pulse bg-current align-baseline opacity-50" />
         )}
       </div>
+
+      {/* V2：可操作推荐卡（库内被提到的店） */}
+      {recCards.length > 0 && !message.streaming && (
+        <div className="mt-2 w-full max-w-[85%] space-y-2">
+          {recCards.map(({ name, ref }) => (
+            <RecCard key={ref.id} name={name} place={ref} />
+          ))}
+        </div>
+      )}
 
       {/* 时间戳 + 复制按钮：触屏设备永远显示；hover 设备 hover 才显示 */}
       <div

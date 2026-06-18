@@ -167,6 +167,18 @@ async function renderHomeV2(
   deckAll.sort((a, b) => (b.photo ? 1 : 0) - (a.photo ? 1 : 0));
   const deck = deckAll.slice(0, 8);
 
+  // 决策中枢底图兜底：任意一张店铺封面（即使没有 want_to_go 的图）
+  let heroPhoto: string | null = null;
+  for (const l of sorted) {
+    for (const p of l.places ?? []) {
+      if ((p.photo_urls?.length ?? 0) > 0) {
+        heroPhoto = p.photo_urls![0];
+        break;
+      }
+    }
+    if (heroPhoto) break;
+  }
+
   const totalPlaces = lists.reduce((n, l) => n + (l.places?.length ?? 0), 0);
   const totalWant = lists.reduce(
     (n, l) =>
@@ -180,6 +192,7 @@ async function renderHomeV2(
       initial={initialOf(userId)}
       totalPlaces={totalPlaces}
       totalWant={totalWant}
+      heroPhoto={heroPhoto}
       deck={deck}
       lists={listVMs}
     />

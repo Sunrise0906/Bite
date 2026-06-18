@@ -5,6 +5,7 @@ import { ChatView } from "@/components/chat/chat-view";
 import { ConvoMenu } from "@/components/chat/convo-menu";
 import { loadUserLlmSettings, resolveConfig } from "@/lib/llm/router";
 import { PROVIDER_LABELS, type LlmContentBlock } from "@/lib/llm/types";
+import { getUiVersion } from "@/lib/ui-version";
 
 type SearchParamsForMeta = Promise<{ c?: string }>;
 
@@ -49,19 +50,51 @@ export default async function ChatPage(props: {
     ...(ownerLists ?? []).map((l) => l.id),
     ...(memberLists ?? []).map((m) => m.list_id),
   ];
-  let placeMap: Record<string, { id: string; list_id: string }> = {};
+  // V2 推荐卡需要图/菜系/状态/why；V1 只用 id/list_id（多余字段忽略）
+  type PlaceRich = {
+    id: string;
+    list_id: string;
+    photo: string | null;
+    cuisine: string[];
+    status: string | null;
+    price: string | null;
+    why: string | null;
+  };
+  let placeMap: Record<string, PlaceRich> = {};
   if (listIds.length > 0) {
     const { data: places } = await supabase
       .from("places")
-      .select("id, list_id, name")
+      .select(
+        "id, list_id, name, cuisine, status, price_range, photo_urls, reasons, notes",
+      )
       .in("list_id", listIds);
     placeMap = Object.fromEntries(
-      (places ?? []).map((p) => [
-        p.name,
-        { id: p.id, list_id: p.list_id },
-      ]),
+      (places ?? []).map((p) => {
+        const reasons = (p.reasons ?? []) as Array<{
+          user_id: string;
+          text: string;
+        }>;
+        const why =
+          reasons.find((r) => r.user_id === user.id)?.text ??
+          reasons[0]?.text ??
+          (p.notes ? String(p.notes).slice(0, 60) : null);
+        return [
+          p.name,
+          {
+            id: p.id,
+            list_id: p.list_id,
+            photo: p.photo_urls?.[0] ?? null,
+            cuisine: p.cuisine ?? [],
+            status: p.status ?? null,
+            price: p.price_range ?? null,
+            why,
+          },
+        ];
+      }),
     );
   }
+
+  const uiVersion = await getUiVersion();
 
   const initialMessages: Array<{
     role: "user" | "assistant";
@@ -270,6 +303,7 @@ export default async function ChatPage(props: {
           headerProviderLabel={headerProviderLabel}
           headerModel={headerModel}
           placeMap={placeMap}
+          uiVersion={uiVersion}
         />
       </section>
     </div>

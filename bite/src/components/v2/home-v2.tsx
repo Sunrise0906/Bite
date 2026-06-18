@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { QuickAddInput } from "@/components/places/quick-add-input";
 import { RandomPickButton } from "./random-pick-button";
+import { DeckSection } from "./deck-section";
 
 export type DeckItem = {
   placeId: string;
@@ -29,6 +30,8 @@ type Props = {
   initial: string;
   totalPlaces: number;
   totalWant: number;
+  /** 决策中枢底图兜底：任意一张店铺封面（没 want_to_go 图时也有画面） */
+  heroPhoto: string | null;
   deck: DeckItem[];
   lists: ListVM[];
 };
@@ -44,10 +47,11 @@ export function HomeV2({
   initial,
   totalPlaces,
   totalWant,
+  heroPhoto,
   deck,
   lists,
 }: Props) {
-  const hubBg = deck.find((d) => d.photo)?.photo ?? null;
+  const hubBg = deck.find((d) => d.photo)?.photo ?? heroPhoto;
 
   return (
     <main className="v2-page">
@@ -68,10 +72,9 @@ export function HomeV2({
 
       {/* 决策中枢 */}
       <div className="v2-hub">
-        {hubBg && (
+        {hubBg ? (
           <div className="bg" style={{ backgroundImage: `url('${hubBg}')` }} />
-        )}
-        {!hubBg && (
+        ) : (
           <div
             className="bg"
             style={{ background: "linear-gradient(135deg,#c75b3a,#9c4226)" }}
@@ -104,45 +107,32 @@ export function HomeV2({
         </div>
       </div>
 
-      {/* 想去 deck */}
-      {deck.length > 0 && (
-        <>
-          <div className="v2-sec">
-            <h3>想去 · 帮你前置了</h3>
-            <span className="more">{totalWant} 家</span>
-          </div>
-          <div className="v2-deck">
-            {deck.map((d) => (
-              <Link
-                key={d.placeId}
-                href={`/lists/${d.listId}/places/${d.placeId}/edit`}
-                className="v2-dcard"
+      {/* 想去 deck（有候选 → 带菜系筛选；没有 → 友好空提示） */}
+      {deck.length > 0 ? (
+        <DeckSection deck={deck} totalWant={totalWant} />
+      ) : (
+        lists.length > 0 && (
+          <>
+            <div className="v2-sec">
+              <h3>想去 · 帮你前置了</h3>
+            </div>
+            <Link href="/chat" className="v2-lrow">
+              <div className="li">
+                <div className="nm">还没有「想去」的店</div>
+                <div className="mt">加几家想去的，纠结时我帮你从里面挑</div>
+              </div>
+              <svg
+                className="v2-svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                style={{ color: "var(--v2-faint)", flex: "none" }}
               >
-                <div
-                  className="img"
-                  style={
-                    d.photo ? { backgroundImage: `url('${d.photo}')` } : undefined
-                  }
-                />
-                <div className="b">
-                  <div className="nm">{d.name}</div>
-                  <div className="mt">
-                    {[d.cuisine[0], d.price].filter(Boolean).join(" · ") || "—"}
-                  </div>
-                  <div className="why">{d.reason ? `"${d.reason}"` : " "}</div>
-                  <div className="act">
-                    <div className="b1">就它</div>
-                    <div className="b2">
-                      <svg className="v2-svg" width="14" height="14" viewBox="0 0 24 24">
-                        <path d="m9 5 7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </>
+                <path d="m9 5 7 7-7 7" />
+              </svg>
+            </Link>
+          </>
+        )
       )}
 
       {/* 我的清单 */}
@@ -182,10 +172,7 @@ export function HomeV2({
                 {l.isShared && l.faces.length > 0 && (
                   <span className="v2-faces">
                     {l.faces.slice(0, 3).map((f, i) => (
-                      <span
-                        key={i}
-                        className={`v2-ava${f.sage ? " sage" : ""}`}
-                      >
+                      <span key={i} className={`v2-ava${f.sage ? " sage" : ""}`}>
                         {f.initial}
                       </span>
                     ))}
