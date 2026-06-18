@@ -57,7 +57,7 @@ export function HomeV2({
     <main className="v2-page">
       <div className="v2-top">
         <div className="hi">
-          嘿
+          欢迎回来
           <b>{greetingName}</b>
         </div>
         <span className="v2-ava" style={{ width: 38, height: 38, fontSize: 14 }}>

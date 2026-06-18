@@ -13,7 +13,7 @@ type Item = {
 const ITEMS: Item[] = [
   {
     href: "/lists",
-    label: "list",
+    label: "清单",
     icon: <ListIcon />,
     match: (p) => p === "/lists" || p.startsWith("/lists/"),
   },
