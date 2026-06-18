@@ -1,14 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces } from "next/font/google";
+import { Fraunces, Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
+import "./v2.css";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
   display: "swap",
   weight: ["500", "600", "700"],
+});
+
+// V2 UI 用的无衬线（V1 不引用，仅 .ui-v2 下生效）
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -43,7 +52,7 @@ export default function RootLayout({
   return (
     <html
       lang="zh-CN"
-      className={`${fraunces.variable} h-full antialiased`}
+      className={`${fraunces.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         {children}

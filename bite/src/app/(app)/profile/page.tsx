@@ -7,6 +7,8 @@ import { ChevronRightIcon, InboxIcon } from "@/components/ui/icons";
 import { PROVIDER_PRESETS, type ProviderId } from "@/lib/llm/types";
 import type { UserLlmSettings } from "@/lib/llm/router";
 import { decryptSecret } from "@/lib/crypto/secret-box";
+import { getUiVersion } from "@/lib/ui-version";
+import { UiVersionToggle } from "@/components/profile/ui-version-toggle";
 
 export const metadata = {
   title: "我的 · Bite",
@@ -41,6 +43,7 @@ function UsageBox({
 export default async function ProfilePage() {
   const user = await requireUser();
   const supabase = await createClient();
+  const uiVersion = await getUiVersion();
 
   const [
     { data: profile },
@@ -115,6 +118,19 @@ export default async function ProfilePage() {
           initialAvatarUrl={profile?.avatar_url ?? null}
           email={user.email ?? ""}
         />
+      </section>
+
+      {/* ---- 界面版本 ---- */}
+      <section className="card mb-8 px-5 py-5">
+        <div className="mb-3">
+          <div className="section-heading">
+            <h2 className="text-lg text-[var(--text-strong)]">界面版本</h2>
+          </div>
+          <p className="mt-1.5 text-xs text-[var(--text-muted)]">
+            V2 是正在试用的新版设计，随时可切回 V1 经典版。
+          </p>
+        </div>
+        <UiVersionToggle current={uiVersion} />
       </section>
 
       {/* ---- AI 用量 ---- */}
