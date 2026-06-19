@@ -31,6 +31,13 @@ const PlaceItemSchema = z.object({
     .optional()
     .describe("其他显著特征：排队长、有露台、可带宠物"),
   reason: z.string().optional().describe("用户想去 / 评价理由，一句话概括"),
+  dishes: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "招牌菜 / 网友或博主明确推荐的【具体菜名】，如 '麻酱小面'、'烧鸭炒饭'、'龙虾乌冬面'。" +
+        "只收原文明确点名的菜，不要泛化（'好吃的菜'不算）；没有就留空。最多 6 个。",
+    ),
   confidence: z
     .enum(["high", "medium", "low"])
     .describe("提取信心：high 全部直接来自原文，low 大量推测"),
@@ -105,6 +112,7 @@ const SYSTEM_PROMPT = `你是一个餐厅信息提取助手。从用户输入的
 - recommended_by：推荐来源（"朋友"、"XHS博主"、"@小李"、"自己"）。粘贴小红书帖子默认 "XHS博主"
 - tags：其他显著特征（"排队长"、"有露台"、"环境好"、"可带宠物"、"开车 40 分钟"、"等位 4 小时"）
 - reason：用户的想去 / 评价理由，一句话保留原文味道，不超过 30 字
+- dishes：原文里明确点名推荐的【具体菜】（"麻酱小面"、"烧鸭炒饭"、"芋泥小笼包"）。只收点名的菜，不泛化，没有就空，最多 6 个
 - confidence：
   - "high"：name + address + cuisine 都能直接从原文/段落提取
   - "medium"：推断了 1-2 个必填字段
@@ -201,6 +209,7 @@ const FEW_SHOTS: Array<{ user: string; assistant: ExtractionResult }> = [
           cuisine: ["中餐", "粤菜"],
           recommended_by: "XHS博主",
           reason: "炒饭烧鸭都好吃",
+          dishes: ["烧鸭", "炒饭"],
           tags: ["分量大"],
           confidence: "high",
           notes:
@@ -225,6 +234,7 @@ const FEW_SHOTS: Array<{ user: string; assistant: ExtractionResult }> = [
           cuisine: ["台菜", "小笼包"],
           recommended_by: "XHS博主",
           reason: "麻酱小面好吃",
+          dishes: ["麻酱小面"],
           tags: ["等位 4 小时"],
           confidence: "high",
           notes:

@@ -16,8 +16,9 @@ export const CHAT_TOOLS: LlmTool[] = [
     description:
       "查询当前用户的餐厅库。可按状态 / 菜系 / 价位 / 关键词过滤。" +
       "返回每家店的：name, address, cuisine, price_range, status, tags, reason, notes（AI 备注）、" +
-      "visit_count（去过几次）、last_visit（最近一次日期）、last_sentiment（最近一次评价：will_return/okay/wont_return）。" +
-      "用于给用户推荐时找候选店——优先推 will_return 的店，避免 wont_return 的店。",
+      "visit_count（去过几次）、last_visit（最近一次日期）、last_sentiment（最近一次评价：will_return/okay/wont_return）、" +
+      "dishes（招牌 / 网友推荐的具体菜名）。" +
+      "用于给用户推荐时找候选店——优先推 will_return 的店，避免 wont_return 的店；推荐时如果有 dishes 可以顺带说『去点 XX』。",
     inputSchema: {
       type: "object",
       properties: {
@@ -173,7 +174,7 @@ async function searchMyList(input: unknown, ctx: ToolContext) {
   let q = ctx.supabase
     .from("places")
     .select(
-      "id, list_id, name, address, cuisine, price_range, status, tags, occasions, reasons, notes, photo_urls",
+      "id, list_id, name, address, cuisine, price_range, status, tags, occasions, reasons, notes, dishes, photo_urls",
     )
     .in("list_id", listIds);
 
@@ -234,6 +235,7 @@ async function searchMyList(input: unknown, ctx: ToolContext) {
       occasions: p.occasions ?? [],
       reasons: (p.reasons ?? []).map((r: { text: string }) => r.text),
       notes: p.notes,
+      dishes: p.dishes ?? [],
       has_photos: (p.photo_urls ?? []).length > 0,
       visit_count: v?.count ?? 0,
       last_visit: v?.last_visit ?? null,
@@ -293,6 +295,7 @@ async function checkPlaceDetails(input: unknown, ctx: ToolContext) {
     reasons: (data.reasons ?? []).map((r: { text: string }) => r.text),
     recommended_by: data.recommended_by,
     notes: data.notes,
+    dishes: data.dishes ?? [],
     source: data.source,
     source_url: data.source_url,
     lat: data.lat,

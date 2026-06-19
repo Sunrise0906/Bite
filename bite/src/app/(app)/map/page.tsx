@@ -2,7 +2,7 @@ import { createClient, requireUser } from "@/lib/supabase/server";
 import { PlacesMap } from "@/components/map/places-map";
 import { AlertIcon } from "@/components/ui/icons";
 import { getUiVersion } from "@/lib/ui-version";
-import { BackfillCoordsButton } from "@/components/v2/backfill-coords-button";
+import { EnrichButton } from "@/components/v2/enrich-button";
 
 export const metadata = {
   title: "地图 · Bite",
@@ -46,14 +46,12 @@ export default async function MapPage() {
       .not("lng", "is", null);
     places = (data ?? []) as MapPlaceRow[];
 
-    // 有地址但没坐标的店数量（可一键补坐标上图）
+    // 还没在 Google 拉过口碑的店数量（一键丰富 = 拿评分 + 精确坐标上图）
     const { count } = await supabase
       .from("places")
       .select("id", { count: "exact", head: true })
       .in("list_id", listIds)
-      .is("lat", null)
-      .not("address", "is", null)
-      .neq("address", "");
+      .is("google_rating", null);
     missingCoords = count ?? 0;
   }
 
@@ -81,17 +79,17 @@ export default async function MapPage() {
             <div className="t">地图还是空的</div>
             <div className="s" style={{ marginBottom: 16 }}>
               {missingCoords > 0
-                ? "你有些店只有文字地址、没坐标。一键补上就能标到地图。"
+                ? "在 Google 上找到你的店，就能拿到评分并标到地图。"
                 : "加店时用 Google 搜索会自动带坐标。"}
             </div>
-            {missingCoords > 0 && <BackfillCoordsButton missing={missingCoords} />}
+            {missingCoords > 0 && <EnrichButton count={missingCoords} />}
           </div>
         ) : (
           <>
             <PlacesMap places={places} apiKey={apiKey} />
             {missingCoords > 0 && (
               <div style={{ marginTop: 14 }}>
-                <BackfillCoordsButton missing={missingCoords} />
+                <EnrichButton count={missingCoords} />
               </div>
             )}
           </>

@@ -237,7 +237,17 @@ function PlaceCardV2({
             {STATUS_LABEL[place.status]}
           </span>
         </div>
-        {meta && <div className="meta">{meta}</div>}
+        {meta && (
+          <div className="meta">
+            {meta}
+            {place.google_rating != null && (
+              <span style={{ color: "var(--v2-gold)", fontWeight: 600 }}>
+                {"  ·  ★"}
+                {place.google_rating.toFixed(1)}
+              </span>
+            )}
+          </div>
+        )}
         {reason && <div className="reason">{reason}</div>}
         {visit && visit.count > 0 && (
           <div className="signal">

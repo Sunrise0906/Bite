@@ -114,6 +114,12 @@ export default async function PlaceDetailPage({ params }: { params: Params }) {
         photo_urls: place.photo_urls ?? [],
         reasons,
         notes: place.notes ?? null,
+        dishes: place.dishes ?? [],
+        source: place.source,
+        source_url: place.source_url,
+        google_rating: place.google_rating,
+        google_rating_count: place.google_rating_count,
+        google_maps_uri: place.google_maps_uri,
         lat: place.lat,
         lng: place.lng,
       }}

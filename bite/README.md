@@ -61,6 +61,7 @@ sql/0008_list_invites.sql          # list 共享邀请表 + RLS
 sql/0009_storage_photos.sql        # photos storage bucket + RLS
 sql/0010_list_members_policies.sql # ★ 修复邀请接受被 RLS 拒 + 改角色静默失效
 sql/0011_invite_preview_function.sql # ★ 修复受邀者看邀请页显示「链接无效」
+sql/0012_google_ratings_dishes.sql   # ★ Google 评分 + 招牌菜字段
 ```
 
 ## 项目结构

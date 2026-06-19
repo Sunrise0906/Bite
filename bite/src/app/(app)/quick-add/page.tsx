@@ -119,6 +119,7 @@ export default async function QuickAddPage({
         ex.recommended_by ?? (draft.source === "xhs" ? "XHS博主" : undefined),
       tags: ex.tags,
       reason: ex.reason,
+      dishes: ex.dishes,
       source: draft.source,
       source_url: draft.sourceUrl,
       notes: ex.notes,

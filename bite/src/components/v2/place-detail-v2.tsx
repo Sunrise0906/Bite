@@ -12,8 +12,22 @@ export type DetailPlace = {
   photo_urls: string[];
   reasons: Array<{ user_id: string; text: string }>;
   notes: string | null;
+  dishes: string[];
+  source: string;
+  source_url: string | null;
+  google_rating: number | null;
+  google_rating_count: number | null;
+  google_maps_uri: string | null;
   lat: number | null;
   lng: number | null;
+};
+
+const SOURCE_LABEL: Record<string, string> = {
+  xhs: "小红书",
+  google_places: "Google",
+  ai_extract: "AI 提取",
+  yelp: "Yelp",
+  manual: "手动添加",
 };
 
 export type VisitSummary = {
@@ -134,6 +148,47 @@ export function PlaceDetailV2({
         </h1>
         {meta && <div className="v2-dmeta">{meta}</div>}
 
+        {/* Google 口碑 */}
+        {place.google_rating != null && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              marginTop: 12,
+            }}
+          >
+            <span
+              className="v2-disp"
+              style={{ fontSize: 20, color: "var(--v2-ink)" }}
+            >
+              {place.google_rating.toFixed(1)}
+            </span>
+            <Stars n={place.google_rating} />
+            {place.google_rating_count != null && (
+              <span className="v2-muted" style={{ fontSize: 12 }}>
+                {place.google_rating_count.toLocaleString()} 条评价
+              </span>
+            )}
+            <a
+              href={place.google_maps_uri ?? mapsUrl(place)}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                marginLeft: "auto",
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--v2-muted)",
+                border: "1px solid var(--v2-border2)",
+                borderRadius: 999,
+                padding: "3px 10px",
+              }}
+            >
+              Google ›
+            </a>
+          </div>
+        )}
+
         {/* 回忆卡（去过才有） */}
         {visits.count > 0 && (
           <div className="v2-memory">
@@ -193,6 +248,68 @@ export function PlaceDetailV2({
               Bite AI 点评
             </div>
             <div className="tx">{place.notes}</div>
+          </div>
+        )}
+
+        {/* 招牌菜 / 网友推荐的菜 */}
+        {place.dishes.length > 0 && (
+          <div style={{ marginTop: 15 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: "var(--v2-gold-tx)",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                marginBottom: 9,
+              }}
+            >
+              <svg className="v2-svg" width="13" height="13" viewBox="0 0 24 24">
+                <path d="M7 3v7a2 2 0 0 1-2 2M3 3v7a2 2 0 0 0 2 2m0 0v9M17 3c-1.7 0-3 2.2-3 5s1.3 5 3 5m0-10v18" />
+              </svg>
+              招牌 · 网友推荐的菜
+            </div>
+            <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+              {place.dishes.map((d, i) => (
+                <span
+                  key={i}
+                  className="v2-tag"
+                  style={{
+                    background: "var(--v2-gold-soft)",
+                    color: "var(--v2-gold-tx)",
+                    padding: "5px 11px",
+                    fontSize: 13,
+                  }}
+                >
+                  {d}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 来源 */}
+        {(place.source_url || SOURCE_LABEL[place.source]) && (
+          <div
+            className="v2-muted"
+            style={{ marginTop: 15, fontSize: 12, display: "flex", gap: 6 }}
+          >
+            来源：{SOURCE_LABEL[place.source] ?? place.source}
+            {place.source_url && (
+              <a
+                href={place.source_url}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  color: "var(--v2-primary)",
+                  fontWeight: 600,
+                  textDecoration: "underline",
+                }}
+              >
+                看原帖 ›
+              </a>
+            )}
           </div>
         )}
 

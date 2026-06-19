@@ -223,6 +223,7 @@ type UpsertCandidate = {
   recommended_by: string | null;
   myReason: string | null; // 当前用户的 reason（空 = 不动）
   notes: string | null;
+  dishes: string[];
   photo_urls: string[];
   source: SourceValue;
   source_url: string | null;
@@ -248,7 +249,7 @@ async function upsertPlaces(
   const { data: existingRows, error: lookupError } = await supabase
     .from("places")
     .select(
-      "id, name, reasons, notes, photo_urls, cuisine, tags, occasions",
+      "id, name, reasons, notes, photo_urls, cuisine, tags, occasions, dishes",
     )
     .eq("list_id", listId)
     .in("name", names);
@@ -266,6 +267,7 @@ async function upsertPlaces(
     cuisine: unknown;
     tags: unknown;
     occasions: unknown;
+    dishes: unknown;
   };
   const existingByName = new Map<string, ExistingRow>();
   for (const row of (existingRows ?? []) as ExistingRow[]) {
@@ -298,6 +300,7 @@ async function upsertPlaces(
       const cuisine = unionStrings(existing.cuisine, c.cuisine);
       const tags = unionStrings(existing.tags, c.tags);
       const occasions = unionStrings(existing.occasions, c.occasions);
+      const dishes = unionStrings(existing.dishes, c.dishes);
 
       // 客观字段：用最新覆盖
       const updateFields = {
@@ -317,6 +320,7 @@ async function upsertPlaces(
         cuisine,
         tags,
         occasions,
+        dishes,
       };
 
       const { error } = await supabase
@@ -345,6 +349,7 @@ async function upsertPlaces(
         recommended_by: c.recommended_by,
         reasons,
         notes: c.notes,
+        dishes: c.dishes,
         photo_urls: c.photo_urls,
         source: c.source,
         source_url: c.source_url,
@@ -413,6 +418,7 @@ export async function savePlaceFromDraft(
           String(formData.get("recommended_by") ?? "").trim() || null,
         myReason: reasonText,
         notes,
+        dishes: parseTags(formData.get("dishes")),
         photo_urls: photoUrls,
         source,
         source_url: sourceUrl,
@@ -483,6 +489,7 @@ export async function savePlacesBatch(
       p.recommended_by ?? (draft.source === "xhs" ? "XHS博主" : null),
     myReason: p.reason ?? null,
     notes: p.notes ?? null,
+    dishes: p.dishes ?? [],
     // AI 标了 photo_indices 就按它分；没标 → 全部图（用户后续可编辑）
     photo_urls: pickPhotosByIndices(p.photo_indices, allPhotos),
     source: draft.source,

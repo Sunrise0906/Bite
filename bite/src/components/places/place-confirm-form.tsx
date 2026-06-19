@@ -53,6 +53,7 @@ export type InitialPlaceData = {
   recommended_by?: string;
   tags?: string[];
   reason?: string;
+  dishes?: string[];
   source: "manual" | "xhs" | "ai_extract" | "google_places" | "yelp";
   source_url?: string;
   google_place_id?: string;
@@ -114,6 +115,13 @@ export function PlaceConfirmForm({
   return (
     <form action={action} className="space-y-6">
       <input type="hidden" name="source" value={initial.source} />
+      {initial.dishes && initial.dishes.length > 0 && (
+        <input
+          type="hidden"
+          name="dishes"
+          value={initial.dishes.join(", ")}
+        />
+      )}
       {initial.source_url && (
         <input type="hidden" name="source_url" value={initial.source_url} />
       )}

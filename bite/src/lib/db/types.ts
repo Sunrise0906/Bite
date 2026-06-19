@@ -53,11 +53,17 @@ export type Place = {
   source: PlaceSource;
   source_url: string | null;
   google_place_id: string | null;
+  // Google Maps 口碑（enrichPlacesFromGoogle 拉取，见 sql/0012）
+  google_rating: number | null;
+  google_rating_count: number | null;
+  google_maps_uri: string | null;
   lat: number | null;
   lng: number | null;
   // AI 综合判断 / 评论区交叉信号 / 客观口碑提醒
   // 由 LLM 在抓取小红书帖子或自由文本时生成；用户可编辑
   notes: string | null;
+  // 招牌 / 网友推荐的具体菜（AI 抽取时提取，见 sql/0012）
+  dishes: string[];
   // 图片 URL 数组（XHS 抓的所有图 / 用户手动贴的）。第一张默认为封面
   photo_urls: string[];
   created_by: string;

@@ -172,6 +172,71 @@ export async function getPlaceDetails(
   };
 }
 
+export type GooglePlaceMatch = {
+  placeId: string;
+  name: string;
+  rating: number | null;
+  ratingCount: number | null;
+  lat: number | null;
+  lng: number | null;
+  address: string;
+  mapsUri: string | null;
+};
+
+// 按「店名 + 地址」在 Google 上找到对应店铺，拿评分 / 评价数 / 精确坐标 / 规范地址 /
+// 地图链接。用于「Google 口碑丰富」：比模糊 geocoding 准（精确店铺位置）且带评分。
+// regionCode=US 偏置（用户的店都在南加）。找不到 / 出错一律 null。
+export async function findPlaceOnGoogle(
+  query: string,
+): Promise<GooglePlaceMatch | null> {
+  const q = query.trim();
+  if (!q) return null;
+  try {
+    const res = await fetch(`${PLACES_BASE}/places:searchText`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": getServerApiKey(),
+        "X-Goog-FieldMask":
+          "places.id,places.displayName,places.rating,places.userRatingCount,places.location,places.formattedAddress,places.googleMapsUri",
+      },
+      body: JSON.stringify({
+        textQuery: q,
+        languageCode: "zh-CN",
+        regionCode: "US",
+        maxResultCount: 1,
+      }),
+    });
+    if (!res.ok) return null;
+    const data: {
+      places?: Array<{
+        id?: string;
+        displayName?: { text?: string };
+        rating?: number;
+        userRatingCount?: number;
+        location?: { latitude?: number; longitude?: number };
+        formattedAddress?: string;
+        googleMapsUri?: string;
+      }>;
+    } = await res.json();
+    const p = data.places?.[0];
+    if (!p?.id) return null;
+    return {
+      placeId: p.id,
+      name: p.displayName?.text ?? "",
+      rating: typeof p.rating === "number" ? p.rating : null,
+      ratingCount:
+        typeof p.userRatingCount === "number" ? p.userRatingCount : null,
+      lat: p.location?.latitude ?? null,
+      lng: p.location?.longitude ?? null,
+      address: p.formattedAddress ?? "",
+      mapsUri: p.googleMapsUri ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // 地址 → 经纬度（Geocoding API，服务端 key）。用于给只有文字地址、没坐标的店补坐标，
 // 让它们能上地图。模糊地址（"尔湾"）会返回城市级坐标——够把 pin 放上去。
 // 需要 server key 启用 Geocoding API；失败/无结果一律返回 null（不抛，调用方跳过即可）。
