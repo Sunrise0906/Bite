@@ -121,7 +121,10 @@
 .ui-v2 .v2-lhead .row1 { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
 .ui-v2 .v2-lhead h1 { font-family:var(--v2-serif); font-weight:600; font-size:25px; letter-spacing:-.01em; line-height:1.1; }
 .ui-v2 .v2-lhead .stats { margin-top:8px; display:flex; align-items:center; gap:8px; font-size:13px; color:var(--v2-muted); flex-wrap:wrap; }
-.ui-v2 .v2-pcard { display:flex; gap:12px; background:var(--v2-surface); border:1px solid var(--v2-border); border-radius:16px; padding:11px; box-shadow:var(--v2-shadow-sm); margin-bottom:10px; }
+.ui-v2 .v2-pcard { display:flex; gap:0; background:var(--v2-surface); border:1px solid var(--v2-border); border-radius:16px; padding:11px; box-shadow:var(--v2-shadow-sm); margin-bottom:10px; }
+.ui-v2 .v2-pcard .pcard-main { flex:1; min-width:0; display:flex; gap:12px; }
+.ui-v2 .v2-pcard .pcard-menu { flex:none; align-self:stretch; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; width:52px; margin-left:10px; padding-left:10px; border-left:1px solid var(--v2-border); color:var(--v2-primary); font-size:11px; font-weight:700; }
+.ui-v2 .v2-pcard .pcard-menu:active { opacity:.6; }
 .ui-v2 .v2-pcard .cover { width:88px; height:88px; border-radius:12px; background-size:cover; background-position:center; background-color:var(--v2-surface2); flex:none; display:grid; place-items:center; color:var(--v2-faint); }
 .ui-v2 .v2-pcard .info { flex:1; min-width:0; display:flex; flex-direction:column; }
 .ui-v2 .v2-pcard .nm { font-weight:700; font-size:15px; display:flex; align-items:center; gap:7px; }

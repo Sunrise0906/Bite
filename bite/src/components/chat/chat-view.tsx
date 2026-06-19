@@ -10,6 +10,7 @@ import {
   tryPrettyJson,
 } from "@/lib/llm/tool-summary";
 import { parseLinkifiedSegments } from "@/lib/chat/linkify";
+import { menuSearchUrl } from "@/lib/places/menu-url";
 import {
   AlertIcon,
   CheckIcon,
@@ -622,6 +623,14 @@ function RecCard({ name, place }: { name: string; place: PlaceRef }) {
           <Link href={`/lists/${place.list_id}/places/${place.id}`} className="b1">
             看详情
           </Link>
+          <a
+            href={menuSearchUrl(name)}
+            target="_blank"
+            rel="noreferrer"
+            className="b2"
+          >
+            看菜单
+          </a>
         </div>
       </div>
     </div>

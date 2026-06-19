@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { VisitLogButton } from "@/components/visits/visit-log-button";
+import { menuSearchUrl } from "@/lib/places/menu-url";
 
 export type DetailPlace = {
   id: string;
@@ -312,6 +313,21 @@ export function PlaceDetailV2({
             )}
           </div>
         )}
+
+        {/* 看菜单（最显眼的主行动） */}
+        <a
+          className="v2-btn"
+          href={menuSearchUrl(place.name, place.address)}
+          target="_blank"
+          rel="noreferrer"
+          style={{ width: "100%", padding: 13, marginTop: 16 }}
+        >
+          <svg className="v2-svg" width="17" height="17" viewBox="0 0 24 24" style={{ stroke: "#fff" }}>
+            <path d="M5 3h11a2 2 0 0 1 2 2v15l-3-2-3 2-3-2-3 2V5a2 2 0 0 1 2-2z" />
+            <path d="M8 7h6M8 11h6M8 15h4" />
+          </svg>
+          看这家的菜单
+        </a>
 
         {/* 操作 */}
         <div className="v2-dactions">

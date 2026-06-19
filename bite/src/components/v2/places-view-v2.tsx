@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Place, PlaceStatus } from "@/lib/db/types";
 import { relDate } from "@/lib/util/rel-date";
+import { menuSearchUrl } from "@/lib/places/menu-url";
 import type { PlaceVisitSummary } from "@/components/places/places-view";
 
 const STATUS_ORDER: PlaceStatus[] = ["want_to_go", "visited", "archived"];
@@ -207,7 +208,11 @@ function PlaceCardV2({
     .join(" · ");
 
   return (
-    <Link href={`/lists/${listId}/places/${place.id}`} className="v2-pcard">
+    <div className="v2-pcard">
+      <Link
+        href={`/lists/${listId}/places/${place.id}`}
+        className="pcard-main"
+      >
       <div
         className="cover"
         style={photo ? { backgroundImage: `url('${photo}')` } : undefined}
@@ -262,6 +267,30 @@ function PlaceCardV2({
           </div>
         )}
       </div>
-    </Link>
+      </Link>
+      <a
+        className="pcard-menu"
+        href={menuSearchUrl(place.name, place.address)}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`看 ${place.name} 的菜单`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M5 3h11a2 2 0 0 1 2 2v15l-3-2-3 2-3-2-3 2V5a2 2 0 0 1 2-2z" />
+          <path d="M8 7h6M8 11h6M8 15h4" />
+        </svg>
+        菜单
+      </a>
+    </div>
   );
 }
