@@ -7,6 +7,7 @@ import {
   type ExtractedPlace,
 } from "@/lib/llm/extract-place";
 import { extractXhsUrl, scrapeXhsUrl, stripXhsUrl } from "@/lib/places/xhs";
+import { findPlaceOnGoogle } from "@/lib/places/google";
 import {
   mergeReasons,
   pickPhotosByIndices,
@@ -228,6 +229,9 @@ type UpsertCandidate = {
   source: SourceValue;
   source_url: string | null;
   google_place_id: string | null;
+  google_rating: number | null;
+  google_rating_count: number | null;
+  google_maps_uri: string | null;
   lat: number | null;
   lng: number | null;
 };
@@ -274,6 +278,25 @@ async function upsertPlaces(
     existingByName.set(row.name, row);
   }
 
+  // 加店自动丰富：给还没有 google_place_id 的候选并行在 Google 上找一下，
+  // 拿评分 / 评价数 / 精确坐标 / 地图链接（best-effort，失败/没找到就跳过，不阻断加店）
+  await Promise.all(
+    candidates.map(async (c) => {
+      if (c.google_place_id) return;
+      const query = [c.name, c.address].filter(Boolean).join(" ");
+      const m = await findPlaceOnGoogle(query);
+      if (!m) return;
+      c.google_place_id = m.placeId;
+      c.google_rating = m.rating;
+      c.google_rating_count = m.ratingCount;
+      c.google_maps_uri = m.mapsUri;
+      if (c.lat == null && m.lat != null && m.lng != null) {
+        c.lat = m.lat;
+        c.lng = m.lng;
+      }
+    }),
+  );
+
   let inserted = 0;
   let updated = 0;
 
@@ -302,6 +325,19 @@ async function upsertPlaces(
       const occasions = unionStrings(existing.occasions, c.occasions);
       const dishes = unionStrings(existing.dishes, c.dishes);
 
+      // Google 字段只在这次拿到了才写（不要用 null 覆盖既有评分/坐标）
+      const googleFields = c.google_place_id
+        ? {
+            google_place_id: c.google_place_id,
+            google_rating: c.google_rating,
+            google_rating_count: c.google_rating_count,
+            google_maps_uri: c.google_maps_uri,
+            ...(c.lat != null && c.lng != null
+              ? { lat: c.lat, lng: c.lng }
+              : {}),
+          }
+        : {};
+
       // 客观字段：用最新覆盖
       const updateFields = {
         address: c.address,
@@ -310,9 +346,6 @@ async function upsertPlaces(
         recommended_by: c.recommended_by,
         source: c.source,
         source_url: c.source_url,
-        google_place_id: c.google_place_id,
-        lat: c.lat,
-        lng: c.lng,
         // merged
         reasons,
         notes,
@@ -321,6 +354,7 @@ async function upsertPlaces(
         tags,
         occasions,
         dishes,
+        ...googleFields,
       };
 
       const { error } = await supabase
@@ -354,6 +388,9 @@ async function upsertPlaces(
         source: c.source,
         source_url: c.source_url,
         google_place_id: c.google_place_id,
+        google_rating: c.google_rating,
+        google_rating_count: c.google_rating_count,
+        google_maps_uri: c.google_maps_uri,
         lat: c.lat,
         lng: c.lng,
         created_by: userId,
@@ -423,6 +460,9 @@ export async function savePlaceFromDraft(
         source,
         source_url: sourceUrl,
         google_place_id: googlePlaceId,
+        google_rating: null,
+        google_rating_count: null,
+        google_maps_uri: null,
         lat: Number.isFinite(lat) ? lat : null,
         lng: Number.isFinite(lng) ? lng : null,
       },
@@ -495,6 +535,9 @@ export async function savePlacesBatch(
     source: draft.source,
     source_url: draft.sourceUrl ?? null,
     google_place_id: null,
+    google_rating: null,
+    google_rating_count: null,
+    google_maps_uri: null,
     lat: null,
     lng: null,
   }));
