@@ -127,7 +127,7 @@ export default async function ProfilePage() {
             <h2 className="text-lg text-[var(--text-strong)]">界面版本</h2>
           </div>
           <p className="mt-1.5 text-xs text-[var(--text-muted)]">
-            V2 是正在试用的新版设计，随时可切回 V1 经典版。
+            V2 新版是默认界面，不习惯可随时切回 V1 经典版。
           </p>
         </div>
         <UiVersionToggle current={uiVersion} />

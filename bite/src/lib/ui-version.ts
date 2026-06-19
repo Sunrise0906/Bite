@@ -7,8 +7,8 @@ export type UiVersion = "v1" | "v2";
 
 export const UI_COOKIE = "bite_ui";
 
-/** 服务端读当前 UI 版本（默认 v1，绝不影响没切的人） */
+/** 服务端读当前 UI 版本。默认 V2（新版）；只有显式切到 V1 才回经典版。 */
 export async function getUiVersion(): Promise<UiVersion> {
   const store = await cookies();
-  return store.get(UI_COOKIE)?.value === "v2" ? "v2" : "v1";
+  return store.get(UI_COOKIE)?.value === "v1" ? "v1" : "v2";
 }

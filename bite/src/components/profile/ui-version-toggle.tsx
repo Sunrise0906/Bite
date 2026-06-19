@@ -6,8 +6,8 @@ import { setUiVersion } from "@/lib/actions/ui-version";
 import type { UiVersion } from "@/lib/ui-version";
 
 const OPTS: Array<{ v: UiVersion; label: string; sub: string }> = [
-  { v: "v1", label: "V1 经典", sub: "当前稳定版" },
-  { v: "v2", label: "V2 新版", sub: "决策优先 · 试用中" },
+  { v: "v2", label: "V2 新版", sub: "决策优先 · 默认" },
+  { v: "v1", label: "V1 经典", sub: "旧版" },
 ];
 
 export function UiVersionToggle({ current }: { current: UiVersion }) {
