@@ -14,6 +14,7 @@ import {
   unionStrings,
 } from "@/lib/places/merge";
 import { createClient, requireUser } from "@/lib/supabase/server";
+import { normalizePhotoUrl } from "@/lib/storage/signed-photos";
 import type { PlacePrice, PlaceStatus } from "@/lib/db/types";
 
 // Draft 存在 Supabase public.quick_add_drafts，按 user_id UPSERT
@@ -435,7 +436,9 @@ export async function savePlaceFromDraft(
   const photoUrls = String(formData.get("photo_urls_text") ?? "")
     .split(/\r?\n/)
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    // 用户从页面复制到的自家图是 7 天 signed URL，落库前转回 canonical
+    .map((s) => normalizePhotoUrl(s));
 
   const supabase = await createClient();
   const { inserted, updated, error } = await upsertPlaces(

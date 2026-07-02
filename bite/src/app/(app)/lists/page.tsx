@@ -4,6 +4,7 @@ import { ListCardMenu } from "@/components/lists/list-card-menu";
 import { QuickAddInput } from "@/components/places/quick-add-input";
 import { ChevronRightIcon, UsersIcon } from "@/components/ui/icons";
 import { createClient, requireUser } from "@/lib/supabase/server";
+import { signNestedPhotoUrls } from "@/lib/storage/signed-photos";
 import { getUiVersion } from "@/lib/ui-version";
 import { HomeV2, type DeckItem, type ListVM } from "@/components/v2/home-v2";
 
@@ -80,6 +81,16 @@ async function renderHomeV2(
     );
   const lists = (data ?? []) as V2List[];
   const listIds = lists.map((l) => l.id);
+
+  // 缩略图 / deck / 底图：自家 Storage 图换 signed URL（photos bucket 私有化）
+  const allPlaces = lists.flatMap((l) => l.places ?? []);
+  const signedGroups = await signNestedPhotoUrls(
+    supabase,
+    allPlaces.map((p) => p.photo_urls ?? []),
+  );
+  allPlaces.forEach((p, i) => {
+    p.photo_urls = signedGroups[i];
+  });
 
   // 共享成员：list_members + 相关 profiles（含 owner + 当前用户）
   const membersByList = new Map<string, string[]>();

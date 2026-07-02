@@ -30,6 +30,8 @@ type Props = {
   mode: Mode;
   open: boolean;
   onClose: () => void;
+  /** canonical → signed 预览映射（photos bucket 私有后 img 用它）。见 lib/storage/signed-photos */
+  photoDisplayMap?: Record<string, string>;
 };
 
 function todayIsoDate(): string {
@@ -49,7 +51,7 @@ function isoToDateInput(iso: string): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export function VisitLogForm({ mode, open, onClose }: Props) {
+export function VisitLogForm({ mode, open, onClose, photoDisplayMap }: Props) {
   const action = mode.kind === "create" ? logVisit : updateVisit;
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -61,8 +63,11 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
   const initialStar = mode.kind === "edit" ? mode.log.star_rating : null;
   const [star, setStar] = useState<number | null>(initialStar);
 
+  // photoUrls 存 canonical（hidden input 落库用）；img 预览查 displayMap 换 signed
   const initialPhotos = mode.kind === "edit" ? (mode.log.photos ?? []) : [];
   const [photoUrls, setPhotoUrls] = useState<string[]>(initialPhotos);
+  const [uploadedMap, setUploadedMap] = useState<Record<string, string>>({});
+  const displayMap = { ...(photoDisplayMap ?? {}), ...uploadedMap };
 
   if (!open) return null;
 
@@ -250,7 +255,7 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={url}
+                    src={displayMap[url] ?? url}
                     alt={`图 ${i + 1}`}
                     className="h-full w-full object-cover"
                     referrerPolicy="no-referrer"
@@ -272,7 +277,12 @@ export function VisitLogForm({ mode, open, onClose }: Props) {
           <PhotoUpload
             className="mt-2"
             currentCount={photoUrls.length}
-            onUploaded={(url) => setPhotoUrls((prev) => [...prev, url])}
+            onUploaded={(url, displayUrl) => {
+              setPhotoUrls((prev) => [...prev, url]);
+              if (displayUrl !== url) {
+                setUploadedMap((prev) => ({ ...prev, [url]: displayUrl }));
+              }
+            }}
           />
         </div>
 

@@ -6,6 +6,7 @@ import { PlaceForm } from "@/components/places/place-form";
 import { DeletePlaceButton } from "@/components/places/delete-place-button";
 import { VisitHistory } from "@/components/visits/visit-history";
 import { RecommendButton } from "@/components/recommendations/recommend-button";
+import { buildPhotoDisplayMap } from "@/lib/storage/signed-photos";
 
 type Params = Promise<{ id: string; placeId: string }>;
 
@@ -92,6 +93,13 @@ export default async function EditPlacePage({ params }: { params: Params }) {
   if (!place) notFound();
   const logs = (visitLogs ?? []) as VisitLog[];
 
+  // 编辑页表单存 canonical URL；img 预览需要 canonical → signed 映射
+  // （覆盖店铺图 + 所有造访记录图）。photos bucket 私有化后 canonical 打不开。
+  const photoDisplayMap = await buildPhotoDisplayMap(supabase, [
+    ...(place.photo_urls ?? []),
+    ...logs.flatMap((l) => l.photos ?? []),
+  ]);
+
   // 算 canEdit：owner 或 list_members.role='co_owner'
   let canEdit = listRow?.owner_id === user.id;
   if (!canEdit) {
@@ -162,6 +170,7 @@ export default async function EditPlacePage({ params }: { params: Params }) {
         place={place}
         currentUserId={user.id}
         readOnly={!canEdit}
+        photoDisplayMap={photoDisplayMap}
       />
 
       <div className="mt-12 border-t border-[var(--border-subtle)] pt-8">
@@ -171,6 +180,7 @@ export default async function EditPlacePage({ params }: { params: Params }) {
           canEdit={canEdit}
           currentUserId={user.id}
           visitAuthors={visitAuthors}
+          photoDisplayMap={photoDisplayMap}
         />
       </div>
 

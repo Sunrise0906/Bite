@@ -5,6 +5,7 @@ import { ChatView } from "@/components/chat/chat-view";
 import { ConvoMenu } from "@/components/chat/convo-menu";
 import { loadUserLlmSettings, resolveConfig } from "@/lib/llm/router";
 import { PROVIDER_LABELS, type LlmContentBlock } from "@/lib/llm/types";
+import { signNestedPhotoUrls } from "@/lib/storage/signed-photos";
 import { getUiVersion } from "@/lib/ui-version";
 
 type SearchParamsForMeta = Promise<{ c?: string }>;
@@ -62,14 +63,23 @@ export default async function ChatPage(props: {
   };
   let placeMap: Record<string, PlaceRich> = {};
   if (listIds.length > 0) {
-    const { data: places } = await supabase
+    const { data: placesData } = await supabase
       .from("places")
       .select(
         "id, list_id, name, cuisine, status, price_range, photo_urls, reasons, notes",
       )
       .in("list_id", listIds);
+    // 推荐卡封面：自家 Storage 图换 signed URL（photos bucket 私有化）
+    const places = placesData ?? [];
+    const signedGroups = await signNestedPhotoUrls(
+      supabase,
+      places.map((p) => (p.photo_urls ?? []) as string[]),
+    );
+    places.forEach((p, i) => {
+      p.photo_urls = signedGroups[i];
+    });
     placeMap = Object.fromEntries(
-      (places ?? []).map((p) => {
+      places.map((p) => {
         const reasons = (p.reasons ?? []) as Array<{
           user_id: string;
           text: string;

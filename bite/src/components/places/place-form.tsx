@@ -23,6 +23,8 @@ type Mode =
       place?: undefined;
       currentUserId: string;
       readOnly?: boolean;
+      /** canonical → signed 预览映射（photos bucket 私有后 img 用它）。见 lib/storage/signed-photos */
+      photoDisplayMap?: Record<string, string>;
     }
   | {
       mode: "edit";
@@ -30,6 +32,7 @@ type Mode =
       place: Place;
       currentUserId: string;
       readOnly?: boolean;
+      photoDisplayMap?: Record<string, string>;
     };
 
 export function PlaceForm(props: Mode) {
@@ -41,14 +44,19 @@ export function PlaceForm(props: Mode) {
     place?.reasons.find((r) => r.user_id === props.currentUserId)?.text ?? "";
   const readOnly = props.readOnly === true;
 
-  // photo URLs 改成 controlled，提供实时预览
+  // photo URLs 改成 controlled，提供实时预览。
+  // textarea / 落库永远是 canonical URL；img 预览把 canonical 换成 signed
+  // （server 传来的 photoDisplayMap + 本次上传新增的 uploadedMap）。
   const [photoText, setPhotoText] = useState(
     (place?.photo_urls ?? []).join("\n"),
   );
+  const [uploadedMap, setUploadedMap] = useState<Record<string, string>>({});
+  const displayMap = { ...(props.photoDisplayMap ?? {}), ...uploadedMap };
   const previewUrls = photoText
     .split(/\r?\n/)
     .map((s) => s.trim())
-    .filter((s) => /^https?:\/\//i.test(s));
+    .filter((s) => /^https?:\/\//i.test(s))
+    .map((u) => displayMap[u] ?? u);
   // 默认收起 URL 编辑区，光看预览不被一堆链接刷屏
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
 
@@ -241,9 +249,12 @@ export function PlaceForm(props: Mode) {
               <PhotoUpload
                 className="mt-2"
                 currentCount={previewUrls.length}
-                onUploaded={(url) =>
-                  setPhotoText((prev) => (prev ? `${prev}\n${url}` : url))
-                }
+                onUploaded={(url, displayUrl) => {
+                  setPhotoText((prev) => (prev ? `${prev}\n${url}` : url));
+                  if (displayUrl !== url) {
+                    setUploadedMap((prev) => ({ ...prev, [url]: displayUrl }));
+                  }
+                }}
               />
             )}
             {/* textarea 始终在 DOM（form 要提交），用 hidden 控制可见 */}

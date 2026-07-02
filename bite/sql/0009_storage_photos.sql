@@ -3,6 +3,11 @@
 --
 -- 用法：Supabase Dashboard → SQL Editor → 粘贴本文件 → Run（脚本幂等，可重复跑）
 --
+-- ⚠️ 0013 之后：bucket 的 public 状态由 sql/0013 唯一权威管理（已改为私有）。
+--    本文件重跑不会动 public 列（on conflict 不更新它），但第 2 段会重建
+--    photos_select_public_read（含 anon）策略——0013 之后如需重跑本文件，
+--    请跑完后再跑一遍 0013 恢复收紧后的 SELECT 策略。
+--
 -- 做了什么：
 --   1. 建/更新 storage.buckets 里名为 'photos' 的 bucket：
 --        public=true（CDN 公开读）, 10MB 上限, 仅图片 MIME 白名单
@@ -39,8 +44,8 @@ values (
   ]
 )
 on conflict (id) do update
-  set public = excluded.public,
-      file_size_limit = excluded.file_size_limit,
+  -- 故意不更新 public：0013 把 bucket 翻私有后，重跑本文件不得静默翻回 public
+  set file_size_limit = excluded.file_size_limit,
       allowed_mime_types = excluded.allowed_mime_types;
 
 -- ---- 2. RLS 策略：storage.objects（作用域 bucket_id = 'photos'）------------

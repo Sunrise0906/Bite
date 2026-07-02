@@ -15,7 +15,11 @@ type Pending = {
 };
 
 type Props = {
-  onUploaded: (url: string) => void;
+  /**
+   * 每张上传成功回调。url 是 canonical URL（落库/写进表单字段用）；
+   * displayUrl 是 signed 预览 URL（bucket 私有后 canonical 打不开，img 用它）。
+   */
+  onUploaded: (url: string, displayUrl: string) => void;
   className?: string;
   /** 单次/总数上限，默认 9 张（对齐小红书） */
   maxFiles?: number;
@@ -92,7 +96,7 @@ export function PhotoUpload({
     try {
       const result = await uploadPhoto(fd);
       if (result.ok) {
-        onUploaded(result.public_url);
+        onUploaded(result.public_url, result.display_url);
         updatePending(p.id, { status: "done" });
         // done 的稍等淡出（保留 800ms 让用户看见成功）
         setTimeout(() => removePending(p.id), 800);

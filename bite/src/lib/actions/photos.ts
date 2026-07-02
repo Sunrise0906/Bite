@@ -3,9 +3,17 @@
 import { randomUUID } from "node:crypto";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { validatePhotoFile } from "@/lib/storage/validate";
+import { PHOTO_URL_TTL_SEC } from "@/lib/storage/signed-photos";
 
 export type UploadPhotoResult =
-  | { ok: true; public_url: string; path: string }
+  | {
+      ok: true;
+      /** canonical URL（落库用的稳定标识；bucket 私有后不能直接访问） */
+      public_url: string;
+      /** 展示用 signed URL（表单里即时预览）；签名失败时同 public_url */
+      display_url: string;
+      path: string;
+    }
   | { ok: false; error: string };
 
 /**
@@ -62,7 +70,14 @@ export async function uploadPhoto(
     return { ok: false, error: "拿不到 public URL" };
   }
 
-  return { ok: true, public_url: data.publicUrl, path };
+  // bucket 私有后 public URL 打不开，预览要用 signed URL；失败回退（public 时照常）
+  let displayUrl = data.publicUrl;
+  const { data: signed } = await supabase.storage
+    .from("photos")
+    .createSignedUrl(path, PHOTO_URL_TTL_SEC);
+  if (signed?.signedUrl) displayUrl = signed.signedUrl;
+
+  return { ok: true, public_url: data.publicUrl, display_url: displayUrl, path };
 }
 
 /**

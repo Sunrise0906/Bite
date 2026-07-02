@@ -63,6 +63,7 @@ export function VisitHistory({
   canEdit = true,
   currentUserId,
   visitAuthors = {},
+  photoDisplayMap,
 }: {
   placeId: string;
   logs: VisitLog[];
@@ -71,6 +72,8 @@ export function VisitHistory({
   currentUserId?: string;
   /** user_id → display name，用来显示别人的记录作者 */
   visitAuthors?: Record<string, string>;
+  /** canonical → signed 预览映射，透传给编辑表单（photos bucket 私有化） */
+  photoDisplayMap?: Record<string, string>;
 }) {
   const [editingLog, setEditingLog] = useState<VisitLog | null>(null);
 
@@ -192,6 +195,7 @@ export function VisitHistory({
           mode={{ kind: "edit", log: editingLog }}
           open={true}
           onClose={() => setEditingLog(null)}
+          photoDisplayMap={photoDisplayMap}
         />
       )}
     </div>

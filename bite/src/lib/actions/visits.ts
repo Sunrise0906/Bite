@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
+import { normalizePhotoUrl } from "@/lib/storage/signed-photos";
 import {
   normalize,
   parseSentiment,
@@ -17,13 +18,15 @@ export type VisitFormState = {
   version?: number;
 };
 
-// 与 places.ts 的 photo_urls_text 解析对齐：split \n、trim、保留 https://
+// 与 places.ts 的 photo_urls_text 解析对齐：split \n、trim、保留 https://。
+// normalizePhotoUrl：用户从页面复制到的自家图是 7 天 signed URL，落库前转回 canonical
 function parsePhotosText(raw: FormDataEntryValue | null): string[] {
   if (typeof raw !== "string") return [];
   return raw
     .split(/\r?\n/)
     .map((s) => s.trim())
-    .filter((s) => /^https?:\/\//i.test(s));
+    .filter((s) => /^https?:\/\//i.test(s))
+    .map((s) => normalizePhotoUrl(s));
 }
 
 // ---- 创建 visit log ------------------------------------------------------

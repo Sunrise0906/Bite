@@ -7,6 +7,7 @@ import {
   type VisitLogRow,
 } from "@/lib/visits/aggregate";
 import { relDate } from "@/lib/util/rel-date";
+import { signPhotoUrls } from "@/lib/storage/signed-photos";
 import { PlaceDetailV2 } from "@/components/v2/place-detail-v2";
 
 type Params = Promise<{ id: string; placeId: string }>;
@@ -56,6 +57,9 @@ export default async function PlaceDetailPage({ params }: { params: Params }) {
 
   if (!place) notFound();
   const logs = (visitLogs ?? []) as VisitLog[];
+
+  // 展示页：自家 Storage 图换 signed URL（外链原样）
+  const displayPhotos = await signPhotoUrls(supabase, place.photo_urls ?? []);
 
   let canEdit = listRow?.owner_id === user.id;
   if (!canEdit) {
@@ -111,7 +115,7 @@ export default async function PlaceDetailPage({ params }: { params: Params }) {
         cuisine: place.cuisine ?? [],
         price_range: place.price_range,
         status: place.status,
-        photo_urls: place.photo_urls ?? [],
+        photo_urls: displayPhotos,
         reasons,
         notes: place.notes ?? null,
         dishes: place.dishes ?? [],

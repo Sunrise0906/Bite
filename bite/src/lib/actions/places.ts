@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
+import { normalizePhotoUrl } from "@/lib/storage/signed-photos";
 import type { PlacePrice, PlaceStatus } from "@/lib/db/types";
 
 export type PlaceFormState = {
@@ -63,7 +64,9 @@ export async function createPlace(
   const photoUrls = String(formData.get("photo_urls_text") ?? "")
     .split(/\r?\n/)
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    // 用户从页面复制到的自家图是 7 天 signed URL，落库前转回 canonical
+    .map((s) => normalizePhotoUrl(s));
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -133,7 +136,8 @@ export async function updatePlace(
             photo_urls: String(photoRaw)
               .split(/\r?\n/)
               .map((s) => s.trim())
-              .filter(Boolean),
+              .filter(Boolean)
+              .map((s) => normalizePhotoUrl(s)),
           }
         : {}),
     })

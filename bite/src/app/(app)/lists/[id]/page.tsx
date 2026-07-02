@@ -22,6 +22,7 @@ import {
 import { LeaveListButton } from "@/components/lists/leave-list-button";
 import { UsersIcon } from "@/components/ui/icons";
 import { safeDecodeURIComponent } from "@/lib/url/safe-decode";
+import { signNestedPhotoUrls } from "@/lib/storage/signed-photos";
 import { getUiVersion } from "@/lib/ui-version";
 import { ListDetailV2 } from "@/components/v2/list-detail-v2";
 
@@ -73,6 +74,16 @@ export default async function ListDetailPage({
   if (!list) notFound();
 
   const places = (placesData ?? []) as Place[];
+
+  // 卡片封面：自家 Storage 图换 signed URL（photos bucket 私有化）。
+  // 本页只做展示；编辑页会重新拉 canonical，不受影响。
+  const signedGroups = await signNestedPhotoUrls(
+    supabase,
+    places.map((p) => p.photo_urls ?? []),
+  );
+  places.forEach((p, i) => {
+    p.photo_urls = signedGroups[i];
+  });
 
   // 共享 list 才有意义 fetch profiles：personal list 上所有 reasons 都是 owner 自己的，
   // 不显示作者标签更简洁。memberRole != null 或 owner 有共同所有者 / 查看者时才查。
