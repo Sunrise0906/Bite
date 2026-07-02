@@ -15,7 +15,7 @@ const env = Object.fromEntries(
       return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^"|"$/g, "")];
     }),
 );
-const BASE = "http://localhost:3000";
+const BASE = process.env.VERIFY_BASE || "http://localhost:3000";
 const SUPA = env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
