@@ -12,6 +12,7 @@ import { RetryExtract } from "@/components/places/retry-extract";
 import { InlineCreateList } from "@/components/lists/inline-create-list";
 import { AlertIcon } from "@/components/ui/icons";
 import type { ExtractedPlace } from "@/lib/llm/extract-place";
+import { getUiVersion } from "@/lib/ui-version";
 
 export const metadata = {
   title: "确认店铺 · Bite",
@@ -31,6 +32,7 @@ export default async function QuickAddPage({
   const { placeId, sessionToken } = await searchParams;
   const user = await requireUser();
   const supabase = await createClient();
+  const v2 = (await getUiVersion()) === "v2";
 
   // 用户可写的 list：owner + 任何 list_members.role='co_owner'
   const [{ data: listsRows }, { data: memberships }] = await Promise.all([
@@ -61,14 +63,27 @@ export default async function QuickAddPage({
 
   if (writableLists.length === 0) {
     return (
-      <main className="mx-auto w-full max-w-xl px-5 py-10">
-        <Link
-          href="/lists"
-          className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
-        >
-          ‹ 取消并返回
-        </Link>
-        <h1 className="heading-display mb-4 text-2xl">先建一个 list</h1>
+      <main className={v2 ? "v2-page" : "mx-auto w-full max-w-xl px-5 py-10"}>
+        {v2 ? (
+          <div className="v2-lhead">
+            <Link href="/lists" className="v2-back">
+              ‹ 取消并返回
+            </Link>
+            <div className="row1">
+              <h1>先建一个 list</h1>
+            </div>
+          </div>
+        ) : (
+          <>
+            <Link
+              href="/lists"
+              className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
+            >
+              ‹ 取消并返回
+            </Link>
+            <h1 className="heading-display mb-4 text-2xl">先建一个 list</h1>
+          </>
+        )}
         <InlineCreateList />
       </main>
     );
@@ -147,20 +162,36 @@ export default async function QuickAddPage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-xl px-5 py-6 sm:py-10">
-      <Link
-        href="/lists"
-        className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
-      >
-        ‹ 取消并返回
-      </Link>
+    <main className={v2 ? "v2-page" : "mx-auto w-full max-w-xl px-5 py-6 sm:py-10"}>
+      {v2 ? (
+        <div className="v2-lhead" style={{ marginBottom: 14 }}>
+          <Link href="/lists" className="v2-back">
+            ‹ 取消并返回
+          </Link>
+          <div className="row1">
+            <h1>确认店铺信息</h1>
+          </div>
+          <div className="stats">
+            <span>检查字段、选择目标 list，然后保存</span>
+          </div>
+        </div>
+      ) : (
+        <>
+          <Link
+            href="/lists"
+            className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
+          >
+            ‹ 取消并返回
+          </Link>
 
-      <header className="mb-8">
-        <h1 className="heading-display text-3xl">确认店铺信息</h1>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
-          检查字段、选择目标 list，然后保存
-        </p>
-      </header>
+          <header className="mb-8">
+            <h1 className="heading-display text-3xl">确认店铺信息</h1>
+            <p className="mt-2 text-sm text-[var(--text-muted)]">
+              检查字段、选择目标 list，然后保存
+            </p>
+          </header>
+        </>
+      )}
 
       {fetchError && (
         <div className="alert-error mb-5 flex items-start gap-2" role="alert">
@@ -187,6 +218,7 @@ export default async function QuickAddPage({
           source={pageSource}
           confidence={confidence}
           existingInLists={existingInLists}
+          v2={v2}
         />
       )}
 

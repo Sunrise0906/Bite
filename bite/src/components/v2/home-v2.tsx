@@ -2,6 +2,7 @@ import Link from "next/link";
 import { QuickAddInput } from "@/components/places/quick-add-input";
 import { RandomPickButton } from "./random-pick-button";
 import { DeckSection } from "./deck-section";
+import { CreateListV2 } from "./create-list-v2";
 
 export type DeckItem = {
   placeId: string;
@@ -141,9 +142,9 @@ export function HomeV2({
         <span className="more">管理</span>
       </div>
       {lists.length === 0 ? (
-        <div className="v2-empty">
+        <div className="v2-empty" style={{ paddingBottom: 24 }}>
           <div className="t">还没有清单</div>
-          <div className="s">在上面输入个名字，比如「Irvine 想吃的」</div>
+          <div className="s">在下面输入个名字，比如「Irvine 想吃的」</div>
         </div>
       ) : (
         lists.map((l) => (
@@ -186,6 +187,8 @@ export function HomeV2({
           </Link>
         ))
       )}
+
+      <CreateListV2 />
     </main>
   );
 }

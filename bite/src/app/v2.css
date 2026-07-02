@@ -115,6 +115,14 @@
 .ui-v2 .v2-empty .t { font-family:var(--v2-serif); font-size:18px; font-weight:600; margin-top:14px; }
 .ui-v2 .v2-empty .s { font-size:13.5px; color:var(--v2-muted); margin-top:6px; }
 
+.ui-v2 .v2-newlist { margin-top:4px; }
+.ui-v2 .v2-newlist .row { display:flex; gap:8px; }
+.ui-v2 .v2-newlist input { flex:1; min-width:0; border:1px dashed var(--v2-border2); background:transparent; border-radius:13px; padding:11px 13px; font-size:13px; font-family:var(--v2-sans); color:var(--v2-ink); }
+.ui-v2 .v2-newlist input::placeholder { color:var(--v2-faint); }
+.ui-v2 .v2-newlist input:focus { outline:none; border-style:solid; border-color:var(--v2-primary); background:var(--v2-surface); box-shadow:0 0 0 3px var(--v2-primary-soft); }
+.ui-v2 .v2-newlist .v2-btn { flex:none; padding:11px 16px; font-size:13px; }
+.ui-v2 .v2-newlist .err { margin-top:7px; font-size:12.5px; color:#b3402a; }
+
 /* ---------- 清单详情：店铺卡片（横向） ---------- */
 .ui-v2 .v2-lhead { padding:18px 0 6px; }
 .ui-v2 .v2-back { display:inline-flex; align-items:center; gap:5px; font-size:13px; color:var(--v2-muted); margin-bottom:12px; }
@@ -197,4 +205,10 @@
 .ui-v2 .v2-preview .nm { font-family:var(--v2-serif); font-weight:600; font-size:19px; }
 .ui-v2 .v2-preview .mt { font-size:12.5px; color:var(--v2-muted); margin-top:7px; }
 .ui-v2 .v2-preview .chips { display:flex; gap:6px; margin-top:9px; flex-wrap:wrap; }
-.ui-v2 .v2-preview .ai { margin-top:11px; font-size:12px; color:#7a3614; background:#fdf0e8; border-radius:9px; padding:8px 10px; line-height:1.45; }
+.ui-v2 .v2-preview .ai { margin-top:11px; font-size:12px; color:var(--v2-primary-soft-tx); background:var(--v2-primary-soft); border-radius:9px; padding:8px 10px; line-height:1.45; }
+
+/* 加店确认（单店表单 + 合集勾选卡） */
+.ui-v2 .v2-ccard { display:flex; align-items:flex-start; gap:11px; background:var(--v2-surface); border:1px solid var(--v2-border); border-radius:16px; padding:13px 14px; box-shadow:var(--v2-shadow-sm); cursor:pointer; transition:border-color .15s, box-shadow .15s; }
+.ui-v2 .v2-ccard.on { border-color:var(--v2-primary); box-shadow:0 0 0 3px var(--v2-primary-soft); }
+.ui-v2 .v2-pill-mute { background:var(--v2-sunken); color:var(--v2-muted); }
+.ui-v2 .v2-ainote-sm { display:flex; align-items:flex-start; gap:6px; font-size:12px; color:var(--v2-primary-soft-tx); background:var(--v2-primary-soft); border-radius:9px; padding:8px 10px; line-height:1.45; }

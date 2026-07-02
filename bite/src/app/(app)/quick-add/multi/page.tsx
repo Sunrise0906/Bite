@@ -7,6 +7,7 @@ import { RetryExtract } from "@/components/places/retry-extract";
 import { InlineCreateList } from "@/components/lists/inline-create-list";
 import { AlertIcon } from "@/components/ui/icons";
 import type { ListOption } from "@/components/places/place-confirm-form";
+import { getUiVersion } from "@/lib/ui-version";
 
 export const metadata = {
   title: "合集帖 · Bite",
@@ -14,6 +15,7 @@ export const metadata = {
 
 export default async function QuickAddMultiPage() {
   const user = await requireUser();
+  const v2 = (await getUiVersion()) === "v2";
   const draft = await readDraft();
 
   if (!draft) redirect("/lists");
@@ -48,14 +50,27 @@ export default async function QuickAddMultiPage() {
 
   if (writableLists.length === 0) {
     return (
-      <main className="mx-auto w-full max-w-xl px-5 py-10">
-        <Link
-          href="/lists"
-          className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
-        >
-          ‹ 取消并返回
-        </Link>
-        <h1 className="heading-display mb-4 text-2xl">先建一个 list</h1>
+      <main className={v2 ? "v2-page" : "mx-auto w-full max-w-xl px-5 py-10"}>
+        {v2 ? (
+          <div className="v2-lhead">
+            <Link href="/lists" className="v2-back">
+              ‹ 取消并返回
+            </Link>
+            <div className="row1">
+              <h1>先建一个 list</h1>
+            </div>
+          </div>
+        ) : (
+          <>
+            <Link
+              href="/lists"
+              className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
+            >
+              ‹ 取消并返回
+            </Link>
+            <h1 className="heading-display mb-4 text-2xl">先建一个 list</h1>
+          </>
+        )}
         <InlineCreateList message="AI 已经从你的内容里识别出多家店，但你还没有可写的 list。建一个之后会自动回到这里继续。" />
       </main>
     );
@@ -82,20 +97,36 @@ export default async function QuickAddMultiPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-5 py-6 sm:py-10">
-      <Link
-        href="/lists"
-        className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
-      >
-        ‹ 取消并返回
-      </Link>
+    <main className={v2 ? "v2-page" : "mx-auto w-full max-w-2xl px-5 py-6 sm:py-10"}>
+      {v2 ? (
+        <div className="v2-lhead" style={{ marginBottom: 14 }}>
+          <Link href="/lists" className="v2-back">
+            ‹ 取消并返回
+          </Link>
+          <div className="row1">
+            <h1>合集帖 · 多店选择</h1>
+          </div>
+          <div className="stats">
+            <span>每家店勾选后会作为独立条目添加到同一个 list</span>
+          </div>
+        </div>
+      ) : (
+        <>
+          <Link
+            href="/lists"
+            className="mb-6 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
+          >
+            ‹ 取消并返回
+          </Link>
 
-      <header className="mb-8">
-        <h1 className="heading-display text-3xl">合集帖 · 多店选择</h1>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
-          每家店勾选后会作为独立条目添加到同一个 list
-        </p>
-      </header>
+          <header className="mb-8">
+            <h1 className="heading-display text-3xl">合集帖 · 多店选择</h1>
+            <p className="mt-2 text-sm text-[var(--text-muted)]">
+              每家店勾选后会作为独立条目添加到同一个 list
+            </p>
+          </header>
+        </>
+      )}
 
       {draft.scrapeWarning && (
         <div
@@ -114,6 +145,7 @@ export default async function QuickAddMultiPage() {
         sourceUrl={draft.sourceUrl}
         existingByList={existingByList}
         photoUrls={draft.photoUrls}
+        v2={v2}
       />
 
       <div className="mt-8 border-t border-[var(--border-subtle)] pt-5">
