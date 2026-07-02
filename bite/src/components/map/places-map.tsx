@@ -13,12 +13,19 @@ type MapPlace = {
   has_visited?: boolean;
 };
 
-// Maps JS marker 画在 canvas 上，必须用 hex；取设计 token 的 light 值
-// （与图例的 var(--gold) / var(--sage) / var(--status-archived-dot) 对应）
+// Maps JS marker 画在 canvas 上必须给具体色值。这是 V1/无主题的兜底；
+// V2 下运行时从 .ui-v2 的 computed style 读 --v2-gold/--v2-sage/--v2-faint，
+// marker 颜色跟随主题。InfoWindow 气泡是 Google 的白底，文字固定深色不主题化。
 const STATUS_COLOR: Record<MapPlace["status"], string> = {
   want_to_go: "#b98a2f", // gold（想去）
   visited: "#5f7155", // sage（已去过）
   archived: "#a89c84", // 暖灰（归档）
+};
+
+const STATUS_VAR: Record<MapPlace["status"], string> = {
+  want_to_go: "--v2-gold",
+  visited: "--v2-sage",
+  archived: "--v2-faint",
 };
 
 const STATUS_LABEL: Record<MapPlace["status"], string> = {
@@ -55,6 +62,12 @@ export function PlacesMap({
       const g = (window as any).google;
       if (!g?.maps) return;
 
+      // V2 主题下 marker 用当前主题的 token 色（pop 的鲜绿 / midnight 的金…）
+      const themeEl = ref.current.closest(".ui-v2");
+      const cs = themeEl ? getComputedStyle(themeEl) : null;
+      const statusColor = (s: MapPlace["status"]): string =>
+        cs?.getPropertyValue(STATUS_VAR[s]).trim() || STATUS_COLOR[s];
+
       const bounds = new g.maps.LatLngBounds();
       places.forEach((p) => bounds.extend({ lat: p.lat, lng: p.lng }));
 
@@ -78,7 +91,7 @@ export function PlacesMap({
           icon: {
             path: g.maps.SymbolPath.CIRCLE,
             scale: 8,
-            fillColor: STATUS_COLOR[p.status],
+            fillColor: statusColor(p.status),
             fillOpacity: 0.9,
             strokeColor: "#fff",
             strokeWeight: 2,
@@ -89,7 +102,7 @@ export function PlacesMap({
           infoWindow.setContent(`
             <div style="padding:4px 6px; min-width:160px;">
               <div style="font-weight:600; color:#1f1a14;">${escapeHtml(p.name)}</div>
-              <div style="margin-top:2px; font-size:11px; color:#6b6253;"><span style="color:${STATUS_COLOR[p.status]};">●</span> ${STATUS_LABEL[p.status]}</div>
+              <div style="margin-top:2px; font-size:11px; color:#6b6253;"><span style="color:${statusColor(p.status)};">●</span> ${STATUS_LABEL[p.status]}</div>
               <a href="${link}" style="display:inline-block; margin-top:4px; font-size:11px; color:#9c4226; text-decoration:underline;">查看详情 ›</a>
             </div>
           `);

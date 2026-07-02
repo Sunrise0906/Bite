@@ -159,7 +159,8 @@ function PreviewCardV2({ initial }: { initial: InitialPlaceData }) {
           className="img"
           style={{
             height: 64,
-            background: "linear-gradient(135deg,#e8cdb8,#d9b49a)",
+            background:
+              "linear-gradient(135deg,var(--v2-surface2),var(--v2-sunken))",
           }}
         />
       )}

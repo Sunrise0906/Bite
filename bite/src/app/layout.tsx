@@ -1,5 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Inter } from "next/font/google";
+import {
+  Fraunces,
+  Inter,
+  Playfair_Display,
+  Space_Grotesk,
+} from "next/font/google";
 import { Toaster } from "sonner";
 import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
@@ -18,6 +23,22 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   weight: ["400", "500", "600", "700"],
+});
+
+// 主题字体：深夜食堂（奢华衬线）
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["500", "600", "700"],
+});
+
+// 主题字体：鲜果软糖（粗几何无衬线）
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-grotesk",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -52,7 +73,7 @@ export default function RootLayout({
   return (
     <html
       lang="zh-CN"
-      className={`${fraunces.variable} ${inter.variable} h-full antialiased`}
+      className={`${fraunces.variable} ${inter.variable} ${playfair.variable} ${spaceGrotesk.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         {children}

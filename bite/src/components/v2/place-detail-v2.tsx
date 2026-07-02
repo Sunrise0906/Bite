@@ -104,7 +104,8 @@ export function PlaceDetailV2({
           <div
             className="bg"
             style={{
-              background: "linear-gradient(135deg,#e8cdb8,#d9b49a)",
+              background:
+                "linear-gradient(135deg,var(--v2-surface2),var(--v2-sunken))",
               display: "grid",
               placeItems: "center",
             }}
@@ -114,7 +115,7 @@ export function PlaceDetailV2({
               height="56"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="rgba(255,255,255,.75)"
+              stroke="var(--v2-faint)"
               strokeWidth="1.4"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -180,7 +181,7 @@ export function PlaceDetailV2({
                 fontSize: 11,
                 fontWeight: 600,
                 color: "var(--v2-muted)",
-                border: "1px solid var(--v2-border2)",
+                border: "var(--v2-bw) solid var(--v2-border2)",
                 borderRadius: 999,
                 padding: "3px 10px",
               }}
@@ -303,7 +304,7 @@ export function PlaceDetailV2({
                 target="_blank"
                 rel="noreferrer"
                 style={{
-                  color: "var(--v2-primary)",
+                  color: "var(--v2-link)",
                   fontWeight: 600,
                   textDecoration: "underline",
                 }}
@@ -322,7 +323,8 @@ export function PlaceDetailV2({
           rel="noreferrer"
           style={{ width: "100%", padding: 13, marginTop: 16 }}
         >
-          <svg className="v2-svg" width="17" height="17" viewBox="0 0 24 24" style={{ stroke: "#fff" }}>
+          {/* stroke 走 currentColor：跟随按钮的 --v2-on-primary */}
+          <svg className="v2-svg" width="17" height="17" viewBox="0 0 24 24">
             <path d="M5 3h11a2 2 0 0 1 2 2v15l-3-2-3 2-3-2-3 2V5a2 2 0 0 1 2-2z" />
             <path d="M8 7h6M8 11h6M8 15h4" />
           </svg>

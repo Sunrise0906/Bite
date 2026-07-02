@@ -12,3 +12,19 @@ export async function getUiVersion(): Promise<UiVersion> {
   const store = await cookies();
   return store.get(UI_COOKIE)?.value === "v1" ? "v1" : "v2";
 }
+
+// ============================ V2 主题 ============================
+// 每套主题是完整的设计语言（配色 + 字体 + 圆角/阴影/描边形态），不只换色。
+// 常量/类型在 lib/theme.ts（client-safe，不含 next/headers）；这里只放
+// 服务端的 cookie 读取。
+
+import { THEME_COOKIE, isBiteTheme, type BiteTheme } from "@/lib/theme";
+
+export { THEME_COOKIE, isBiteTheme, THEMES, type BiteTheme } from "@/lib/theme";
+
+/** 服务端读当前主题。默认陶土（即 V2 原样）。 */
+export async function getTheme(): Promise<BiteTheme> {
+  const store = await cookies();
+  const v = store.get(THEME_COOKIE)?.value;
+  return isBiteTheme(v) ? v : "terracotta";
+}

@@ -7,8 +7,9 @@ import { ChevronRightIcon, InboxIcon } from "@/components/ui/icons";
 import { PROVIDER_PRESETS, type ProviderId } from "@/lib/llm/types";
 import type { UserLlmSettings } from "@/lib/llm/router";
 import { decryptSecret } from "@/lib/crypto/secret-box";
-import { getUiVersion } from "@/lib/ui-version";
+import { getTheme, getUiVersion } from "@/lib/ui-version";
 import { UiVersionToggle } from "@/components/profile/ui-version-toggle";
+import { ThemePicker } from "@/components/profile/theme-picker";
 
 export const metadata = {
   title: "我的 · Bite",
@@ -44,6 +45,7 @@ export default async function ProfilePage() {
   const user = await requireUser();
   const supabase = await createClient();
   const uiVersion = await getUiVersion();
+  const theme = await getTheme();
 
   const [
     { data: profile },
@@ -120,17 +122,25 @@ export default async function ProfilePage() {
         />
       </section>
 
-      {/* ---- 界面版本 ---- */}
+      {/* ---- 外观 ---- */}
       <section className="card mb-8 px-5 py-5">
         <div className="mb-3">
           <div className="section-heading">
-            <h2 className="text-lg text-[var(--text-strong)]">界面版本</h2>
+            <h2 className="text-lg text-[var(--text-strong)]">外观</h2>
           </div>
           <p className="mt-1.5 text-xs text-[var(--text-muted)]">
             V2 新版是默认界面，不习惯可随时切回 V1 经典版。
           </p>
         </div>
         <UiVersionToggle current={uiVersion} />
+        {uiVersion === "v2" && (
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-semibold text-[var(--text-muted)]">
+              主题风格（整套设计语言，不只换色）
+            </p>
+            <ThemePicker current={theme} />
+          </div>
+        )}
       </section>
 
       {/* ---- AI 用量 ---- */}

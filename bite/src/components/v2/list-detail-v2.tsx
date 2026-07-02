@@ -42,7 +42,7 @@ export function ListDetailV2({
   const visitedCount = places.filter((p) => p.status === "visited").length;
 
   return (
-    <main className="v2-page">
+    <main className="v2-page v2-page-wide">
       <div className="v2-lhead">
         <Link href="/lists" className="v2-back">
           <svg

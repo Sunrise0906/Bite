@@ -37,8 +37,9 @@ type Props = {
   lists: ListVM[];
 };
 
+// stroke 走 currentColor：按钮的 color(--v2-on-primary) 决定图标色，主题自适配
 const DEC = (
-  <svg className="v2-svg" width="16" height="16" viewBox="0 0 24 24" style={{ stroke: "#fff" }}>
+  <svg className="v2-svg" width="16" height="16" viewBox="0 0 24 24">
     <path d="M21 12a8 8 0 1 1-4-6.9L21 4l-1 4.5A8 8 0 0 1 21 12z" />
   </svg>
 );
@@ -55,7 +56,7 @@ export function HomeV2({
   const hubBg = deck.find((d) => d.photo)?.photo ?? heroPhoto;
 
   return (
-    <main className="v2-page">
+    <main className="v2-page v2-page-wide">
       <div className="v2-top">
         <div className="hi">
           欢迎回来
@@ -78,7 +79,10 @@ export function HomeV2({
         ) : (
           <div
             className="bg"
-            style={{ background: "linear-gradient(135deg,#c75b3a,#9c4226)" }}
+            style={{
+              background:
+                "linear-gradient(135deg,var(--v2-primary),var(--v2-primary-deep))",
+            }}
           />
         )}
         <div className="scrim" />
@@ -147,7 +151,8 @@ export function HomeV2({
           <div className="s">在下面输入个名字，比如「Irvine 想吃的」</div>
         </div>
       ) : (
-        lists.map((l) => (
+        <div className="v2-lgrid">
+        {lists.map((l) => (
           <Link key={l.id} href={`/lists/${l.id}`} className="v2-lrow">
             {l.thumbs.length > 0 ? (
               <div className="v2-lthumbs">
@@ -185,7 +190,8 @@ export function HomeV2({
             </div>
             <div className="cnt">{l.count}</div>
           </Link>
-        ))
+        ))}
+        </div>
       )}
 
       <CreateListV2 />

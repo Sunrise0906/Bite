@@ -172,15 +172,17 @@ export function PlacesViewV2({
                   </span>
                 </h3>
               </div>
-              {items.map((p) => (
-                <PlaceCardV2
-                  key={p.id}
-                  listId={listId}
-                  place={p}
-                  currentUserId={currentUserId}
-                  visit={visitsByPlace[p.id] ?? null}
-                />
-              ))}
+              <div className="v2-plist">
+                {items.map((p) => (
+                  <PlaceCardV2
+                    key={p.id}
+                    listId={listId}
+                    place={p}
+                    currentUserId={currentUserId}
+                    visit={visitsByPlace[p.id] ?? null}
+                  />
+                ))}
+              </div>
             </section>
           );
         })
