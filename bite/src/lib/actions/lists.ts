@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
+import { isListCategory } from "@/lib/categories";
 
 export type ListFormState = {
   error: string | null;
@@ -15,18 +16,31 @@ export async function createList(
 ): Promise<ListFormState> {
   const user = await requireUser();
   const name = String(formData.get("name") ?? "").trim();
+  const catRaw = String(formData.get("category") ?? "food");
+  const category = isListCategory(catRaw) ? catRaw : "food";
 
   if (!name) return { error: "请输入 list 名称" };
   if (name.length > 80) return { error: "名称不超过 80 字" };
 
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("lists")
-    .insert({ name, owner_id: user.id })
+    .insert({ name, owner_id: user.id, category })
     .select("id")
     .single();
 
-  if (error) return { error: `创建失败：${error.message}` };
+  // 兼容 sql/0016 未跑：category 列不存在时退回旧 insert
+  if (error && /category/i.test(error.message)) {
+    ({ data, error } = await supabase
+      .from("lists")
+      .insert({ name, owner_id: user.id })
+      .select("id")
+      .single());
+  }
+
+  if (error || !data) {
+    return { error: `创建失败：${error?.message ?? "未知错误"}` };
+  }
 
   revalidatePath("/lists");
   redirect(`/lists/${data.id}?toast=list_created`);

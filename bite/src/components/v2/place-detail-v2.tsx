@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { VisitLogButton } from "@/components/visits/visit-log-button";
+import type { VisitPrefill } from "@/components/visits/visit-log-form";
+import type { OpeningInfo } from "@/lib/places/google";
 import { menuSearchUrl } from "@/lib/places/menu-url";
 
 export type DetailPlace = {
@@ -76,6 +78,8 @@ export function PlaceDetailV2({
   currentUserId,
   canEdit,
   relDate,
+  visitPrefill,
+  opening,
 }: {
   place: DetailPlace;
   visits: VisitSummary;
@@ -83,6 +87,10 @@ export function PlaceDetailV2({
   currentUserId: string;
   canEdit: boolean;
   relDate: string | null;
+  /** 重访预填（自己上次造访的 sentiment/星级/同伴） */
+  visitPrefill?: VisitPrefill;
+  /** 实时营业状态（Google，best-effort，null = 不显示） */
+  opening?: OpeningInfo | null;
 }) {
   const st = STATUS[place.status as keyof typeof STATUS] ?? STATUS.want_to_go;
   const hero = place.photo_urls[0] ?? null;
@@ -149,6 +157,30 @@ export function PlaceDetailV2({
           {place.name}
         </h1>
         {meta && <div className="v2-dmeta">{meta}</div>}
+
+        {/* 实时营业状态（有 google_place_id 且查询成功才显示） */}
+        {opening?.open_now != null && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginTop: 9,
+              flexWrap: "wrap",
+            }}
+          >
+            <span
+              className={`v2-pill ${opening.open_now ? "v2-pill-visited" : "v2-pill-mute"}`}
+            >
+              {opening.open_now ? "营业中" : "已打烊"}
+            </span>
+            {opening.today && (
+              <span className="v2-muted" style={{ fontSize: 12 }}>
+                {opening.today}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Google 口碑 */}
         {place.google_rating != null && (
@@ -333,7 +365,13 @@ export function PlaceDetailV2({
 
         {/* 操作 */}
         <div className="v2-dactions">
-          {canEdit && <VisitLogButton placeId={place.id} variant="btn" />}
+          {canEdit && (
+            <VisitLogButton
+              placeId={place.id}
+              variant="btn"
+              prefill={visitPrefill}
+            />
+          )}
           <a className="v2-btn ghost" href={mapsUrl(place)} target="_blank" rel="noreferrer">
             <svg className="v2-svg" width="16" height="16" viewBox="0 0 24 24">
               <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z" />

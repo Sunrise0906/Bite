@@ -4,8 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   extractPlacesFromText,
+  extractPlacesFromImage,
   type ExtractedPlace,
 } from "@/lib/llm/extract-place";
+import { randomUUID } from "node:crypto";
+import { validatePhotoFile } from "@/lib/storage/validate";
 import { extractXhsUrl, scrapeXhsUrl, stripXhsUrl } from "@/lib/places/xhs";
 import { findPlaceOnGoogle } from "@/lib/places/google";
 import {
@@ -15,7 +18,44 @@ import {
 } from "@/lib/places/merge";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { normalizePhotoUrl } from "@/lib/storage/signed-photos";
+import { mirrorPhotosToStorage } from "@/lib/storage/mirror-photos";
+import { sendPushToUsers } from "@/lib/push/send";
 import type { PlacePrice, PlaceStatus } from "@/lib/db/types";
+
+// 共享清单加了新店 → 通知其他成员（best-effort，未配 push 静默跳过）
+async function notifyListMembersNewPlace(
+  supabase: SupabaseClient,
+  actorId: string,
+  listId: string,
+  what: string,
+): Promise<void> {
+  const [{ data: list }, { data: members }, { data: actor }] =
+    await Promise.all([
+      supabase
+        .from("lists")
+        .select("name, owner_id")
+        .eq("id", listId)
+        .maybeSingle<{ name: string; owner_id: string }>(),
+      supabase.from("list_members").select("user_id").eq("list_id", listId),
+      supabase
+        .from("profiles")
+        .select("name, email")
+        .eq("id", actorId)
+        .maybeSingle<{ name: string | null; email: string }>(),
+    ]);
+  if (!list) return;
+  const targets = [
+    list.owner_id,
+    ...(members ?? []).map((m) => m.user_id),
+  ].filter((id) => id && id !== actorId);
+  if (targets.length === 0) return;
+  const who = actor?.name ?? actor?.email?.split("@")[0] ?? "有人";
+  await sendPushToUsers(targets, {
+    title: `「${list.name}」有新店`,
+    body: `${who} 加了 ${what}`,
+    url: `/lists/${listId}`,
+  });
+}
 
 // Draft 存在 Supabase public.quick_add_drafts，按 user_id UPSERT
 // 10 分钟 TTL（updated_at 比对）
@@ -136,6 +176,70 @@ export async function processTextDraft(
   if (upsertError) {
     return { error: `保存草稿失败：${upsertError.message}` };
   }
+
+  redirect(draft.kind === "multi" ? "/quick-add/multi" : "/quick-add?source=text");
+}
+
+// ---- 入口 1b：拍照识店（菜单照 / 店面照 / 帖子截图）----
+export async function processImageDraft(
+  _prev: QuickAddFormState,
+  formData: FormData,
+): Promise<QuickAddFormState> {
+  const user = await requireUser();
+
+  const file = formData.get("photo");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "请选择一张照片" };
+  }
+  const validation = validatePhotoFile({
+    size: file.size,
+    type: file.type,
+    name: file.name,
+  });
+  if (!validation.ok) return { error: validation.error };
+
+  const buf = Buffer.from(await file.arrayBuffer());
+  const result = await extractPlacesFromImage(
+    { base64: buf.toString("base64"), mimeType: file.type },
+    String(formData.get("hint") ?? ""),
+  );
+  if (!result.ok) return { error: result.error };
+
+  // 照片本体存进自己的 bucket，作为店铺封面（best-effort，失败不阻断）
+  const supabase = await createClient();
+  let photoUrl: string | undefined;
+  {
+    const path = `${user.id}/qa-${Date.now()}-${randomUUID().slice(0, 8)}.${validation.ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("photos")
+      .upload(path, buf, { contentType: file.type, upsert: false });
+    if (!upErr) {
+      const { data } = supabase.storage.from("photos").getPublicUrl(path);
+      photoUrl = data?.publicUrl ?? undefined;
+    }
+  }
+
+  const draft: QuickAddDraft =
+    result.places.length === 1
+      ? {
+          kind: "single",
+          rawInput: "（拍照识别）",
+          extracted: result.places[0],
+          source: "ai_extract",
+          photoUrls: photoUrl ? [photoUrl] : undefined,
+        }
+      : {
+          kind: "multi",
+          rawInput: "（拍照识别）",
+          places: result.places,
+          source: "ai_extract",
+          photoUrls: photoUrl ? [photoUrl] : undefined,
+        };
+
+  const { error: upsertError } = await supabase
+    .from("quick_add_drafts")
+    .upsert({ user_id: user.id, data: draft }, { onConflict: "user_id" });
+  if (upsertError) return { error: `保存草稿失败：${upsertError.message}` };
 
   redirect(draft.kind === "multi" ? "/quick-add/multi" : "/quick-add?source=text");
 }
@@ -433,7 +537,7 @@ export async function savePlaceFromDraft(
 
   const reasonText = String(formData.get("reason") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
-  const photoUrls = String(formData.get("photo_urls_text") ?? "")
+  const rawPhotoUrls = String(formData.get("photo_urls_text") ?? "")
     .split(/\r?\n/)
     .map((s) => s.trim())
     .filter(Boolean)
@@ -441,6 +545,8 @@ export async function savePlaceFromDraft(
     .map((s) => normalizePhotoUrl(s));
 
   const supabase = await createClient();
+  // XHS CDN 图会过期，落库前转存到自己的 bucket（失败回退原 URL）
+  const photoUrls = await mirrorPhotosToStorage(supabase, user.id, rawPhotoUrls);
   const { inserted, updated, error } = await upsertPlaces(
     supabase,
     user.id,
@@ -475,13 +581,15 @@ export async function savePlaceFromDraft(
 
   if (error) return { error: `保存失败：${error}` };
 
+  if (inserted > 0) {
+    await notifyListMembersNewPlace(supabase, user.id, listId, `「${name}」`);
+  }
+
   await clearDraft();
   revalidatePath("/lists");
   revalidatePath(`/lists/${listId}`);
   const toastKey = updated > 0 ? "place_updated" : "place_added";
   redirect(`/lists/${listId}?toast=${toastKey}`);
-  // 安抚 TS：redirect throws
-  void inserted;
 }
 
 // ---- 入口 2b：多店批量保存 ----
@@ -517,7 +625,29 @@ export async function savePlacesBatch(
     return { error: "选择无效，请重试" };
   }
 
-  const allPhotos = draft.photoUrls ?? [];
+  // XHS CDN 图会过期，转存到自己的 bucket。只转存"会被用到"的索引
+  // （勾选店铺的 photo_indices 并集；有店没标 indices = 回退全图 → 全转存），
+  // 避免给没勾选的店白转存孤儿图。数组顺序原样保留（photo_indices 依赖）。
+  const supabase = await createClient();
+  const rawPhotos = draft.photoUrls ?? [];
+  let allPhotos = rawPhotos;
+  if (rawPhotos.length > 0) {
+    const needAll = selected.some(
+      (p) => !p.photo_indices || p.photo_indices.length === 0,
+    );
+    if (needAll) {
+      allPhotos = await mirrorPhotosToStorage(supabase, user.id, rawPhotos);
+    } else {
+      const needed = new Set(
+        selected.flatMap((p) => p.photo_indices ?? []),
+      );
+      const toMirror = rawPhotos.filter((_, i) => needed.has(i));
+      const mirrored = await mirrorPhotosToStorage(supabase, user.id, toMirror);
+      // filter 保序：rawPhotos 里第 j 个"被需要"的元素 == toMirror[j] == mirrored[j]
+      let j = 0;
+      allPhotos = rawPhotos.map((u, i) => (needed.has(i) ? mirrored[j++] : u));
+    }
+  }
 
   const candidates: UpsertCandidate[] = selected.map((p) => ({
     list_id: listId,
@@ -545,7 +675,6 @@ export async function savePlacesBatch(
     lng: null,
   }));
 
-  const supabase = await createClient();
   const { inserted, updated, error } = await upsertPlaces(
     supabase,
     user.id,
@@ -554,6 +683,15 @@ export async function savePlacesBatch(
   );
 
   if (error) return { error: `批量保存失败：${error}` };
+
+  if (inserted > 0) {
+    await notifyListMembersNewPlace(
+      supabase,
+      user.id,
+      listId,
+      inserted === 1 ? "1 家新店" : `${inserted} 家新店`,
+    );
+  }
 
   await clearDraft();
   revalidatePath("/lists");

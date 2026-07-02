@@ -83,15 +83,30 @@ export function ListDetailV2({
         </div>
       </div>
 
-      {canEdit && (
-        <Link
-          href={`/lists/${list.id}/places/new`}
-          className="v2-btn"
-          style={{ width: "100%", padding: 13, margin: "8px 0 18px" }}
-        >
-          + 新增店铺
-        </Link>
-      )}
+      <div style={{ display: "flex", gap: 9, margin: "8px 0 18px" }}>
+        {canEdit && (
+          <Link
+            href={`/lists/${list.id}/places/new`}
+            className="v2-btn"
+            style={{ flex: 1, padding: 13 }}
+          >
+            + 新增店铺
+          </Link>
+        )}
+        {wantCount >= 2 && (
+          <Link
+            href={`/lists/${list.id}/pick`}
+            className="v2-btn sage"
+            style={{ flex: 1, padding: 13 }}
+            title="滑卡选店：两个人都右滑同一家，就它了"
+          >
+            <svg className="v2-svg" width="15" height="15" viewBox="0 0 24 24">
+              <path d="M19.5 5.1a5 5 0 0 0-7.1 0L12 5.5l-.4-.4a5 5 0 1 0-7.1 7.1l7.5 7.5 7.5-7.5a5 5 0 0 0 0-7.1z" />
+            </svg>
+            一起选
+          </Link>
+        )}
+      </div>
 
       {isOwner && members.length > 0 && (
         <div style={{ marginBottom: 16 }}>

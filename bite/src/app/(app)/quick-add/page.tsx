@@ -12,6 +12,7 @@ import { RetryExtract } from "@/components/places/retry-extract";
 import { InlineCreateList } from "@/components/lists/inline-create-list";
 import { AlertIcon } from "@/components/ui/icons";
 import type { ExtractedPlace } from "@/lib/llm/extract-place";
+import { signPhotoUrls } from "@/lib/storage/signed-photos";
 import { getUiVersion } from "@/lib/ui-version";
 
 export const metadata = {
@@ -219,6 +220,12 @@ export default async function QuickAddPage({
           confidence={confidence}
           existingInLists={existingInLists}
           v2={v2}
+          // 拍照识店的图在私有桶：预览用签名 URL，hidden input 保持 canonical
+          photoDisplayUrls={
+            initial.photo_urls?.length
+              ? await signPhotoUrls(supabase, initial.photo_urls)
+              : undefined
+          }
         />
       )}
 

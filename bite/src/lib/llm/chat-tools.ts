@@ -2,6 +2,7 @@
 // 每个工具返回一个 JSON 字符串结果给模型读。
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchOpeningInfo } from "@/lib/places/google";
 import type { LlmTool } from "./types";
 import {
   aggregateVisitSignals,
@@ -14,11 +15,13 @@ export const CHAT_TOOLS: LlmTool[] = [
   {
     name: "search_my_list",
     description:
-      "查询当前用户的餐厅库。可按状态 / 菜系 / 价位 / 关键词过滤。" +
-      "返回每家店的：name, address, cuisine, price_range, status, tags, reason, notes（AI 备注）、" +
+      "查询当前用户的收藏库（清单分领域：food 吃 / drink 喝 / activity 玩 / other）。" +
+      "可按领域 / 状态 / 菜系 / 价位 / 关键词过滤。" +
+      "返回每家店的：name, address, category（所属清单领域）, cuisine, price_range, status, tags, reason, notes（AI 备注）、" +
       "visit_count（去过几次）、last_visit（最近一次日期）、last_sentiment（最近一次评价：will_return/okay/wont_return）、" +
       "dishes（招牌 / 网友推荐的具体菜名）。" +
-      "用于给用户推荐时找候选店——优先推 will_return 的店，避免 wont_return 的店；推荐时如果有 dishes 可以顺带说『去点 XX』。",
+      "用于给用户推荐时找候选——优先推 will_return 的，避免 wont_return 的；有 dishes 可以顺带说『去点 XX』。" +
+      "跨领域规划（如『吃完去哪玩』）就分别按 category=food 和 category=activity 各查一次再综合。",
     inputSchema: {
       type: "object",
       properties: {
@@ -26,6 +29,15 @@ export const CHAT_TOOLS: LlmTool[] = [
           type: "string",
           description:
             "可选关键词，匹配店名 / 地址 / 标签 / notes / reasons。留空 = 不按文本筛",
+        },
+        category: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["food", "drink", "activity", "other"],
+          },
+          description:
+            "可选清单领域过滤（OR 匹配）。不传 = 全部领域",
         },
         status: {
           type: "array",
@@ -68,6 +80,8 @@ export const CHAT_TOOLS: LlmTool[] = [
     name: "check_place_details",
     description:
       "拿到某家店的完整信息：基础字段 + 最近 10 条 visit logs（date / sentiment / star / note / companions）。" +
+      "有 Google 关联的店还会带 open_now（现在营业吗）和 today_hours（今天营业时间）——" +
+      "推荐『今晚去』时先看这个，别推已打烊的店。" +
       "在 search_my_list 拿到候选后，想深入了解用户最近去得怎么样、点了啥、跟谁去时用。",
     inputSchema: {
       type: "object",
@@ -140,6 +154,7 @@ export async function executeChatTool(
 // 实际归一化在 normalizeFilterValues 里做（见 filter-shape.ts）。
 type SearchInput = {
   query?: string;
+  category?: unknown;
   status?: unknown;
   cuisine?: unknown;
   price_range?: unknown;
@@ -162,13 +177,34 @@ async function searchMyList(input: unknown, ctx: ToolContext) {
     .select("list_id")
     .eq("user_id", ctx.userId);
 
-  const listIds = [
+  let listIds = [
     ...(ownerLists ?? []).map((l) => l.id),
     ...(memberLists ?? []).map((m) => m.list_id),
   ];
 
   if (listIds.length === 0) {
     return { places: [], note: "用户还没有任何 list" };
+  }
+
+  // 清单领域（sql/0016；列不存在时静默降级为全 food）
+  const categoryByList = new Map<string, string>();
+  {
+    const { data: catRows } = await ctx.supabase
+      .from("lists")
+      .select("id, category")
+      .in("id", listIds);
+    for (const r of (catRows ?? []) as Array<{ id: string; category?: string }>) {
+      categoryByList.set(r.id, r.category ?? "food");
+    }
+  }
+  const categories = normalizeFilterValues(args.category);
+  if (categories.length > 0) {
+    listIds = listIds.filter((id) =>
+      categories.includes(categoryByList.get(id) ?? "food"),
+    );
+    if (listIds.length === 0) {
+      return { places: [], count: 0, note: "该领域下还没有清单" };
+    }
   }
 
   let q = ctx.supabase
@@ -226,6 +262,7 @@ async function searchMyList(input: unknown, ctx: ToolContext) {
     return {
       id: p.id,
       list_id: p.list_id,
+      category: categoryByList.get(p.list_id) ?? "food",
       name: p.name,
       address: p.address,
       cuisine: p.cuisine,
@@ -282,7 +319,15 @@ async function checkPlaceDetails(input: unknown, ctx: ToolContext) {
   if (error) return { error: `查询失败：${error.message}` };
   if (!data) return { error: "找不到这家店" };
 
+  // 实时营业状态（best-effort，3.5s 超时，失败就不带这个字段）
+  const opening = data.google_place_id
+    ? await fetchOpeningInfo(data.google_place_id)
+    : null;
+
   return {
+    ...(opening
+      ? { open_now: opening.open_now, today_hours: opening.today }
+      : {}),
     id: data.id,
     list_id: data.list_id,
     name: data.name,

@@ -167,6 +167,8 @@
 .ui-v2 .v2-newlist input::placeholder { color:var(--v2-faint); }
 .ui-v2 .v2-newlist input:focus { outline:none; border-style:solid; border-color:var(--v2-primary); background:var(--v2-surface); box-shadow:0 0 0 3px var(--v2-primary-soft); }
 .ui-v2 .v2-newlist .v2-btn { flex:none; padding:11px 16px; font-size:13px; }
+.ui-v2 .v2-newlist .cats { display:flex; gap:6px; margin-top:8px; }
+.ui-v2 .v2-newlist .cats .v2-fchip { padding:4px 11px; font-size:11.5px; }
 .ui-v2 .v2-newlist .err { margin-top:7px; font-size:12.5px; color:var(--v2-danger); }
 
 /* ---------- 清单详情：店铺卡片（横向） ---------- */
@@ -257,6 +259,51 @@
 .ui-v2 .v2-ccard { display:flex; align-items:flex-start; gap:11px; background:var(--v2-surface); border:var(--v2-bw) solid var(--v2-border); border-radius:var(--v2-r-lg); padding:13px 14px; box-shadow:var(--v2-shadow-sm); cursor:pointer; transition:border-color .15s, box-shadow .15s; }
 .ui-v2 .v2-ccard.on { border-color:var(--v2-primary); box-shadow:0 0 0 3px var(--v2-primary-soft); }
 .ui-v2 .v2-ainote-sm { display:flex; align-items:flex-start; gap:6px; font-size:12px; color:var(--v2-primary-soft-tx); background:var(--v2-primary-soft); border-radius:var(--v2-r-xs); padding:8px 10px; line-height:1.45; }
+
+/* ---------- 统计页（单色编码：菜系=primary、月度=sage；文字只用 ink token） ---------- */
+.ui-v2 .v2-kpis { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:6px; }
+.ui-v2 .v2-kpi { background:var(--v2-surface); border:var(--v2-bw) solid var(--v2-border); border-radius:var(--v2-r-lg); padding:14px 15px; box-shadow:var(--v2-shadow-sm); }
+.ui-v2 .v2-kpi .n { font-family:var(--v2-serif); font-weight:600; font-size:27px; line-height:1.1; color:var(--v2-ink); }
+.ui-v2 .v2-kpi .l { font-size:11.5px; color:var(--v2-muted); margin-top:4px; }
+.ui-v2 .v2-bars { display:flex; flex-direction:column; gap:8px; }
+.ui-v2 .v2-bars .row { display:flex; align-items:center; gap:10px; }
+.ui-v2 .v2-bars .lb { flex:0 0 64px; font-size:12px; color:var(--v2-ink2); text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ui-v2 .v2-bars .track { flex:1; height:14px; background:var(--v2-surface2); border-radius:4px; overflow:hidden; }
+.ui-v2 .v2-bars .fill { display:block; height:100%; background:var(--v2-primary); border-radius:0 4px 4px 0; }
+.ui-v2 .v2-bars .val { flex:0 0 26px; font-size:12px; font-weight:600; color:var(--v2-muted); font-variant-numeric:tabular-nums; }
+.ui-v2 .v2-cols { display:flex; align-items:stretch; gap:8px; height:150px; padding:4px 2px 0; }
+.ui-v2 .v2-cols .col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; min-width:0; }
+.ui-v2 .v2-cols .v { font-size:11px; font-weight:600; color:var(--v2-muted); height:14px; font-variant-numeric:tabular-nums; }
+.ui-v2 .v2-cols .bar-wrap { flex:1; width:100%; max-width:34px; display:flex; align-items:flex-end; }
+.ui-v2 .v2-cols .bar { display:block; width:100%; background:var(--v2-sage); border-radius:4px 4px 0 0; min-height:3px; }
+.ui-v2 .v2-cols .lb { font-size:11px; color:var(--v2-faint); }
+
+/* ---------- 一起选（双人滑卡决策） ---------- */
+.ui-v2 .v2-pick { display:flex; flex-direction:column; align-items:center; padding-top:6px; }
+.ui-v2 .v2-pick .cnt { font-size:12px; color:var(--v2-muted); margin-bottom:12px; }
+.ui-v2 .v2-pick .stack { position:relative; width:100%; max-width:340px; height:430px; }
+.ui-v2 .v2-pick-card { position:absolute; inset:0; background:var(--v2-surface); border:var(--v2-bw) solid var(--v2-border); border-radius:var(--v2-r-xl); overflow:hidden; box-shadow:var(--v2-shadow); display:flex; flex-direction:column; cursor:grab; user-select:none; }
+.ui-v2 .v2-pick-card:active { cursor:grabbing; }
+.ui-v2 .v2-pick-card.under { transform:scale(.95) translateY(10px); opacity:.7; pointer-events:none; }
+.ui-v2 .v2-pick-card .img { flex:1; min-height:0; background-size:cover; background-position:center; background-color:var(--v2-surface2); pointer-events:none; }
+.ui-v2 .v2-pick-card .body { padding:14px 16px 16px; pointer-events:none; }
+.ui-v2 .v2-pick-card .nm { font-family:var(--v2-serif); font-weight:600; font-size:21px; }
+.ui-v2 .v2-pick-card .mt { font-size:12.5px; color:var(--v2-muted); margin-top:4px; }
+.ui-v2 .v2-pick-card .why { font-size:12.5px; color:var(--v2-ink2); margin-top:8px; line-height:1.4; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.ui-v2 .v2-pick-card .stamp { position:absolute; top:18px; padding:5px 12px; border-radius:var(--v2-r-xs); font-weight:800; font-size:15px; letter-spacing:.06em; border:2.5px solid; transform:rotate(-8deg); background:var(--v2-surface); }
+.ui-v2 .v2-pick-card .stamp.yes { left:16px; color:var(--v2-sage); border-color:var(--v2-sage); }
+.ui-v2 .v2-pick-card .stamp.no { right:16px; color:var(--v2-danger); border-color:var(--v2-danger); transform:rotate(8deg); }
+.ui-v2 .v2-pick-actions { display:flex; gap:22px; margin-top:20px; }
+.ui-v2 .v2-pick-actions .act { width:60px; height:60px; border-radius:999px; display:grid; place-items:center; cursor:pointer; background:var(--v2-surface); border:var(--v2-bw) solid var(--v2-border2); box-shadow:var(--v2-shadow-sm); transition:transform .08s; }
+.ui-v2 .v2-pick-actions .act:active { transform:scale(.92); }
+.ui-v2 .v2-pick-actions .act.no { color:var(--v2-danger); }
+.ui-v2 .v2-pick-actions .act.yes { color:#fff; background:var(--v2-sage); border-color:var(--v2-sage); }
+.ui-v2 .v2-pick-result { text-align:center; padding:64px 20px; }
+.ui-v2 .v2-pick-result .burst { font-size:44px; }
+.ui-v2 .v2-pick-result .eyebrow { font-size:13px; color:var(--v2-muted); margin-top:14px; }
+.ui-v2 .v2-pick-result h2 { font-family:var(--v2-serif); font-weight:600; font-size:30px; margin-top:6px; }
+.ui-v2 .v2-pick-result .sub { font-size:13.5px; color:var(--v2-muted); margin-top:10px; line-height:1.5; }
+.ui-v2 .v2-pick-result .acts { display:flex; gap:10px; justify-content:center; margin-top:22px; flex-wrap:wrap; }
 
 /* ============================================================================
    主题选择器（/profile 外观区）

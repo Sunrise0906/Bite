@@ -133,8 +133,14 @@ function ConfidenceBarV2({
 }
 
 /** V2 预览卡（.v2-preview：图集 + serif 店名 + meta + 招牌菜/标签 chips + AI 备注） */
-function PreviewCardV2({ initial }: { initial: InitialPlaceData }) {
-  const photos = initial.photo_urls ?? [];
+function PreviewCardV2({
+  initial,
+  displayPhotos,
+}: {
+  initial: InitialPlaceData;
+  displayPhotos?: string[];
+}) {
+  const photos = displayPhotos ?? initial.photo_urls ?? [];
   const meta = [
     initial.address,
     initial.cuisine.join(" · "),
@@ -190,6 +196,7 @@ export function PlaceConfirmForm({
   confidence,
   existingInLists = [],
   v2 = false,
+  photoDisplayUrls,
 }: {
   initial: InitialPlaceData;
   lists: ListOption[];
@@ -199,6 +206,8 @@ export function PlaceConfirmForm({
   existingInLists?: string[];
   /** V2 皮：预览卡 + srcbar + 信心条 + v2 按钮。表单逻辑与 V1 完全一致 */
   v2?: boolean;
+  /** 预览专用 URL（私有桶图已签名）；hidden input / 落库仍走 initial.photo_urls（canonical） */
+  photoDisplayUrls?: string[];
 }) {
   const [state, action, pending] = useActionState(savePlaceFromDraft, {
     error: null,
@@ -243,10 +252,12 @@ export function PlaceConfirmForm({
         />
       )}
       {!v2 && initial.photo_urls && initial.photo_urls.length > 0 && (
-        <PhotoCarousel urls={initial.photo_urls} />
+        <PhotoCarousel urls={photoDisplayUrls ?? initial.photo_urls} />
       )}
 
-      {v2 && <PreviewCardV2 initial={initial} />}
+      {v2 && (
+        <PreviewCardV2 initial={initial} displayPhotos={photoDisplayUrls} />
+      )}
       {v2 && confidence && <ConfidenceBarV2 confidence={confidence} />}
 
       {!v2 && confidence && confidence !== "high" && (

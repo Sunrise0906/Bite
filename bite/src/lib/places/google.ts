@@ -172,6 +172,62 @@ export async function getPlaceDetails(
   };
 }
 
+// ---- 营业时间（实时信号） -------------------------------------------------
+
+export type OpeningInfo = {
+  open_now: boolean | null;
+  /** 人话版本周营业时间（Google 本地化文案），今天那条 */
+  today: string | null;
+};
+
+/**
+ * 拉一家店的实时营业状态（决策时刻的高频问题「现在还开着吗」）。
+ * best-effort：任何失败返回 null，调用方直接不显示，绝不阻塞页面/聊天。
+ */
+export async function fetchOpeningInfo(
+  placeId: string,
+): Promise<OpeningInfo | null> {
+  try {
+    const res = await fetch(
+      `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=zh-CN`,
+      {
+        headers: {
+          "X-Goog-Api-Key": getServerApiKey(),
+          "X-Goog-FieldMask":
+            "currentOpeningHours.openNow,currentOpeningHours.weekdayDescriptions",
+        },
+        signal: AbortSignal.timeout(3500),
+        // 营业状态短缓存：同一店 5 分钟内复用，省配额
+        next: { revalidate: 300 },
+      },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      currentOpeningHours?: {
+        openNow?: boolean;
+        weekdayDescriptions?: string[];
+      };
+    };
+    const cur = data.currentOpeningHours;
+    if (!cur) return null;
+    // weekdayDescriptions 从周一开始。"今天"按店铺所在时区算——app 场景是南加，
+    // 用 America/Los_Angeles（服务器在 Vercel 是 UTC，直接 getDay() 傍晚起就会串到明天）
+    let today: string | null = null;
+    if (cur.weekdayDescriptions?.length === 7) {
+      const weekday = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Los_Angeles",
+        weekday: "short",
+      }).format(new Date());
+      const order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const idx = order.indexOf(weekday);
+      today = idx >= 0 ? (cur.weekdayDescriptions[idx] ?? null) : null;
+    }
+    return { open_now: cur.openNow ?? null, today };
+  } catch {
+    return null;
+  }
+}
+
 export type GooglePlaceMatch = {
   placeId: string;
   name: string;

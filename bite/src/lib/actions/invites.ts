@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, requireUser } from "@/lib/supabase/server";
+import { sendPushToUsers } from "@/lib/push/send";
 
 export type CreateInviteResult =
   | { ok: true; token: string; expires_at: string }
@@ -152,6 +153,19 @@ export async function acceptListInvite(token: string): Promise<AcceptResult> {
 
   revalidatePath("/lists");
   revalidatePath(`/lists/${invite.list_id}`);
+
+  // 通知邀请发起人：有人加入了（best-effort，未配 push 静默跳过）
+  const { data: joiner } = await supabase
+    .from("profiles")
+    .select("name, email")
+    .eq("id", user.id)
+    .maybeSingle<{ name: string | null; email: string }>();
+  const joinerLabel = joiner?.name ?? joiner?.email?.split("@")[0] ?? "有人";
+  await sendPushToUsers([invite.created_by], {
+    title: "清单来了新成员",
+    body: `${joinerLabel} 通过邀请链接加入了你的清单`,
+    url: `/lists/${invite.list_id}`,
+  });
 
   return { ok: true, list_id: invite.list_id };
 }

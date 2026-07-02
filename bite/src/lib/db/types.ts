@@ -15,6 +15,8 @@ export type List = {
   id: string;
   name: string;
   owner_id: string;
+  /** 清单领域：food 吃 / drink 喝 / activity 玩 / other（sql/0016，默认 food） */
+  category: "food" | "drink" | "activity" | "other";
   created_at: string;
   updated_at: string;
 };

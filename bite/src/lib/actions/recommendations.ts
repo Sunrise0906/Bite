@@ -5,6 +5,7 @@ import { createClient, requireUser } from "@/lib/supabase/server";
 import { appendReasonDedup, unionStrings } from "@/lib/places/merge";
 import { escapeLikePattern } from "@/lib/sql/escape-like";
 import { notifyRecommendation } from "@/lib/email/send";
+import { sendPushToUsers } from "@/lib/push/send";
 import type { Place, PlacePrice } from "@/lib/db/types";
 
 // 推荐时快照下来的字段（不要带 user-specific 的 reasons / id / list_id）
@@ -134,6 +135,13 @@ export async function sendRecommendation(args: {
   if (!mail.ok && !mail.skipped) {
     console.error(`sendRecommendation: 推荐已存但邮件通知失败：${mail.error}`);
   }
+
+  // best-effort 浏览器推送（未配 VAPID/service key 静默跳过）
+  await sendPushToUsers([recipient.id], {
+    title: "有人给你推荐了一家店",
+    body: `${senderLabel} 推荐：「${place.name}」${message ? ` —— ${message}` : ""}`,
+    url: "/recommendations",
+  });
 
   revalidatePath("/recommendations");
   return { ok: true, recipient_email: recipient.email };

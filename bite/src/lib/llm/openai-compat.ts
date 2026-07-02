@@ -41,6 +41,22 @@ export class OpenAiCompatProvider implements LlmProvider {
       `\n\n（仅返回符合此 JSON schema 的 JSON 对象，不要 markdown 包裹、不要解释）\n` +
       schemaPreview;
 
+    // 带图片时用 multimodal content（Gemini/GPT 的 OpenAI 兼容层都吃 data URL）
+    const finalUser: OpenAI.ChatCompletionMessageParam = params.image
+      ? {
+          role: "user",
+          content: [
+            { type: "text", text: userPrompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${params.image.mimeType};base64,${params.image.base64}`,
+              },
+            },
+          ],
+        }
+      : { role: "user", content: userPrompt };
+
     const messages: OpenAI.ChatCompletionMessageParam[] = [
       { role: "system", content: params.system },
       ...(params.fewShots ?? []).flatMap(
@@ -49,7 +65,7 @@ export class OpenAiCompatProvider implements LlmProvider {
           { role: "assistant", content: JSON.stringify(ex.assistant) },
         ],
       ),
-      { role: "user", content: userPrompt },
+      finalUser,
     ];
 
     // OpenAI 原生：用 strict json_schema 最稳；其他兼容 endpoint 用 json_object

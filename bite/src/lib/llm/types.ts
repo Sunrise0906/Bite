@@ -95,6 +95,8 @@ export type ExtractParams<T extends ZodTypeAny> = {
   system: string;
   fewShots?: Array<FewShot<z.infer<T>>>;
   userInput: string;
+  /** 可选图片（拍菜单/店面识别）。openai-compat 系 provider 支持（data URL 传入） */
+  image?: { base64: string; mimeType: string };
   schema: T;
   schemaName?: string;
   maxTokens?: number;

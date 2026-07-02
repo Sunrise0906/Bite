@@ -7,6 +7,7 @@ import { RetryExtract } from "@/components/places/retry-extract";
 import { InlineCreateList } from "@/components/lists/inline-create-list";
 import { AlertIcon } from "@/components/ui/icons";
 import type { ListOption } from "@/components/places/place-confirm-form";
+import { signPhotoUrls } from "@/lib/storage/signed-photos";
 import { getUiVersion } from "@/lib/ui-version";
 
 export const metadata = {
@@ -144,7 +145,8 @@ export default async function QuickAddMultiPage() {
         defaultListId={writableLists[0].id}
         sourceUrl={draft.sourceUrl}
         existingByList={existingByList}
-        photoUrls={draft.photoUrls}
+        // 仅预览用（保存从 draft 读 canonical）；私有桶图换签名 URL
+        photoUrls={await signPhotoUrls(supabase, draft.photoUrls ?? [])}
         v2={v2}
       />
 

@@ -22,8 +22,15 @@ const SENTIMENT_OPTIONS: Array<{
   { value: "wont_return", label: "不会再来", Icon: ThumbsDownIcon },
 ];
 
+/** 重访预填：设计文档 4.3 —— 再去同一家店时预填上次数据，用户只改有变化的部分 */
+export type VisitPrefill = {
+  sentiment?: VisitSentiment;
+  star_rating?: number | null;
+  companions?: string | null;
+};
+
 type Mode =
-  | { kind: "create"; placeId: string }
+  | { kind: "create"; placeId: string; prefill?: VisitPrefill }
   | { kind: "edit"; log: VisitLog };
 
 type Props = {
@@ -57,10 +64,15 @@ export function VisitLogForm({ mode, open, onClose, photoDisplayMap }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const initialSentiment: VisitSentiment =
-    mode.kind === "edit" ? mode.log.sentiment : "will_return";
+    mode.kind === "edit"
+      ? mode.log.sentiment
+      : (mode.prefill?.sentiment ?? "will_return");
   const [sentiment, setSentiment] = useState<VisitSentiment>(initialSentiment);
 
-  const initialStar = mode.kind === "edit" ? mode.log.star_rating : null;
+  const initialStar =
+    mode.kind === "edit"
+      ? mode.log.star_rating
+      : (mode.prefill?.star_rating ?? null);
   const [star, setStar] = useState<number | null>(initialStar);
 
   // photoUrls 存 canonical（hidden input 落库用）；img 预览查 displayMap 换 signed
@@ -87,7 +99,9 @@ export function VisitLogForm({ mode, open, onClose, photoDisplayMap }: Props) {
     mode.kind === "edit" ? isoToDateInput(mode.log.visited_at) : todayIsoDate();
   const initialNote = mode.kind === "edit" ? (mode.log.note ?? "") : "";
   const initialCompanions =
-    mode.kind === "edit" ? (mode.log.companions ?? "") : "";
+    mode.kind === "edit"
+      ? (mode.log.companions ?? "")
+      : (mode.prefill?.companions ?? "");
 
   return (
     <div

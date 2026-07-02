@@ -77,6 +77,18 @@ export function VisitHistory({
 }) {
   const [editingLog, setEditingLog] = useState<VisitLog | null>(null);
 
+  // 重访预填：自己最近一次造访（logs 已按时间倒序）
+  const ownLast = currentUserId
+    ? logs.find((l) => l.user_id === currentUserId)
+    : undefined;
+  const prefill = ownLast
+    ? {
+        sentiment: ownLast.sentiment,
+        star_rating: ownLast.star_rating,
+        companions: ownLast.companions,
+      }
+    : undefined;
+
   return (
     <div>
       <div className="section-heading mb-4">
@@ -88,7 +100,9 @@ export function VisitHistory({
             </span>
           )}
         </h2>
-        {canEdit && <VisitLogButton placeId={placeId} variant="btn" />}
+        {canEdit && (
+          <VisitLogButton placeId={placeId} variant="btn" prefill={prefill} />
+        )}
       </div>
 
       {logs.length === 0 ? (
@@ -164,6 +178,33 @@ export function VisitHistory({
                           <p className="mt-1.5 whitespace-pre-wrap text-sm text-[var(--text-default)]">
                             {log.note}
                           </p>
+                        )}
+                        {(log.photos ?? []).length > 0 && (
+                          <ul className="mt-2 flex flex-wrap gap-1.5">
+                            {(log.photos ?? []).map((url, i) => {
+                              const display = photoDisplayMap?.[url] ?? url;
+                              return (
+                                <li key={`${url}-${i}`}>
+                                  <a
+                                    href={display}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="block h-16 w-16 overflow-hidden rounded-lg border border-[var(--border-subtle)]"
+                                    title={`查看第 ${i + 1} 张照片`}
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={display}
+                                      alt={`造访照片 ${i + 1}`}
+                                      loading="lazy"
+                                      referrerPolicy="no-referrer"
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </a>
+                                </li>
+                              );
+                            })}
+                          </ul>
                         )}
                       </div>
                       {/* 编辑/删除仅 own log + canEdit 时；不能改朋友的记录 */}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { uploadPhoto } from "@/lib/actions/photos";
+import { compressImageIfNeeded } from "@/lib/client/compress-image";
 import { CameraIcon, CheckIcon, XIcon } from "@/components/ui/icons";
 
 type PendingStatus = "uploading" | "done" | "error";
@@ -91,6 +92,8 @@ export function PhotoUpload({
   }
 
   async function uploadOne(p: Pending, file: File) {
+    // 手机原图会超 Vercel 4.5MB 请求体上限，先在客户端压到安全体积
+    file = await compressImageIfNeeded(file);
     const fd = new FormData();
     fd.append("file", file);
     try {

@@ -1,16 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { VisitLogForm } from "./visit-log-form";
+import { VisitLogForm, type VisitPrefill } from "./visit-log-form";
 import { CheckIcon } from "@/components/ui/icons";
 
 export function VisitLogButton({
   placeId,
   variant = "chip",
+  prefill,
 }: {
   placeId: string;
   /** chip = 卡片用紧凑样式；btn = 详情页用正常按钮 */
   variant?: "chip" | "btn";
+  /** 重访预填：上次（自己的）造访的 sentiment/星级/同伴，只改有变化的 */
+  prefill?: VisitPrefill;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -34,7 +37,7 @@ export function VisitLogButton({
         我去了
       </button>
       <VisitLogForm
-        mode={{ kind: "create", placeId }}
+        mode={{ kind: "create", placeId, prefill }}
         open={open}
         onClose={() => setOpen(false)}
       />

@@ -2,7 +2,8 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { processTextDraft } from "@/lib/actions/quick-add";
+import { processImageDraft, processTextDraft } from "@/lib/actions/quick-add";
+import { compressImageIfNeeded } from "@/lib/client/compress-image";
 import { detectInputType } from "@/lib/quick-add/detect";
 import type { PlaceSuggestion } from "@/lib/places/google";
 import {
@@ -12,6 +13,26 @@ import {
   SearchIcon,
   SparklesIcon,
 } from "@/components/ui/icons";
+
+/** lucide 风格麦克风（icons.tsx 暂缺，本文件内联） */
+function MicIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+    </svg>
+  );
+}
+
+/** lucide 风格相机 */
+function CameraIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 8h2.5L8 5.5h8L17.5 8H20a1.5 1.5 0 0 1 1.5 1.5V18a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 18V9.5A1.5 1.5 0 0 1 4 8z" />
+      <circle cx="12" cy="13.2" r="3.4" />
+    </svg>
+  );
+}
 
 type Status =
   | { phase: "idle" }
@@ -145,6 +166,69 @@ export function QuickAddInput() {
   const detected = detectInputType(text);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // ---- 语音输入（Web Speech API，zh-CN；不支持的浏览器不显示按钮）----
+  const [listening, setListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recRef = useRef<any>(null);
+  // 挂载后一次性探测（SSR 无 window，直接在 initializer 里读会 hydration mismatch）
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    setSpeechSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // 卸载时停掉录音——不能让用户导航走了麦克风还开着
+  useEffect(() => {
+    return () => {
+      try {
+        recRef.current?.abort?.();
+        recRef.current?.stop?.();
+      } catch {
+        // ignore
+      }
+    };
+  }, []);
+
+  function toggleMic() {
+    if (listening) {
+      recRef.current?.stop();
+      return;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    rec.lang = "zh-CN";
+    rec.interimResults = false;
+    rec.continuous = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      const transcript = Array.from(e.results)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((r: any) => r[0]?.transcript ?? "")
+        .join("");
+      if (transcript) {
+        setText((prev) => (prev ? `${prev} ${transcript}` : transcript));
+      }
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recRef.current = rec;
+    rec.start();
+    setListening(true);
+  }
+
+  // ---- 拍照识店（独立 form，选完文件自动提交）----
+  const [imgState, imgAction, imgPending] = useActionState(processImageDraft, {
+    error: null,
+  });
+  const imgFormRef = useRef<HTMLFormElement>(null);
+  const imgInputRef = useRef<HTMLInputElement>(null);
+
   // 自适应高度
   useEffect(() => {
     const el = textareaRef.current;
@@ -223,9 +307,37 @@ export function QuickAddInput() {
             onChange={(e) => setText(e.target.value)}
             rows={1}
             placeholder="粘贴小红书正文、写几句话、或搜店名…"
-            className="w-full resize-none rounded-2xl bg-transparent py-3 pl-11 pr-4 text-base outline-none placeholder:text-[var(--text-faint)]"
+            className="w-full resize-none rounded-2xl bg-transparent py-3 pl-11 pr-20 text-base outline-none placeholder:text-[var(--text-faint)]"
             maxLength={5000}
           />
+          {/* 语音 / 拍照 入口（右上角） */}
+          <span className="absolute right-2.5 top-[9px] flex items-center gap-0.5">
+            {speechSupported && (
+              <button
+                type="button"
+                onClick={toggleMic}
+                aria-label={listening ? "停止语音输入" : "语音输入"}
+                title={listening ? "停止语音输入" : "说一段话来记店"}
+                className={`rounded-lg p-1.5 transition-colors ${
+                  listening
+                    ? "bg-[var(--primary)] text-[var(--primary-foreground)] animate-pulse"
+                    : "text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)]"
+                }`}
+              >
+                <MicIcon size={16} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => imgInputRef.current?.click()}
+              disabled={imgPending}
+              aria-label="拍照识店"
+              title="拍菜单 / 店面照片，AI 识别入库"
+              className="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-strong)] disabled:opacity-50"
+            >
+              <CameraIcon size={16} />
+            </button>
+          </span>
           {detected.kind === "free_text" && (
             <div className="flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] px-3.5 py-2">
               <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-[var(--text-muted)]">
@@ -262,15 +374,51 @@ export function QuickAddInput() {
             {state.error}
           </p>
         )}
+      </form>
 
-        {detected.kind === "place_name" && (
-          <SuggestionsList
-            status={status}
-            onPick={pickSuggestion}
-            hasApiKey={Boolean(apiKey)}
-          />
+      {/* 拍照识店：独立 form，选完文件自动提交 */}
+      <form ref={imgFormRef} action={imgAction}>
+        <input
+          ref={imgInputRef}
+          type="file"
+          name="photo"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={async (e) => {
+            const input = e.target;
+            const file = input.files?.[0];
+            if (!file) return;
+            // 手机原图会超 Vercel 4.5MB 请求体上限，先压
+            const compressed = await compressImageIfNeeded(file);
+            if (compressed !== file) {
+              const dt = new DataTransfer();
+              dt.items.add(compressed);
+              input.files = dt.files;
+            }
+            imgFormRef.current?.requestSubmit();
+          }}
+        />
+        {imgPending && (
+          <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+            <SparklesIcon size={13} />
+            照片识别中…（菜单 / 店面 / 截图都认得）
+          </p>
+        )}
+        {imgState.error && (
+          <p role="alert" className="alert-error mt-2">
+            {imgState.error}
+          </p>
         )}
       </form>
+
+      {detected.kind === "place_name" && (
+        <SuggestionsList
+          status={status}
+          onPick={pickSuggestion}
+          hasApiKey={Boolean(apiKey)}
+        />
+      )}
     </div>
   );
 }

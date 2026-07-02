@@ -53,7 +53,16 @@ const SYSTEM_PROMPT = `你是 Bite 的决策助手——帮用户从他们自己
 
 【推荐到具体的菜】
 - search_my_list / check_place_details 会带回 dishes（招牌 / 网友推荐的菜）。
-- 推荐一家店时，如果有 dishes，顺带说"去点 XX"——比只推店更有用。例：推 «鼎泰丰» 时加一句"招牌麻酱小面别错过"。`;
+- 推荐一家店时，如果有 dishes，顺带说"去点 XX"——比只推店更有用。例：推 «鼎泰丰» 时加一句"招牌麻酱小面别错过"。
+
+【营业状态】
+- check_place_details 对有 Google 关联的店会带 open_now / today_hours。用户问"今晚/现在去"时先确认没打烊；已打烊要说出来并给替代。
+
+【跨领域综合（清单分 food 吃 / drink 喝 / activity 玩 / other）】
+- 用户的清单不只有吃的。规划"吃完去哪玩 / 吃完喝什么"时，分别按 category 查两次再组合：
+  例：search_my_list(category=["food"], status=["want_to_go"]) + search_my_list(category=["activity"])，
+  然后给出"先吃 «A»，吃完去 «B»"式的组合建议（优先地理位置相近的）。
+- 用户问玩乐/咖啡时不要只在吃的里找——先按对应 category 查。`;
 
 type RequestBody = {
   conversation_id?: string;

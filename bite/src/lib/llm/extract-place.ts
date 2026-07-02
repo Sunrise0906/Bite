@@ -273,6 +273,54 @@ export type ExtractResult =
     }
   | { ok: false; error: string };
 
+/**
+ * 拍照识店：菜单照 / 店面照 / 小红书截图 → 结构化店铺信息。
+ * 走 provider 的 vision（Gemini/GPT/DeepSeek/Qwen 的 OpenAI 兼容层）；
+ * Anthropic provider 暂不支持图片抽取（extract 是 compat 专属实现），给友好提示。
+ */
+export async function extractPlacesFromImage(
+  image: { base64: string; mimeType: string },
+  hint?: string,
+): Promise<ExtractResult> {
+  try {
+    const provider = await getProvider();
+    if (provider.config.id === "anthropic") {
+      return {
+        ok: false,
+        error:
+          "当前 AI 设置（Anthropic）暂不支持拍照识别，去「我的 → AI 设置」切到 Gemini（免费）即可用。",
+      };
+    }
+    const parsed = await provider.extract({
+      system:
+        SYSTEM_PROMPT +
+        "\n\n【本次输入是一张照片】可能是：菜单（提取店名 + dishes 招牌菜，多为单店）、" +
+        "店面/招牌照（提取店名，地址尽量从画面文字推断）、或小红书帖子截图（按帖子正文规则处理）。" +
+        "照片里认不出店名时 name 填「（未知）」并把 confidence 设为 low。",
+      userInput:
+        (hint?.trim() ? `（用户备注）${hint.trim()}\n\n` : "") +
+        "请识别这张照片里的店铺信息。",
+      image,
+      schema: ExtractionResultSchema,
+      schemaName: "place_extraction",
+      maxTokens: 4096,
+    });
+
+    if (!parsed.places || parsed.places.length === 0) {
+      return { ok: false, error: "照片里没识别出店铺信息，换张更清晰的试试" };
+    }
+    return { ok: true, mode: parsed.mode, places: parsed.places.slice(0, 10) };
+  } catch (err) {
+    if (err instanceof LlmProviderError) {
+      return { ok: false, error: err.message };
+    }
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "AI 识别失败",
+    };
+  }
+}
+
 export async function extractPlacesFromText(
   text: string,
 ): Promise<ExtractResult> {

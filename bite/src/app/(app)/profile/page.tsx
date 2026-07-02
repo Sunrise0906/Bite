@@ -10,6 +10,7 @@ import { decryptSecret } from "@/lib/crypto/secret-box";
 import { getTheme, getUiVersion } from "@/lib/ui-version";
 import { UiVersionToggle } from "@/components/profile/ui-version-toggle";
 import { ThemePicker } from "@/components/profile/theme-picker";
+import { NotificationToggle } from "@/components/profile/notification-toggle";
 
 export const metadata = {
   title: "我的 · Bite",
@@ -143,6 +144,16 @@ export default async function ProfilePage() {
         )}
       </section>
 
+      {/* ---- 通知 ---- */}
+      <section className="card mb-8 px-5 py-5">
+        <div className="section-heading mb-3">
+          <h2 className="text-lg text-[var(--text-strong)]">通知</h2>
+        </div>
+        <NotificationToggle
+          vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
+        />
+      </section>
+
       {/* ---- AI 用量 ---- */}
       <section className="card mb-8 px-5 py-5">
         <div className="section-heading mb-4">
@@ -202,6 +213,27 @@ export default async function ProfilePage() {
                 {pendingRecCount}
               </span>
             ) : null}
+          </span>
+          <ChevronRightIcon
+            size={16}
+            className="shrink-0 text-[var(--text-faint)]"
+          />
+        </a>
+      </section>
+
+      {/* ---- 统计入口 ---- */}
+      <section className="card mb-8">
+        <a
+          href="/stats"
+          className="card-interactive flex items-center justify-between gap-3 px-5 py-4"
+        >
+          <span className="flex min-w-0 items-center gap-2.5 text-sm">
+            <span className="font-medium text-[var(--text-strong)]">
+              吃喝足迹
+            </span>
+            <span className="truncate text-[var(--text-muted)]">
+              菜系分布 · 造访趋势 · 最爱
+            </span>
           </span>
           <ChevronRightIcon
             size={16}
