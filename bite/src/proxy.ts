@@ -52,7 +52,9 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // 跳过：静态资源、图片优化、各类静态文件
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    // 跳过：静态资源、图片优化、各类静态文件、PWA 文件
+    // （sw.js / manifest 不跳过的话，未登录请求会被重定向到 /login，
+    //  service worker 注册和登录页的 PWA 安装提示都会拿到 HTML 而不是文件）
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
