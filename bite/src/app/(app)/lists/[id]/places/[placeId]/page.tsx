@@ -9,6 +9,7 @@ import {
 import { relDate } from "@/lib/util/rel-date";
 import { signPhotoUrls } from "@/lib/storage/signed-photos";
 import { fetchOpeningInfo } from "@/lib/places/google";
+import { searchXhsPosts } from "@/lib/places/xhs-search";
 import { PlaceDetailV2 } from "@/components/v2/place-detail-v2";
 
 type Params = Promise<{ id: string; placeId: string }>;
@@ -59,10 +60,12 @@ export default async function PlaceDetailPage({ params }: { params: Params }) {
   if (!place) notFound();
   const logs = (visitLogs ?? []) as VisitLog[];
 
-  // 展示页：自家 Storage 图换 signed URL（外链原样）；营业状态 best-effort
-  const [displayPhotos, opening] = await Promise.all([
+  // 展示页：自家 Storage 图换 signed URL（外链原样）；营业状态 / 小红书搜索
+  // 都是 best-effort（后者未配 SERPER_API_KEY 时返回 null → 板块不渲染）
+  const [displayPhotos, opening, xhsHits] = await Promise.all([
     signPhotoUrls(supabase, place.photo_urls ?? []),
     place.google_place_id ? fetchOpeningInfo(place.google_place_id) : null,
+    searchXhsPosts(place.name),
   ]);
 
   let canEdit = listRow?.owner_id === user.id;
@@ -137,6 +140,7 @@ export default async function PlaceDetailPage({ params }: { params: Params }) {
       canEdit={canEdit}
       relDate={lastRel}
       opening={opening}
+      xhsHits={xhsHits}
       visitPrefill={(() => {
         const own = logs.find((l) => l.user_id === user.id);
         return own

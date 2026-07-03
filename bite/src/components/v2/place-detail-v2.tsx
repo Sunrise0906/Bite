@@ -2,7 +2,9 @@ import Link from "next/link";
 import { VisitLogButton } from "@/components/visits/visit-log-button";
 import type { VisitPrefill } from "@/components/visits/visit-log-form";
 import type { OpeningInfo } from "@/lib/places/google";
-import { menuSearchUrl } from "@/lib/places/menu-url";
+import type { XhsSearchHit } from "@/lib/places/xhs-search";
+import { menuSearchUrl, xhsSearchUrl } from "@/lib/places/menu-url";
+import { XhsImportButton } from "./xhs-import-button";
 
 export type DetailPlace = {
   id: string;
@@ -80,6 +82,7 @@ export function PlaceDetailV2({
   relDate,
   visitPrefill,
   opening,
+  xhsHits,
 }: {
   place: DetailPlace;
   visits: VisitSummary;
@@ -91,6 +94,8 @@ export function PlaceDetailV2({
   visitPrefill?: VisitPrefill;
   /** 实时营业状态（Google，best-effort，null = 不显示） */
   opening?: OpeningInfo | null;
+  /** 站内小红书搜索结果（未配 SERPER_API_KEY 时为 null → 不渲染板块） */
+  xhsHits?: XhsSearchHit[] | null;
 }) {
   const st = STATUS[place.status as keyof typeof STATUS] ?? STATUS.want_to_go;
   const hero = place.photo_urls[0] ?? null;
@@ -391,6 +396,78 @@ export function PlaceDetailV2({
             </Link>
           )}
         </div>
+
+        {/* 小红书搜这家（深链直达，手机唤起 XHS App） */}
+        <a
+          className="v2-btn ghost"
+          href={xhsSearchUrl(place.name)}
+          target="_blank"
+          rel="noreferrer"
+          style={{ width: "100%", padding: 12, marginBottom: 16 }}
+        >
+          <svg className="v2-svg" width="16" height="16" viewBox="0 0 24 24">
+            <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5z" />
+            <path d="M8 9h4.5M8 12.5h8M8 16h6" />
+          </svg>
+          小红书搜这家
+        </a>
+
+        {/* 站内小红书板块（配了 SERPER_API_KEY 才有） */}
+        {xhsHits && xhsHits.length > 0 && (
+          <section style={{ marginBottom: 20 }}>
+            <div className="v2-sec" style={{ margin: "0 0 10px" }}>
+              <h3>小红书 · 关于这家店</h3>
+              <a
+                className="more"
+                href={xhsSearchUrl(place.name)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                更多 ›
+              </a>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              {xhsHits.map((hit) => (
+                <div
+                  key={hit.link}
+                  className="v2-reason"
+                  style={{ marginTop: 0, alignItems: "flex-start" }}
+                >
+                  <div className="rt" style={{ minWidth: 0 }}>
+                    <a
+                      href={hit.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="who"
+                      style={{
+                        display: "block",
+                        fontSize: 13,
+                        textDecoration: "underline",
+                        textUnderlineOffset: 3,
+                      }}
+                    >
+                      {hit.title}
+                    </a>
+                    {hit.snippet && (
+                      <div className="tx" style={{ fontSize: 12 }}>
+                        {hit.snippet}
+                      </div>
+                    )}
+                  </div>
+                  {canEdit && (
+                    <XhsImportButton placeId={place.id} postUrl={hit.link} />
+                  )}
+                </div>
+              ))}
+            </div>
+            <p
+              className="v2-faint"
+              style={{ fontSize: 11, marginTop: 8, lineHeight: 1.5 }}
+            >
+              「导入」会抓取帖子并把招牌菜 / 图片 / 口碑备注合并进这家店
+            </p>
+          </section>
+        )}
       </div>
     </main>
   );

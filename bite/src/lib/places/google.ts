@@ -172,6 +172,90 @@ export async function getPlaceDetails(
   };
 }
 
+// ---- 找相似（chat 工具用：附近同菜系候选） --------------------------------
+
+export type SimilarPlace = {
+  placeId: string;
+  name: string;
+  address: string;
+  rating: number | null;
+  ratingCount: number | null;
+  priceRange: string | null;
+  lat: number | null;
+  lng: number | null;
+};
+
+const PRICE_LEVEL_MAP: Record<string, string> = {
+  PRICE_LEVEL_INEXPENSIVE: "$",
+  PRICE_LEVEL_MODERATE: "$$",
+  PRICE_LEVEL_EXPENSIVE: "$$$",
+  PRICE_LEVEL_VERY_EXPENSIVE: "$$$$",
+};
+
+/**
+ * Google Text Search：按文本（菜系等）+ 圆形偏置找附近同类店。
+ * best-effort：失败返回空数组。
+ */
+export async function searchSimilarPlaces(
+  textQuery: string,
+  center: { lat: number; lng: number } | null,
+  radiusMeters = 10000,
+): Promise<SimilarPlace[]> {
+  try {
+    const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": getServerApiKey(),
+        "X-Goog-FieldMask":
+          "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.priceLevel,places.location",
+      },
+      body: JSON.stringify({
+        textQuery,
+        languageCode: "zh-CN",
+        maxResultCount: 8,
+        ...(center
+          ? {
+              locationBias: {
+                circle: {
+                  center: { latitude: center.lat, longitude: center.lng },
+                  radius: radiusMeters,
+                },
+              },
+            }
+          : {}),
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as {
+      places?: Array<{
+        id?: string;
+        displayName?: { text?: string };
+        formattedAddress?: string;
+        rating?: number;
+        userRatingCount?: number;
+        priceLevel?: string;
+        location?: { latitude?: number; longitude?: number };
+      }>;
+    };
+    return (data.places ?? [])
+      .filter((p) => p.id && p.displayName?.text)
+      .map((p) => ({
+        placeId: p.id!,
+        name: p.displayName!.text!,
+        address: p.formattedAddress ?? "",
+        rating: p.rating ?? null,
+        ratingCount: p.userRatingCount ?? null,
+        priceRange: p.priceLevel ? (PRICE_LEVEL_MAP[p.priceLevel] ?? null) : null,
+        lat: p.location?.latitude ?? null,
+        lng: p.location?.longitude ?? null,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 // ---- 营业时间（实时信号） -------------------------------------------------
 
 export type OpeningInfo = {

@@ -2,7 +2,7 @@
 // 每个工具返回一个 JSON 字符串结果给模型读。
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { fetchOpeningInfo } from "@/lib/places/google";
+import { fetchOpeningInfo, searchSimilarPlaces } from "@/lib/places/google";
 import type { LlmTool } from "./types";
 import {
   aggregateVisitSignals,
@@ -92,6 +92,28 @@ export const CHAT_TOOLS: LlmTool[] = [
     },
   },
   {
+    name: "find_similar_places",
+    description:
+      "以用户库里的某家店为参照，用 Google 在附近找同类候选（比如『找三家像 X 但在 Irvine 的』）。" +
+      "返回每家：name, address, rating, rating_count, price_range, already_in_library（用户库里是否已有同名店）。" +
+      "结果是库外候选——推荐给用户参考即可，用户明确说加再调 add_to_list。",
+    inputSchema: {
+      type: "object",
+      properties: {
+        place_id: {
+          type: "string",
+          description: "参照店的 uuid（用它的菜系和坐标做搜索）",
+        },
+        near: {
+          type: "string",
+          description:
+            "可选地点关键词（如 'Irvine' / 'Diamond Jamboree'）——用户想在别处找相似时传；不传 = 参照店附近",
+        },
+      },
+      required: ["place_id"],
+    },
+  },
+  {
     name: "add_to_list",
     description:
       "把一家用户库外的店加进某个 list（想去）。仅在用户明确说'帮我加上' / '记一下' 时用。" +
@@ -134,6 +156,8 @@ export async function executeChatTool(
         return JSON.stringify(await searchMyList(input, ctx));
       case "check_place_details":
         return JSON.stringify(await checkPlaceDetails(input, ctx));
+      case "find_similar_places":
+        return JSON.stringify(await findSimilarPlaces(input, ctx));
       case "add_to_list":
         return JSON.stringify(await addToList(input, ctx));
       default:
@@ -353,6 +377,82 @@ async function checkPlaceDetails(input: unknown, ctx: ToolContext) {
       note: l.note,
       companions: l.companions,
     })),
+  };
+}
+
+type SimilarInput = { place_id?: string; near?: string };
+
+async function findSimilarPlaces(input: unknown, ctx: ToolContext) {
+  const args = (input ?? {}) as SimilarInput;
+  if (!args.place_id) return { error: "缺少 place_id（参照店）" };
+
+  const { data: ref, error } = await ctx.supabase
+    .from("places")
+    .select("id, name, cuisine, lat, lng, address")
+    .eq("id", args.place_id)
+    .maybeSingle<{
+      id: string;
+      name: string;
+      cuisine: string[] | null;
+      lat: number | null;
+      lng: number | null;
+      address: string;
+    }>();
+  if (error || !ref) return { error: "找不到参照店" };
+
+  const cuisineText = (ref.cuisine ?? []).slice(0, 2).join(" ") || "餐厅";
+  const near = args.near?.trim();
+  // 有 near 关键词 → 文本里带地点（Google 自己解析）；否则用参照店坐标做偏置
+  const textQuery = near ? `${cuisineText} 餐厅 ${near}` : `${cuisineText} 餐厅`;
+  const center =
+    !near && ref.lat != null && ref.lng != null
+      ? { lat: ref.lat, lng: ref.lng }
+      : null;
+
+  const results = await searchSimilarPlaces(textQuery, center);
+  if (results.length === 0) {
+    return {
+      reference: ref.name,
+      candidates: [],
+      note: "Google 没返回候选，换个说法或让用户放宽范围",
+    };
+  }
+
+  // 标记哪些已在用户库里（同名匹配），并排除参照店自己
+  const { data: ownerLists } = await ctx.supabase
+    .from("lists")
+    .select("id")
+    .eq("owner_id", ctx.userId);
+  const { data: memberLists } = await ctx.supabase
+    .from("list_members")
+    .select("list_id")
+    .eq("user_id", ctx.userId);
+  const listIds = [
+    ...(ownerLists ?? []).map((l) => l.id),
+    ...(memberLists ?? []).map((m) => m.list_id),
+  ];
+  const libraryNames = new Set<string>();
+  if (listIds.length > 0) {
+    const { data: names } = await ctx.supabase
+      .from("places")
+      .select("name")
+      .in("list_id", listIds);
+    for (const n of names ?? []) libraryNames.add(n.name);
+  }
+
+  return {
+    reference: ref.name,
+    candidates: results
+      .filter((r) => r.name !== ref.name)
+      .slice(0, 6)
+      .map((r) => ({
+        name: r.name,
+        address: r.address,
+        rating: r.rating,
+        rating_count: r.ratingCount,
+        price_range: r.priceRange,
+        already_in_library: libraryNames.has(r.name),
+      })),
   };
 }
 
