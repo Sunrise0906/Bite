@@ -43,3 +43,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# design-preview 的验证截图（可用同目录 shoot-*.mjs 脚本重新生成，不入库省体积）
+design-preview/*.png

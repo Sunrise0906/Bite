@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bite · 融合方案 高保真</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#faf6f0; --surface:#ffffff; --surface2:#f3ebe0; --sunken:#ece2d4;
+  --ink:#211b14; --ink2:#4a4034; --muted:#8a7e6c; --faint:#b3a691;
+  --primary:#c75b3a; --primary-deep:#9c4226; --primary-fg:#fff; --primary-soft:#fbe7dd; --primary-soft-tx:#8c3a1c;
+  --sage:#5f7155; --sage-soft:#e8ede3; --sage-tx:#3f4f37;
+  --gold:#b8862f; --gold-soft:#f6ebd3; --gold-tx:#785621;
+  --border:#ece2d4; --border-2:#ddccb6;
+  --shadow-sm:0 1px 2px rgba(60,40,22,.05), 0 1px 3px rgba(60,40,22,.05);
+  --shadow:0 2px 6px rgba(60,40,22,.06), 0 8px 24px rgba(60,40,22,.08);
+  --shadow-lg:0 8px 30px rgba(60,40,22,.16);
+  --serif:'Fraunces',Georgia,serif; --sans:'Inter','Noto Sans SC',ui-sans-serif,system-ui,"PingFang SC",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#3b3833;font-family:var(--sans);color:var(--ink)}
+.svg{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+/* stage */
+.head{padding:22px 16px 6px;text-align:center}
+.head h1{color:#f5efe6;font-family:var(--serif);font-weight:600;font-size:22px}
+.head p{color:#b6 af a4;color:#b6afa4;font-size:13px;margin-top:5px}
+.stage{display:flex;gap:24px;padding:22px 28px 40px;overflow-x:auto;align-items:flex-start}
+.pw{flex:none}
+.plabel{color:#e9e2d6;font-size:12.5px;font-weight:600;text-align:center;margin-bottom:11px;letter-spacing:.02em}
+.phone{width:384px;height:812px;background:var(--bg);border-radius:38px;border:9px solid #15120e;overflow:hidden;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.45);display:flex;flex-direction:column}
+.scr{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.scroll{flex:1;overflow:hidden;padding:0 16px}
+
+/* shared atoms */
+.h-disp{font-family:var(--serif);font-weight:600;letter-spacing:-.01em;line-height:1.12}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 10px;font-size:11.5px;font-weight:600;line-height:1}
+.pill-want{background:var(--gold-soft);color:var(--gold-tx)}
+.pill-visited{background:var(--sage-soft);color:var(--sage-tx)}
+.pill .ic{width:11px;height:11px}
+.tag{display:inline-flex;border-radius:8px;padding:3px 9px;font-size:11.5px;font-weight:600;background:var(--primary-soft);color:var(--primary-soft-tx)}
+.tag.n{background:var(--surface2);color:var(--ink2)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;cursor:pointer;font-family:var(--sans);font-weight:600;border-radius:14px;font-size:14px;background:var(--primary);color:#fff;box-shadow:0 4px 12px rgba(156,66,38,.22)}
+.btn.sm{padding:8px 13px;font-size:12.5px;border-radius:11px;box-shadow:none}
+.btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--border-2);box-shadow:none}
+.btn.sage{background:var(--sage)}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+.ava{border-radius:999px;background:linear-gradient(135deg,#c75b3a,#9c4226);color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.botnav{display:flex;border-top:1px solid var(--border);background:rgba(255,255,255,.9);backdrop-filter:blur(8px)}
+.botnav div{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 0 16px;font-size:10px;color:var(--muted);font-weight:600}
+.botnav div.on{color:var(--primary)}
+
+/* ============ 屏1 主页 ============ */
+.s-top{display:flex;align-items:center;justify-content:space-between;padding:20px 0 14px}
+.s-top .hi{font-size:13px;color:var(--muted)}
+.s-top .hi b{display:block;font-family:var(--serif);font-weight:600;font-size:20px;color:var(--ink);margin-top:1px}
+.addcap{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:12px 14px;box-shadow:var(--shadow-sm);color:var(--muted);font-size:13.5px;margin-bottom:16px}
+.addcap .plus{margin-left:auto;width:30px;height:30px;border-radius:9px;background:var(--primary);display:grid;place-items:center;flex:none}
+/* 决策中枢 */
+.hub{position:relative;border-radius:22px;overflow:hidden;height:188px;box-shadow:var(--shadow);margin-bottom:8px}
+.hub .bg{position:absolute;inset:0;background-size:cover;background-position:center}
+.hub .scrim{position:absolute;inset:0;background:linear-gradient(115deg,rgba(28,18,10,.82) 30%,rgba(28,18,10,.35))}
+.hub .in{position:relative;padding:18px;height:100%;display:flex;flex-direction:column;justify-content:space-between;color:#fff}
+.hub .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:.04em;opacity:.85;display:flex;align-items:center;gap:6px}
+.hub h2{font-family:var(--serif);font-weight:600;font-size:25px;line-height:1.1}
+.hub .row{display:flex;gap:9px}
+.hub .cta{flex:1;background:var(--primary);color:#fff;border:0;border-radius:13px;padding:12px;font-weight:700;font-size:14px;font-family:var(--sans);display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;box-shadow:0 6px 16px rgba(199,91,58,.4)}
+.hub .cta2{background:rgba(255,255,255,.16);backdrop-filter:blur(6px);color:#fff;border:0;border-radius:13px;padding:12px 15px;font-weight:600;font-size:13px;cursor:pointer}
+/* 想去 deck */
+.sec{display:flex;align-items:center;justify-content:space-between;margin:18px 0 11px}
+.sec h3{font-family:var(--serif);font-weight:600;font-size:16px}
+.sec .more{font-size:12.5px;color:var(--primary);font-weight:600}
+.filters{display:flex;gap:7px;overflow:hidden;margin-bottom:13px}
+.fchip{flex:none;border:1px solid var(--border-2);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--ink2)}
+.fchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.deck{display:flex;gap:12px;overflow:hidden;margin:0 -16px;padding:0 16px 4px}
+.dcard{flex:none;width:156px;background:var(--surface);border:1px solid var(--border);border-radius:17px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.dcard .img{height:96px;background-size:cover;background-position:center;position:relative}
+.dcard .dist{position:absolute;right:7px;top:7px;background:rgba(20,14,8,.7);color:#fff;font-size:10.5px;font-weight:600;padding:3px 7px;border-radius:7px;backdrop-filter:blur(3px)}
+.dcard .b{padding:10px 11px 11px}
+.dcard .nm{font-weight:700;font-size:14px}
+.dcard .mt{font-size:11px;color:var(--muted);margin-top:2px}
+.dcard .why{font-size:11.5px;color:var(--ink2);margin-top:7px;line-height:1.35;height:31px;overflow:hidden}
+.dcard .act{display:flex;gap:6px;margin-top:9px}
+.dcard .act .b1{flex:1;background:var(--primary);color:#fff;border-radius:9px;padding:7px;font-size:11.5px;font-weight:700;text-align:center}
+.dcard .act .b2{width:34px;border:1px solid var(--border-2);border-radius:9px;display:grid;place-items:center;color:var(--ink2)}
+/* 清单 rows */
+.lrow{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:11px;margin-bottom:9px;box-shadow:var(--shadow-sm)}
+.lthumbs{display:flex;flex:none}
+.lthumbs i{width:38px;height:38px;border-radius:10px;background-size:cover;background-position:center;border:2px solid var(--surface);margin-left:-12px;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.lthumbs i:first-child{margin-left:0}
+.lrow .li{flex:1;min-width:0}
+.lrow .li .nm{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:7px}
+.lrow .li .mt{font-size:11.5px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px}
+.faces{display:flex}
+.faces i{width:18px;height:18px;border-radius:999px;border:1.5px solid var(--surface);margin-left:-6px;font-size:9px}
+.faces i:first-child{margin-left:0}
+.actdot{width:6px;height:6px;border-radius:99px;background:var(--sage)}
+.lrow .cnt{font-family:var(--serif);font-weight:600;font-size:22px;color:var(--ink);flex:none}
+
+/* ============ 屏2 详情 ============ */
+.hero{position:relative;height:300px}
+.hero .bg{position:absolute;inset:0;background-size:cover;background-position:center}
+.hero .topbar{position:absolute;top:0;left:0;right:0;padding:16px;display:flex;justify-content:space-between;z-index:2}
+.hero .ib{width:38px;height:38px;border-radius:999px;background:rgba(20,14,8,.45);backdrop-filter:blur(6px);display:grid;place-items:center;color:#fff}
+.hero .grad{position:absolute;left:0;right:0;bottom:0;height:140px;background:linear-gradient(to top,var(--bg),transparent)}
+.hero .gallery{position:absolute;right:14px;bottom:62px;background:rgba(20,14,8,.6);color:#fff;font-size:11px;font-weight:600;padding:4px 9px;border-radius:8px;backdrop-filter:blur(3px)}
+.dsheet{margin-top:-46px;position:relative;z-index:2;background:var(--bg);padding:0 16px}
+.dname{font-family:var(--serif);font-weight:600;font-size:27px;line-height:1.1}
+.dmeta{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:13px;margin-top:7px}
+.dmeta .dot{width:3px;height:3px;border-radius:99px;background:var(--faint)}
+/* 回忆卡 */
+.memory{background:linear-gradient(120deg,var(--sage-soft),#eef2e8);border:1px solid #dbe3d2;border-radius:16px;padding:14px;margin-top:15px}
+.memory .t{font-size:12px;font-weight:700;color:var(--sage-tx);display:flex;align-items:center;gap:6px}
+.memory .stars{margin-top:8px;display:flex;align-items:center;gap:9px}
+.memory .big{font-family:var(--serif);font-weight:600;font-size:24px;color:var(--sage-tx)}
+.memory .sub{font-size:12px;color:var(--sage-tx);opacity:.85;margin-top:6px}
+/* 理由卡 */
+.reason{display:flex;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;margin-top:11px}
+.reason .ra{width:28px;height:28px;font-size:11px}
+.reason .rt{flex:1}
+.reason .rt .who{font-size:11.5px;font-weight:700;color:var(--ink2)}
+.reason .rt .tx{font-size:13px;color:var(--ink2);margin-top:3px;line-height:1.45}
+/* AI 点评 */
+.ainote{background:linear-gradient(120deg,#fdf0e8,#fbe7dd);border:1px solid #f3d6c6;border-radius:14px;padding:13px;margin-top:11px}
+.ainote .t{font-size:12px;font-weight:700;color:var(--primary-soft-tx);display:flex;align-items:center;gap:6px}
+.ainote .tx{font-size:13px;color:#7a3614;margin-top:6px;line-height:1.5}
+.dactions{display:flex;gap:9px;margin:16px 0}
+.dactions .btn{flex:1;padding:12px}
+
+/* ============ 屏3 聊天 ============ */
+.chead{padding:15px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.chead .t{font-family:var(--serif);font-weight:600;font-size:16px}
+.prov{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border-radius:999px;padding:4px 10px;font-size:11px;color:var(--muted);font-weight:600}
+.prov::before{content:"";width:6px;height:6px;border-radius:99px;background:#10b981}
+.msgs{flex:1;overflow:hidden;padding:16px;display:flex;flex-direction:column;gap:12px}
+.me{align-self:flex-end;max-width:80%;background:var(--primary);color:#fff;padding:11px 14px;border-radius:17px;border-bottom-right-radius:5px;font-size:13.5px;line-height:1.45}
+.ai{align-self:flex-start;max-width:92%}
+.ai .txt{font-size:13.5px;color:var(--ink2);line-height:1.5;margin-bottom:9px}
+.ai .toolchip{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--sage-tx);background:var(--sage-soft);border-radius:999px;padding:4px 10px;margin-bottom:9px}
+/* 推荐卡 */
+.rc{display:flex;gap:11px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:11px;margin-bottom:9px;box-shadow:var(--shadow-sm)}
+.rc .img{width:74px;height:74px;border-radius:12px;background-size:cover;background-position:center;flex:none;position:relative}
+.rc .rank{position:absolute;left:-5px;top:-5px;width:21px;height:21px;border-radius:999px;background:var(--primary);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;border:2px solid var(--surface)}
+.rc .ci{flex:1;min-width:0}
+.rc .ci .nm{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:6px}
+.rc .ci .mt{font-size:11.5px;color:var(--muted);margin-top:2px}
+.rc .ci .why{font-size:12px;color:var(--ink2);margin-top:6px;line-height:1.4;background:var(--surface2);border-radius:8px;padding:6px 9px}
+.rc .ci .why b{color:var(--primary-deep)}
+.rc .ci .act{display:flex;gap:7px;margin-top:8px}
+.rc .ci .act .b1{background:var(--primary);color:#fff;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700}
+.rc .ci .act .b2{border:1px solid var(--border-2);color:var(--ink2);border-radius:9px;padding:7px 12px;font-size:12px;font-weight:600}
+.qr{display:flex;gap:7px;overflow:hidden;margin-top:4px}
+.qr span{flex:none;border:1px solid var(--border-2);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:12px;font-weight:600;color:var(--ink2)}
+.composer{padding:11px 16px;border-top:1px solid var(--border);display:flex;gap:9px;align-items:center}
+.composer .in{flex:1;background:var(--surface2);border-radius:14px;padding:11px 14px;color:var(--muted);font-size:13px}
+.composer .snd{width:42px;height:42px;border-radius:13px;background:var(--primary);display:grid;place-items:center;flex:none}
+
+/* ============ 屏4 加店 ============ */
+.ahead{padding:18px 0 12px;display:flex;align-items:center;gap:10px}
+.ahead .x{width:32px;height:32px;border-radius:999px;background:var(--surface2);display:grid;place-items:center;color:var(--ink2)}
+.ahead h2{font-family:var(--serif);font-weight:600;font-size:18px}
+.srcbar{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:11px;padding:9px 12px;font-size:11.5px;color:var(--muted);margin-bottom:13px}
+.srcbar .re{margin-left:auto;color:var(--primary);font-weight:600}
+.conf{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:12px;margin-bottom:13px}
+.conf .l{display:flex;align-items:center;justify-content:space-between;font-size:12.5px}
+.conf .l b{color:var(--sage-tx);display:flex;align-items:center;gap:6px}
+.conf .bars{display:flex;gap:4px;margin-top:9px}
+.conf .bars i{flex:1;height:5px;border-radius:99px;background:var(--sunken)}
+.conf .bars i.on{background:var(--sage)}
+/* 预览卡（=最终店铺卡） */
+.preview{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:14px}
+.preview .img{height:128px;background-size:cover;background-position:center;position:relative}
+.preview .img .ed{position:absolute;right:10px;top:10px;background:rgba(20,14,8,.55);color:#fff;font-size:10.5px;font-weight:600;padding:4px 9px;border-radius:8px;backdrop-filter:blur(3px);display:flex;align-items:center;gap:5px}
+.preview .pb{padding:13px 15px 15px}
+.preview .nm{font-family:var(--serif);font-weight:600;font-size:19px;border-bottom:1.5px dashed var(--border-2);padding-bottom:3px;display:inline-flex;align-items:center;gap:7px}
+.preview .mt{font-size:12.5px;color:var(--muted);margin-top:7px}
+.preview .chips{display:flex;gap:6px;margin-top:9px}
+.preview .ai{margin-top:11px;font-size:12px;color:#7a3614;background:#fdf0e8;border-radius:9px;padding:8px 10px;line-height:1.45}
+.picker .pl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px}
+.popt{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 13px;margin-bottom:8px;font-size:13.5px;font-weight:600}
+.popt.sel{border-color:var(--primary);background:var(--primary-soft)}
+.popt .rd{width:18px;height:18px;border-radius:999px;border:2px solid var(--border-2);margin-left:auto;flex:none}
+.popt.sel .rd{border-color:var(--primary);background:var(--primary);box-shadow:inset 0 0 0 3px #fff}
+.popt .fc{display:flex;margin-left:auto}
+</style>
+</head>
+<body>
+<div class="head"><h1>Bite · 融合方案</h1><p>决策优先骨架 + 社交温度 + 大图详情 · 同一套设计语言</p></div>
+<div class="stage">
+
+<!-- ===== 屏1 主页 ===== -->
+<div class="pw"><div class="plabel">① Lists 主页 · 决策中枢</div>
+<div class="phone"><div class="scr">
+  <div class="scroll">
+    <div class="s-top"><div class="hi">晚上好<b>Caleb 👋</b></div><div class="ava" style="width:38px;height:38px;font-size:14px">C</div></div>
+    <div class="addcap"><svg class="svg" width="17" height="17" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>粘小红书链接，或搜店名…<span class="plus"><svg class="svg" width="16" height="16" viewBox="0 0 24 24" style="stroke:#fff"><path d="M12 5v14M5 12h14"/></svg></span></div>
+
+    <div class="hub">
+      <div class="bg" style="background-image:url('https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=800&q=75')"></div>
+      <div class="scrim"></div>
+      <div class="in">
+        <div>
+          <div class="eyebrow"><svg class="svg" width="13" height="13" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>晚 7:10 · Irvine · 想去 9 家</div>
+          <h2 style="margin-top:10px">今晚，<br>吃哪一家？</h2>
+        </div>
+        <div class="row">
+          <button class="cta"><svg class="svg" width="16" height="16" viewBox="0 0 24 24" style="stroke:#fff"><path d="M21 12a8 8 0 1 1-4-6.9L21 4l-1 4.5A8 8 0 0 1 21 12z"/></svg>帮我决定</button>
+          <button class="cta2">随便选</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec"><h3>想去 · 帮你前置了</h3><span class="more">9 家 ›</span></div>
+    <div class="filters">
+      <span class="fchip on">想去</span><span class="fchip">5km 内</span><span class="fchip">$$ 以内</span><span class="fchip">约会</span><span class="fchip">日料</span>
+    </div>
+    <div class="deck">
+      <div class="dcard"><div class="img" style="background-image:url('https://images.unsplash.com/photo-1563245372-f21724e3856d?w=500&q=75')"><span class="dist">2.1km</span></div><div class="b"><div class="nm">上水小馆</div><div class="mt">粤菜 · $$</div><div class="why">"炒饭烧鸭都好吃，没吃完打包"</div><div class="act"><div class="b1">就它</div><div class="b2"><svg class="svg" width="14" height="14" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></div></div></div></div>
+      <div class="dcard"><div class="img" style="background-image:url('https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500&q=75')"><span class="dist">4.3km</span></div><div class="b"><div class="nm">鳥贵族</div><div class="mt">日料 · $$</div><div class="why">"约会氛围好，串烧多"</div><div class="act"><div class="b1">就它</div><div class="b2"><svg class="svg" width="14" height="14" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></div></div></div></div>
+    </div>
+
+    <div class="sec"><h3>我的清单</h3><span class="more">管理</span></div>
+    <div class="lrow">
+      <div class="lthumbs"><i style="background-image:url('https://images.unsplash.com/photo-1563245372-f21724e3856d?w=200&q=70')"></i><i style="background-image:url('https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=200&q=70')"></i><i style="background-image:url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=200&q=70')"></i></div>
+      <div class="li"><div class="nm">Irvine 想吃的</div><div class="mt">想去 9 · 去过 3 · 昨天</div></div>
+      <div class="cnt">12</div>
+    </div>
+    <div class="lrow">
+      <div class="lthumbs"><i style="background-image:url('https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=200&q=70')"></i><i style="background-image:url('https://images.unsplash.com/photo-1552566626-52f8b828add9?w=200&q=70')"></i></div>
+      <div class="li"><div class="nm">约会清单 <span class="pill pill-visited" style="padding:2px 8px">共享</span></div><div class="mt"><div class="faces"><span class="ava" style="width:18px;height:18px;font-size:9px">C</span><span class="ava" style="width:18px;height:18px;font-size:9px;background:linear-gradient(135deg,#5f7155,#3f4f37)">Y</span></div><span class="actdot"></span>Yumi 刚加了 1 家</div></div>
+      <div class="cnt">4</div>
+    </div>
+  </div>
+  <div class="botnav"><div class="on"><svg class="svg" width="22" height="22" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>清单</div><div><svg class="svg" width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>添加</div><div><svg class="svg" width="22" height="22" viewBox="0 0 24 24"><path d="M21 12a8 8 0 1 1-4-6.9L21 4l-1 4.5A8 8 0 0 1 21 12z"/></svg>聊天</div><div><svg class="svg" width="22" height="22" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>地图</div><div><svg class="svg" width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>我的</div></div>
+</div></div></div>
+
+<!-- ===== 屏2 详情 ===== -->
+<div class="pw"><div class="plabel">② 店铺详情 · 大图 + 回忆</div>
+<div class="phone"><div class="scr">
+  <div style="flex:1;overflow:hidden">
+    <div class="hero">
+      <div class="bg" style="background-image:url('https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=800&q=78')"></div>
+      <div class="topbar"><div class="ib"><svg class="svg" width="18" height="18" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></div><div class="ib"><svg class="svg" width="17" height="17" viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"/></svg></div></div>
+      <div class="gallery">1 / 6</div>
+      <div class="grad"></div>
+    </div>
+    <div class="dsheet">
+      <span class="pill pill-visited"><svg class="svg ic" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>去过 · 会再来</span>
+      <div class="dname" style="margin-top:9px">鼎泰丰</div>
+      <div class="dmeta">台菜 · 小笼包<span class="dot"></span>$$$<span class="dot"></span>Spectrum · 4.3km</div>
+
+      <div class="memory">
+        <div class="t"><svg class="svg" width="13" height="13" viewBox="0 0 24 24"><path d="M19.5 5.1a5 5 0 0 0-7.1 0L12 5.5l-.4-.4a5 5 0 1 0-7.1 7.1l7.5 7.5 7.5-7.5a5 5 0 0 0 0-7.1z"/></svg>你和 Yumi 的回忆</div>
+        <div class="stars"><span class="big">4.0</span><span style="color:var(--gold)">★★★★☆</span><span class="muted" style="font-size:12px">去过 2 次</span></div>
+        <div class="sub">最近一次 · 上周五，和 Yumi</div>
+      </div>
+
+      <div class="reason">
+        <span class="ava ra">C</span>
+        <div class="rt"><div class="who">@你的理由</div><div class="tx">麻酱小面好吃，环境也舒服，适合慢慢吃</div></div>
+      </div>
+
+      <div class="ainote">
+        <div class="t"><svg class="svg" width="13" height="13" viewBox="0 0 24 24"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7z"/></svg>Bite AI 点评</div>
+        <div class="tx">芋泥小笼包偏腻，麻酱小面是招牌。周五 5pm 后等位常到 4h，建议错峰或先 waitlist。</div>
+      </div>
+
+      <div class="dactions">
+        <button class="btn sage"><svg class="svg" width="16" height="16" viewBox="0 0 24 24" style="stroke:#fff"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>再去一次</button>
+        <button class="btn ghost"><svg class="svg" width="16" height="16" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>导航</button>
+      </div>
+    </div>
+  </div>
+</div></div></div>
+
+<!-- ===== 屏3 聊天 ===== -->
+<div class="pw"><div class="plabel">③ AI 聊天 · 可操作推荐卡</div>
+<div class="phone"><div class="scr">
+  <div class="chead"><span class="t">今晚和女朋友</span><span class="prov">Gemini</span></div>
+  <div class="msgs">
+    <div class="me">今晚和女朋友吃啥，想日料 200 以内</div>
+    <div class="ai">
+      <div class="toolchip"><svg class="svg" width="12" height="12" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>查了你的库 · 日料 · 3 家匹配</div>
+      <div class="txt">从你「想去」里挑了 2 家，都在 200 内、适合约会：</div>
+      <div class="rc">
+        <div class="img" style="background-image:url('https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=300&q=72')"><span class="rank">1</span></div>
+        <div class="ci"><div class="nm">鳥贵族 <span class="pill pill-want" style="padding:2px 7px">想去</span></div><div class="mt">Diamond Jamboree · $$ · 4.3km</div><div class="why">为什么：你标了 <b>「约会氛围好」</b></div><div class="act"><span class="b1">就去这家</span><span class="b2">看详情</span></div></div>
+      </div>
+      <div class="rc">
+        <div class="img" style="background-image:url('https://images.unsplash.com/photo-1553621042-f6e147245754?w=300&q=72')"><span class="rank">2</span></div>
+        <div class="ci"><div class="nm">Sushi Noguchi <span class="pill pill-visited" style="padding:2px 7px">去过</span></div><div class="mt">Tustin · $$$ · 8km</div><div class="why">为什么：上次 <b>4 星</b>，你写"鳗鱼饭绝了"</div><div class="act"><span class="b1">就去这家</span><span class="b2">看详情</span></div></div>
+      </div>
+    </div>
+    <div class="qr"><span>换近一点的</span><span>再便宜些</span><span>两家都加</span></div>
+  </div>
+  <div class="composer"><div class="in">回个话…</div><div class="snd"><svg class="svg" width="18" height="18" viewBox="0 0 24 24" style="stroke:#fff"><path d="M21 3 10.5 13.5M21 3l-6.8 18-3.7-7.5L3 9.8z"/></svg></div></div>
+</div></div></div>
+
+<!-- ===== 屏4 加店 ===== -->
+<div class="pw"><div class="plabel">④ 加店 · 所见即所得</div>
+<div class="phone"><div class="scr">
+  <div class="scroll">
+    <div class="ahead"><div class="x"><svg class="svg" width="17" height="17" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></div><h2>确认入库</h2></div>
+    <div class="srcbar"><svg class="svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9.5 14.5 14.5 9.5M8 11l-2.5 2.5a3.5 3.5 0 0 0 5 5L13 16M11 8l2.5-2.5a3.5 3.5 0 0 1 5 5L16 13"/></svg>从小红书帖子抽取<span class="re">重抽</span></div>
+    <div class="conf">
+      <div class="l"><span class="muted">提取信心</span><b><svg class="svg" width="13" height="13" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>高 · 字段已对齐</b></div>
+      <div class="bars"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+    </div>
+    <div class="preview">
+      <div class="img" style="background-image:url('https://images.unsplash.com/photo-1552566626-52f8b828add9?w=600&q=75')"><span class="ed"><svg class="svg" width="11" height="11" viewBox="0 0 24 24"><path d="M17 3.5a2.1 2.1 0 0 1 3 3L8.5 18 4 19.5 5.5 15z"/></svg>换图</span></div>
+      <div class="pb">
+        <div class="nm">Capital Seafood 漁人 <svg class="svg" width="13" height="13" viewBox="0 0 24 24" style="stroke:var(--muted)"><path d="M17 3.5a2.1 2.1 0 0 1 3 3L8.5 18 4 19.5 5.5 15z"/></svg></div>
+        <div class="mt">Irvine · Diamond Jamboree · $$</div>
+        <div class="chips"><span class="tag">粤菜</span><span class="tag">海鲜</span><span class="tag">茶点</span></div>
+        <div class="ai">AI 备注：博主主推茶点和环境，评论区 1 条提到等位 1.5h，建议错峰或预约。</div>
+      </div>
+    </div>
+    <div class="picker">
+      <div class="pl">收进哪个清单</div>
+      <div class="popt sel">Irvine 想吃的<span class="rd"></span></div>
+      <div class="popt">约会清单 · 和 Yumi<span class="fc"><span class="ava" style="width:20px;height:20px;font-size:9px">C</span><span class="ava" style="width:20px;height:20px;font-size:9px;background:linear-gradient(135deg,#5f7155,#3f4f37);margin-left:-6px;border:1.5px solid #fff">Y</span></span></div>
+    </div>
+    <button class="btn" style="width:100%;padding:13px;margin-top:6px">确认添加到「Irvine 想吃的」</button>
+  </div>
+</div></div></div>
+
+</div>
+</body>
+</html>

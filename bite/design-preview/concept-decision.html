@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bite · 概念 B — 决策优先 / 高效工具</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,440;0,9..144,560;0,9..144,640;1,9..144,500&family=Inter:wght@400;450;500;600;700&display=swap');
+
+/* ============ TOKENS — warm neutral system ============ */
+:root{
+  --bg:#F6F1EA;            /* page warm off-white */
+  --surface:#FFFFFF;
+  --sunken:#EFE7DB;        /* recessed wells / chips */
+  --ink:#211B14;
+  --ink-2:#544B3D;
+  --muted:#938678;
+  --line:#E7DCCB;
+  --line-2:#DCCFBA;
+  /* accents — intentionally muted, NOT the differentiator */
+  --terra:#BC5A39;
+  --terra-soft:#F6E5DC;
+  --terra-deep:#8F3E24;
+  --sage:#5E6F52;
+  --sage-soft:#E5EBDD;
+  --gold:#B08322;
+  --gold-soft:#F4E9D2;
+  --r-lg:20px; --r:15px; --r-sm:11px;
+  --e1:0 1px 2px rgba(33,27,20,.05);
+  --e2:0 4px 14px rgba(33,27,20,.07);
+  --e3:0 10px 30px rgba(33,27,20,.13);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+html{scroll-behavior:smooth}
+body{
+  font-family:Inter,system-ui,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:
+    radial-gradient(900px 500px at 18% -8%, #2c2620 0%, transparent 60%),
+    radial-gradient(900px 500px at 86% 4%, #2a2a2c 0%, transparent 55%),
+    #1c1916;
+  color:var(--ink);
+  min-height:100vh;
+  padding:40px 26px 60px;
+}
+.serif{font-family:Fraunces,Georgia,"Songti SC",serif}
+
+/* ============ STAGE ============ */
+.stage-head{max-width:1640px;margin:0 auto 30px;color:#EDE6DB;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.stage-head .mark{display:flex;align-items:center;gap:13px}
+.stage-head .logo{width:42px;height:42px;border-radius:13px;background:linear-gradient(140deg,#BC5A39,#8F3E24);display:grid;place-items:center;box-shadow:0 8px 22px rgba(188,90,57,.4)}
+.stage-head h1{font-family:Fraunces,serif;font-weight:560;font-size:25px;letter-spacing:-.01em}
+.stage-head .tag{font-size:13px;color:#A89E91;margin-top:3px}
+.stage-head .concept{text-align:right}
+.stage-head .concept .k{font-size:11px;letter-spacing:.16em;color:#857C70;text-transform:uppercase;font-weight:600}
+.stage-head .concept .v{font-family:Fraunces,serif;font-size:20px;color:#EDE6DB;margin-top:4px}
+
+.rail{max-width:1640px;margin:0 auto;display:flex;gap:32px;justify-content:center;align-items:flex-start;flex-wrap:nowrap}
+.col{flex:0 0 380px}
+.col .label{color:#CDC4B7;font-size:14.5px;font-weight:600;margin:0 4px 13px;display:flex;align-items:center;gap:9px}
+.col .label .n{font-family:Fraunces,serif;font-size:16px;color:#BC5A39;background:rgba(188,90,57,.16);width:25px;height:25px;border-radius:8px;display:grid;place-items:center;font-weight:640}
+
+/* ============ PHONE FRAME ============ */
+.phone{
+  width:380px;height:782px;border-radius:42px;background:#0e0c0a;
+  padding:9px;box-shadow:var(--e3), 0 0 0 1px rgba(255,255,255,.04);
+  position:relative;
+}
+.screen{
+  width:100%;height:100%;border-radius:34px;overflow:hidden;
+  background:var(--bg);position:relative;display:flex;flex-direction:column;
+}
+.scroll{flex:1;overflow:hidden;position:relative}
+.statusbar{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:12px;font-weight:600;color:var(--ink);flex:0 0 auto;background:transparent}
+.statusbar .dots{display:flex;gap:5px;align-items:center}
+.statusbar svg{display:block}
+
+svg{display:block}
+.ico{width:20px;height:20px;stroke:currentColor;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+/* ============ SHARED ATOMS ============ */
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:5px 11px;font-size:12px;font-weight:600;line-height:1}
+.chip.solid{background:var(--ink);color:#fff}
+.chip.terra{background:var(--terra-soft);color:var(--terra-deep)}
+.chip.sage{background:var(--sage-soft);color:var(--sage)}
+.chip.gold{background:var(--gold-soft);color:#7A5A12}
+.chip.ghost{background:var(--sunken);color:var(--ink-2)}
+.chip .dot{width:6px;height:6px;border-radius:99px;background:currentColor}
+.price{font-weight:700;color:var(--ink-2);letter-spacing:.04em}
+.price .off{color:var(--line-2)}
+.stars{color:var(--gold);letter-spacing:1px;font-size:13px}
+
+/* status pill: 想去 vs 去过 distinct */
+.status{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;border-radius:99px;padding:4px 10px}
+.status.want{color:#7A5A12;background:var(--gold-soft)}
+.status.been{color:#3E5135;background:var(--sage-soft)}
+
+/* ============ BOTTOM NAV ============ */
+nav{
+  flex:0 0 auto;display:flex;align-items:flex-end;justify-content:space-around;
+  padding:9px 8px 19px;background:rgba(246,241,234,.86);backdrop-filter:blur(16px);
+  border-top:1px solid var(--line);position:relative;z-index:5;
+}
+nav .it{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--muted);flex:1;padding-top:4px}
+nav .it .ico{width:23px;height:23px}
+nav .it.on{color:var(--terra-deep)}
+nav .it.on .ico{stroke:var(--terra)}
+nav .add-btn{flex:0 0 auto;width:54px;height:54px;margin:0 4px -6px;border-radius:18px;background:linear-gradient(140deg,#BC5A39,#8F3E24);display:grid;place-items:center;box-shadow:0 10px 22px rgba(143,62,36,.4)}
+nav .add-btn .ico{width:25px;height:25px;stroke:#fff;stroke-width:2.2}
+
+/* ===================================================================
+   SCREEN ① — LISTS HOME · DECISION HUB
+=================================================================== */
+#s1 .scroll{padding:0 0 14px}
+.s1-top{padding:4px 20px 0}
+.s1-brand{display:flex;align-items:center;justify-content:space-between}
+.s1-brand .b{font-family:Fraunces,serif;font-weight:560;font-size:19px;color:var(--terra-deep)}
+.s1-brand .av{width:34px;height:34px;border-radius:99px;background:linear-gradient(135deg,#BC5A39,#8F3E24);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:600}
+
+/* DECISION HUB — the hero action */
+.hub{margin:14px 16px 0;border-radius:var(--r-lg);padding:18px 18px 16px;position:relative;overflow:hidden;
+  background:linear-gradient(150deg,#2b2620 0%,#3a322a 58%,#4a3a2c 100%);color:#F4ECE0;box-shadow:var(--e2)}
+.hub::after{content:"";position:absolute;right:-40px;top:-50px;width:170px;height:170px;border-radius:99px;
+  background:radial-gradient(circle,rgba(188,90,57,.55),transparent 65%)}
+.hub .eyebrow{font-size:11px;letter-spacing:.04em;color:#C9B59E;font-weight:600;display:flex;align-items:center;gap:6px;position:relative}
+.hub h2{font-family:Fraunces,serif;font-weight:560;font-size:23px;margin-top:7px;line-height:1.2;position:relative}
+.hub .cta{margin-top:14px;display:flex;align-items:center;gap:11px;background:#F4ECE0;color:#2b2620;border-radius:14px;padding:13px 16px;font-weight:700;font-size:15px;position:relative;box-shadow:0 6px 16px rgba(0,0,0,.25)}
+.hub .cta .spark{width:34px;height:34px;border-radius:11px;background:linear-gradient(140deg,#BC5A39,#8F3E24);display:grid;place-items:center;flex:0 0 auto}
+.hub .cta .spark .ico{stroke:#fff;width:19px;height:19px}
+.hub .cta .go{margin-left:auto;color:var(--terra-deep)}
+
+/* quick filters */
+.filters{display:flex;gap:8px;overflow-x:auto;padding:14px 16px 2px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.fchip{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink-2);
+  background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:9px 14px;box-shadow:var(--e1)}
+.fchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.fchip .ico{width:15px;height:15px;stroke-width:2}
+
+/* section header */
+.s1-sec{display:flex;align-items:baseline;justify-content:space-between;margin:22px 20px 11px}
+.s1-sec h3{font-size:16px;font-weight:700}
+.s1-sec h3 span{color:var(--muted);font-weight:600;font-size:13px;margin-left:5px}
+.s1-sec a{font-size:13px;color:var(--terra);font-weight:600;text-decoration:none}
+
+/* horizontal decision cards */
+.deck{display:flex;gap:13px;overflow-x:auto;padding:2px 16px 6px;scrollbar-width:none}
+.deck::-webkit-scrollbar{display:none}
+.dcard{flex:0 0 215px;background:var(--surface);border-radius:var(--r);overflow:hidden;border:1px solid var(--line);box-shadow:var(--e2)}
+.dcard .ph{height:120px;background-size:cover;background-position:center;position:relative}
+.dcard .ph .st{position:absolute;left:9px;top:9px}
+.dcard .ph .dist{position:absolute;right:9px;bottom:9px;background:rgba(20,16,12,.62);color:#fff;font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;backdrop-filter:blur(4px);display:flex;align-items:center;gap:4px}
+.dcard .bd{padding:11px 13px 13px}
+.dcard h4{font-family:Fraunces,serif;font-size:17px;font-weight:560;letter-spacing:-.01em}
+.dcard .meta{margin-top:3px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dcard .why{margin-top:9px;font-size:12.5px;line-height:1.45;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dcard .row{margin-top:11px;display:flex;gap:7px}
+.dcard .row .b{flex:1;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:5px;font-size:12.5px;font-weight:700}
+.dcard .row .b.primary{background:var(--terra);color:#fff}
+.dcard .row .b.ghost{background:var(--sunken);color:var(--ink-2);flex:0 0 40px}
+.dcard .row .b .ico{width:15px;height:15px;stroke-width:2.2}
+
+/* compact list rows */
+.lists{padding:0 16px;display:flex;flex-direction:column;gap:9px;margin-top:2px}
+.lrow{display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;box-shadow:var(--e1)}
+.lrow .cv{width:46px;height:46px;border-radius:12px;background-size:cover;background-position:center;flex:0 0 auto;position:relative;overflow:hidden}
+.lrow .cv.shared::after{content:"";position:absolute;inset:0;background:linear-gradient(140deg,rgba(94,111,82,.0),rgba(94,111,82,.35))}
+.lrow .tx{flex:1;min-width:0}
+.lrow .tx .nm{font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:7px}
+.lrow .tx .nm .sh{font-size:10px;font-weight:700;color:var(--sage);background:var(--sage-soft);padding:2px 6px;border-radius:6px}
+.lrow .tx .sb{font-size:12px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:7px}
+.lrow .ct{text-align:right;flex:0 0 auto}
+.lrow .ct .big{font-family:Fraunces,serif;font-size:21px;font-weight:560;line-height:1}
+.lrow .ct .sm{font-size:10.5px;color:var(--muted);margin-top:2px}
+
+/* ===================================================================
+   SCREEN ② — PLACE CARD + DETAIL
+=================================================================== */
+#s2 .scroll{overflow:hidden}
+.s2-hero{height:248px;background-size:cover;background-position:center;position:relative}
+.s2-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,16,12,.32) 0%,transparent 28%,transparent 60%,rgba(20,16,12,.55) 100%)}
+.s2-bar{position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;z-index:2}
+.s2-bar .ic{width:38px;height:38px;border-radius:99px;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);display:grid;place-items:center;box-shadow:var(--e1)}
+.s2-bar .ic .ico{width:19px;height:19px;color:var(--ink)}
+.s2-hero .float{position:absolute;left:16px;bottom:14px;right:16px;z-index:2;color:#fff}
+.s2-hero .float .been-tag{margin-bottom:9px}
+.s2-hero .float h2{font-family:Fraunces,serif;font-size:27px;font-weight:560;letter-spacing:-.01em;text-shadow:0 2px 14px rgba(0,0,0,.4)}
+.s2-hero .float .sub{margin-top:5px;font-size:13px;display:flex;align-items:center;gap:8px;color:#F2EAE0}
+
+/* sticky action bar — the decision actions, high density */
+.s2-actions{display:flex;gap:9px;padding:13px 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.s2-actions .b{height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13.5px;font-weight:700}
+.s2-actions .b.main{flex:1;background:var(--sage);color:#fff}
+.s2-actions .b.main.want{background:var(--terra)}
+.s2-actions .b.sec{flex:1;background:var(--sunken);color:var(--ink-2)}
+.s2-actions .b.io{flex:0 0 44px;background:var(--sunken);color:var(--ink-2)}
+.s2-actions .b .ico{width:17px;height:17px;stroke-width:2.1}
+
+.s2-body{padding:15px 16px 14px;overflow-y:auto}
+.s2-body::-webkit-scrollbar{display:none}
+
+/* rating block — emphasized for 去过 */
+.ratecard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 15px;display:flex;align-items:center;gap:14px;box-shadow:var(--e1)}
+.ratecard .score{text-align:center;flex:0 0 auto;padding-right:14px;border-right:1px solid var(--line)}
+.ratecard .score .n{font-family:Fraunces,serif;font-size:30px;font-weight:560;line-height:1;color:var(--ink)}
+.ratecard .score .s{margin-top:4px}
+.ratecard .vis{flex:1}
+.ratecard .vis .h{font-size:12px;color:var(--muted);font-weight:600}
+.ratecard .vis .v{font-size:14.5px;font-weight:600;margin-top:3px}
+.ratecard .vis .when{font-size:12px;color:var(--muted);margin-top:5px;display:flex;align-items:center;gap:5px}
+
+.block{margin-top:14px}
+.block .bh{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.block .bh .ico{width:15px;height:15px;color:var(--terra)}
+.tags{display:flex;gap:7px;flex-wrap:wrap}
+.quote{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--terra);border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.6;color:var(--ink-2)}
+.quote .who{display:block;margin-top:7px;font-size:12px;color:var(--muted);font-weight:600}
+.ainote{background:linear-gradient(160deg,#FBF6EE,#F6EADB);border:1px solid var(--line-2);border-radius:12px;padding:13px 14px}
+.ainote .ah{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#7A5A12}
+.ainote .ah .ico{width:15px;height:15px;color:var(--gold)}
+.ainote p{margin-top:8px;font-size:13.5px;line-height:1.6;color:var(--ink-2)}
+.ainote .warn{margin-top:9px;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--terra-deep);background:var(--terra-soft);padding:5px 10px;border-radius:99px}
+.ainote .warn .ico{width:14px;height:14px}
+.infogrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+.icell{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+.icell .l{font-size:11px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:5px}
+.icell .l .ico{width:13px;height:13px;color:var(--muted)}
+.icell .vv{font-size:14px;font-weight:600;margin-top:5px}
+
+/* ===================================================================
+   SCREEN ③ — AI CHAT · ACTIONABLE CARDS
+=================================================================== */
+#s3 .scroll{display:flex;flex-direction:column}
+.c-head{padding:6px 16px 12px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--line);background:var(--bg)}
+.c-head .bk{width:34px;height:34px;border-radius:99px;background:var(--sunken);display:grid;place-items:center}
+.c-head .bk .ico{width:18px;color:var(--ink-2)}
+.c-head .ai-av{width:38px;height:38px;border-radius:12px;background:linear-gradient(140deg,#BC5A39,#8F3E24);display:grid;place-items:center}
+.c-head .ai-av .ico{width:20px;stroke:#fff;stroke-width:2}
+.c-head .ti .nm{font-size:15px;font-weight:700}
+.c-head .ti .st{font-size:11.5px;color:var(--sage);font-weight:600;display:flex;align-items:center;gap:5px}
+.c-head .ti .st .dot{width:6px;height:6px;border-radius:99px;background:var(--sage)}
+.c-body{flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:14px}
+.c-body::-webkit-scrollbar{display:none}
+
+.bub{max-width:80%;font-size:14px;line-height:1.55;padding:11px 14px;border-radius:16px}
+.bub.me{align-self:flex-end;background:var(--ink);color:#fff;border-bottom-right-radius:5px}
+.bub.ai{align-self:flex-start;background:var(--surface);border:1px solid var(--line);color:var(--ink-2);border-bottom-left-radius:5px;box-shadow:var(--e1)}
+.ai-lead{align-self:flex-start;font-size:13.5px;color:var(--ink-2);line-height:1.5;display:flex;align-items:center;gap:8px;font-weight:600}
+.ai-lead .ico{width:16px;color:var(--terra);flex:0 0 auto}
+
+/* rich recommendation card */
+.rec{align-self:stretch;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--e2);display:flex;flex-direction:column}
+.rec .top{display:flex;gap:12px;padding:12px}
+.rec .top .img{width:74px;height:74px;border-radius:12px;background-size:cover;background-position:center;flex:0 0 auto}
+.rec .top .meta{flex:1;min-width:0}
+.rec .top .meta .rk{font-size:11px;font-weight:700;color:var(--terra);letter-spacing:.04em}
+.rec .top .meta h4{font-family:Fraunces,serif;font-size:18px;font-weight:560;margin-top:1px;display:flex;align-items:center;gap:7px}
+.rec .top .meta .ln{font-size:12px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rec .why{margin:0 12px 11px;font-size:13px;line-height:1.5;color:var(--ink-2);background:var(--sunken);border-radius:11px;padding:10px 12px}
+.rec .why b{color:var(--terra-deep);font-weight:700}
+.rec .acts{display:flex;border-top:1px solid var(--line)}
+.rec .acts .a{flex:1;height:46px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13.5px;font-weight:700;color:var(--ink-2)}
+.rec .acts .a+.a{border-left:1px solid var(--line)}
+.rec .acts .a.primary{color:#fff;background:var(--terra)}
+.rec .acts .a .ico{width:16px;stroke-width:2.1}
+
+/* quick replies */
+.c-foot{flex:0 0 auto;background:rgba(246,241,234,.92);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:11px 14px 16px}
+.qr{display:flex;gap:8px;overflow-x:auto;padding-bottom:11px;scrollbar-width:none}
+.qr::-webkit-scrollbar{display:none}
+.qr .q{flex:0 0 auto;font-size:13px;font-weight:600;color:var(--terra-deep);background:var(--terra-soft);border:1px solid #EFD6C9;border-radius:99px;padding:8px 13px}
+.c-input{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:7px 7px 7px 16px;box-shadow:var(--e1)}
+.c-input .ph{flex:1;font-size:14px;color:var(--muted)}
+.c-input .send{width:40px;height:40px;border-radius:99px;background:var(--terra);display:grid;place-items:center;flex:0 0 auto}
+.c-input .send .ico{width:18px;stroke:#fff;stroke-width:2.2;transform:translateX(1px)}
+
+/* ===================================================================
+   SCREEN ④ — ADD PLACE · WYSIWYG CONFIRM
+=================================================================== */
+#s4 .scroll{display:flex;flex-direction:column;overflow:hidden}
+.a-head{padding:8px 16px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+.a-head .x{width:34px;height:34px;border-radius:99px;background:var(--sunken);display:grid;place-items:center}
+.a-head .x .ico{width:17px;color:var(--ink-2)}
+.a-head .ti{font-size:15px;font-weight:700}
+.a-head .step{font-size:12px;color:var(--muted);font-weight:600}
+
+/* source pill */
+.a-source{margin:13px 16px 0;display:flex;align-items:center;gap:10px;background:var(--sunken);border-radius:12px;padding:10px 13px}
+.a-source .ic{width:30px;height:30px;border-radius:8px;background:#fff;display:grid;place-items:center;flex:0 0 auto;box-shadow:var(--e1)}
+.a-source .ic .ico{width:17px;color:#E0457A}
+.a-source .tx{flex:1;min-width:0}
+.a-source .tx .l{font-size:11px;color:var(--muted);font-weight:600}
+.a-source .tx .u{font-size:13px;color:var(--ink-2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+
+/* confidence banner */
+.a-conf{margin:12px 16px 0;display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--sage);font-weight:600;background:var(--sage-soft);border-radius:10px;padding:8px 12px}
+.a-conf .ico{width:16px;flex:0 0 auto}
+.a-conf .bars{margin-left:auto;display:flex;gap:3px;align-items:flex-end}
+.a-conf .bars i{width:4px;border-radius:2px;background:var(--sage);display:block}
+.a-conf .bars i:nth-child(1){height:8px}
+.a-conf .bars i:nth-child(2){height:12px}
+.a-conf .bars i:nth-child(3){height:16px}
+
+/* WYSIWYG preview card — looks like the final place card */
+.a-prevlabel{margin:16px 16px 9px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:7px}
+.a-prevlabel .ico{width:14px;color:var(--terra)}
+.a-body{flex:1;overflow-y:auto;padding:0 16px}
+.a-body::-webkit-scrollbar{display:none}
+.prev{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--e2)}
+.prev .ph{height:150px;background-size:cover;background-position:center;position:relative}
+.prev .ph .edit{position:absolute;right:11px;bottom:11px;background:rgba(20,16,12,.6);color:#fff;font-size:11.5px;font-weight:600;padding:6px 11px;border-radius:99px;backdrop-filter:blur(5px);display:flex;align-items:center;gap:5px}
+.prev .ph .edit .ico{width:13px;stroke:#fff}
+.prev .bd{padding:14px 15px 16px}
+.prev .nm-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.prev h3{font-family:Fraunces,serif;font-size:22px;font-weight:560;letter-spacing:-.01em}
+/* editable field affordance */
+.field{border:1px dashed transparent;border-radius:8px;margin:0 -5px;padding:0 5px;transition:.15s}
+.field.live{border-color:var(--line-2);background:#FCFAF6}
+.prev .sub{margin-top:5px;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.prev .ed-pen{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--sunken);flex:0 0 auto}
+.prev .ed-pen .ico{width:13px;color:var(--ink-2)}
+.prev .tags{margin-top:12px}
+.prev .tag-add{font-size:12px;color:var(--terra);font-weight:600;border:1px dashed var(--line-2);border-radius:99px;padding:4px 11px;display:inline-flex;align-items:center;gap:4px}
+.prev .tag-add .ico{width:12px;stroke-width:2.4}
+.prev .ai-mini{margin-top:13px;background:linear-gradient(160deg,#FBF6EE,#F6EADB);border:1px solid var(--line-2);border-radius:12px;padding:11px 13px}
+.prev .ai-mini .ah{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:#7A5A12}
+.prev .ai-mini .ah .ico{width:14px;color:var(--gold)}
+.prev .ai-mini p{margin-top:6px;font-size:13px;line-height:1.55;color:var(--ink-2)}
+
+/* destination + confirm */
+.a-dest{margin:14px 0 0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:11px}
+.a-dest .ic{width:38px;height:38px;border-radius:10px;background:var(--terra-soft);display:grid;place-items:center;flex:0 0 auto}
+.a-dest .ic .ico{width:19px;color:var(--terra-deep)}
+.a-dest .tx{flex:1}
+.a-dest .tx .l{font-size:11px;color:var(--muted);font-weight:600}
+.a-dest .tx .v{font-size:14px;font-weight:600;margin-top:2px}
+.a-dest .chev{color:var(--muted)}
+.a-foot{flex:0 0 auto;padding:13px 16px 18px;background:rgba(246,241,234,.95);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;gap:10px}
+.a-foot .b{height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:7px;font-size:15px;font-weight:700}
+.a-foot .b.ghost{flex:0 0 92px;background:var(--sunken);color:var(--ink-2)}
+.a-foot .b.go{flex:1;background:linear-gradient(140deg,#BC5A39,#8F3E24);color:#fff;box-shadow:0 8px 18px rgba(143,62,36,.35)}
+.a-foot .b .ico{width:18px;stroke:#fff;stroke-width:2.2}
+
+</style>
+</head>
+<body>
+
+<div class="stage-head">
+  <div class="mark">
+    <div class="logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v7a3 3 0 0 0 6 0V3"/><path d="M7 3v18"/><path d="M19 3c-1.5 0-3 1.8-3 5s1.5 5 3 5"/><path d="M19 13v8"/></svg>
+    </div>
+    <div>
+      <h1>Bite · 概念 B</h1>
+      <div class="tag">餐厅记录 + AI 决策 · mobile-first PWA · 390px</div>
+    </div>
+  </div>
+  <div class="concept">
+    <div class="k">Concept B</div>
+    <div class="v">决策优先 / 高效工具</div>
+  </div>
+</div>
+
+<div class="rail">
+
+  <!-- ============================================================= ① -->
+  <div class="col">
+    <div class="label"><span class="n">①</span> Lists 主页 · 决策中枢</div>
+    <div class="phone"><div class="screen" id="s1">
+      <div class="statusbar">
+        <span>9:41</span>
+        <span class="dots">
+          <svg width="17" height="11" viewBox="0 0 17 11" fill="none"><rect x="0" y="6" width="3" height="5" rx="1" fill="#211B14"/><rect x="4.5" y="4" width="3" height="7" rx="1" fill="#211B14"/><rect x="9" y="2" width="3" height="9" rx="1" fill="#211B14"/><rect x="13.5" y="0" width="3" height="11" rx="1" fill="#211B14"/></svg>
+          <svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="3" stroke="#211B14" stroke-width="1.2"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.5" fill="#211B14"/><rect x="22" y="4" width="1.6" height="4" rx="0.8" fill="#211B14"/></svg>
+        </span>
+      </div>
+      <div class="scroll">
+        <div class="s1-top">
+          <div class="s1-brand">
+            <div class="b">Bite</div>
+            <div class="av">C</div>
+          </div>
+        </div>
+
+        <!-- DECISION HUB -->
+        <div class="hub">
+          <div class="eyebrow">
+            <svg class="ico" style="width:13px;height:13px;stroke:#C9B59E" viewBox="0 0 24 24"><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            晚 7:10 · Irvine · 想去 9 家
+          </div>
+          <h2>今晚，吃哪一家？</h2>
+          <div class="cta">
+            <span class="spark"><svg class="ico" viewBox="0 0 24 24"><path d="M5 3l1.5 4L11 8.5 6.5 10 5 14l-1.5-4L-1 8.5" transform="translate(6 1)"/><path d="M18 13l.9 2.4L21 16l-2.1.6L18 19l-.9-2.4L15 16l2.1-.6z"/></svg></span>
+            <span>帮我决定</span>
+            <svg class="ico go" style="width:18px;height:18px" viewBox="0 0 24 24" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </div>
+        </div>
+
+        <!-- quick filters -->
+        <div class="filters">
+          <span class="fchip on"><svg class="ico" viewBox="0 0 24 24"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>5km内</span>
+          <span class="fchip"><svg class="ico" viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>$$ 以内</span>
+          <span class="fchip"><svg class="ico" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10l-1 8a4 4 0 0 1-8 0z"/></svg>约会氛围</span>
+          <span class="fchip">日料</span>
+          <span class="fchip">想去</span>
+        </div>
+
+        <!-- decision deck -->
+        <div class="s1-sec">
+          <h3>想去 · 优先推给你<span>9 家</span></h3>
+          <a href="#">全部</a>
+        </div>
+        <div class="deck">
+          <div class="dcard">
+            <div class="ph" style="background-image:url('https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&q=72')">
+              <span class="st"><span class="status want"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>想去</span></span>
+              <span class="dist"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>1.8km</span>
+            </div>
+            <div class="bd">
+              <h4>上水小馆</h4>
+              <div class="meta">Irvine · 粤菜 · <span class="price">$$</span></div>
+              <div class="why">炒饭烧鸭都好吃，分量大没吃完打包 — 你标了「炒饭一绝」</div>
+              <div class="row">
+                <span class="b primary"><svg class="ico" viewBox="0 0 24 24" stroke="#fff"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>选它</span>
+                <span class="b ghost"><svg class="ico" viewBox="0 0 24 24" stroke="var(--ink-2)"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
+              </div>
+            </div>
+          </div>
+          <div class="dcard">
+            <div class="ph" style="background-image:url('https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=600&q=72')">
+              <span class="st"><span class="status want"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>想去</span></span>
+              <span class="dist"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>2.3km</span>
+            </div>
+            <div class="bd">
+              <h4>鳥貴族</h4>
+              <div class="meta">Diamond J · 日料 · <span class="price">$$</span></div>
+              <div class="why">约会氛围好、串烧便宜，适合两个人慢慢吃</div>
+              <div class="row">
+                <span class="b primary"><svg class="ico" viewBox="0 0 24 24" stroke="#fff"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>选它</span>
+                <span class="b ghost"><svg class="ico" viewBox="0 0 24 24" stroke="var(--ink-2)"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- compact lists -->
+        <div class="s1-sec">
+          <h3>我的清单</h3>
+          <a href="#">管理</a>
+        </div>
+        <div class="lists">
+          <div class="lrow">
+            <div class="cv" style="background-image:url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=300&q=70')"></div>
+            <div class="tx">
+              <div class="nm">Irvine 想吃的</div>
+              <div class="sb"><span class="status want" style="padding:2px 7px;font-size:10px">想去 9</span> 去过 3</div>
+            </div>
+            <div class="ct"><div class="big">12</div><div class="sm">家</div></div>
+          </div>
+          <div class="lrow">
+            <div class="cv" style="background-image:url('https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=300&q=70')"></div>
+            <div class="tx">
+              <div class="nm">罗兰岗暴走</div>
+              <div class="sb">想去 6 · 去过 2</div>
+            </div>
+            <div class="ct"><div class="big">8</div><div class="sm">家</div></div>
+          </div>
+          <div class="lrow">
+            <div class="cv shared" style="background-image:url('https://images.unsplash.com/photo-1552566626-52f8b828add9?w=300&q=70')"></div>
+            <div class="tx">
+              <div class="nm">约会清单 <span class="sh">共享</span></div>
+              <div class="sb">by @caleb · 2 人协作</div>
+            </div>
+            <div class="ct"><div class="big">4</div><div class="sm">家</div></div>
+          </div>
+        </div>
+      </div>
+
+      <nav>
+        <span class="it on"><svg class="ico" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>清单</span>
+        <span class="it"><svg class="ico" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>聊天</span>
+        <span class="add-btn"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="it"><svg class="ico" viewBox="0 0 24 24"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>地图</span>
+        <span class="it"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>我的</span>
+      </nav>
+    </div></div>
+  </div>
+
+  <!-- ============================================================= ② -->
+  <div class="col">
+    <div class="label"><span class="n">②</span> 店铺卡片 + 详情</div>
+    <div class="phone"><div class="screen" id="s2">
+      <div class="statusbar" style="position:absolute;z-index:10;width:100%;color:#fff">
+        <span>9:41</span>
+        <span class="dots">
+          <svg width="17" height="11" viewBox="0 0 17 11" fill="none"><rect x="0" y="6" width="3" height="5" rx="1" fill="#fff"/><rect x="4.5" y="4" width="3" height="7" rx="1" fill="#fff"/><rect x="9" y="2" width="3" height="9" rx="1" fill="#fff"/><rect x="13.5" y="0" width="3" height="11" rx="1" fill="#fff"/></svg>
+          <svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="3" stroke="#fff" stroke-width="1.2"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.5" fill="#fff"/><rect x="22" y="4" width="1.6" height="4" rx="0.8" fill="#fff"/></svg>
+        </span>
+      </div>
+      <div class="scroll">
+        <div class="s2-hero" style="background-image:url('https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=800&q=75')">
+          <div class="s2-bar">
+            <span class="ic"><svg class="ico" viewBox="0 0 24 24"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></span>
+            <span class="ic"><svg class="ico" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></span>
+          </div>
+          <div class="float">
+            <span class="status been been-tag"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>去过 2 次 · 会再来</span>
+            <h2>鼎泰丰</h2>
+            <div class="sub">Spectrum · 台菜 · <span class="price" style="color:#fff">$$$</span> · <span class="stars" style="color:#F0C457">★★★★</span><span style="color:#E5D9C9">☆</span></div>
+          </div>
+        </div>
+
+        <!-- decision action row -->
+        <div class="s2-actions">
+          <span class="b main"><svg class="ico" viewBox="0 0 24 24" stroke="#fff"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>又去了</span>
+          <span class="b sec"><svg class="ico" viewBox="0 0 24 24" stroke="var(--ink-2)"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>导航</span>
+          <span class="b io"><svg class="ico" viewBox="0 0 24 24" stroke="var(--ink-2)"><path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
+        </div>
+
+        <div class="s2-body">
+          <!-- rating block emphasized -->
+          <div class="ratecard">
+            <div class="score">
+              <div class="n">4.0</div>
+              <div class="s stars" style="font-size:12px">★★★★<span style="color:var(--line-2)">★</span></div>
+            </div>
+            <div class="vis">
+              <div class="h">你的造访</div>
+              <div class="v">去过 2 次 · 标记「会再来」</div>
+              <div class="when"><svg class="ico" style="width:13px;color:var(--muted)" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>最近一次 · 上周五</div>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="bh"><svg class="ico" viewBox="0 0 24 24"><path d="M20.6 3.4a5.5 5.5 0 0 0-7.8 0L12 4.2l-.8-.8a5.5 5.5 0 1 0-7.8 7.8L12 20l8.6-8.8a5.5 5.5 0 0 0 0-7.8z"/></svg>标签</div>
+            <div class="tags">
+              <span class="chip ghost">小笼包</span>
+              <span class="chip ghost">需等位</span>
+              <span class="chip ghost">服务好</span>
+              <span class="chip terra">招牌</span>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="bh"><svg class="ico" viewBox="0 0 24 24" stroke="var(--gold)"><path d="M5 3l1.5 4L11 8.5 6.5 10 5 14l-1.5-4L-2 8.5l4.5-1.5z" transform="translate(3 0)"/><path d="M18 13l.9 2.4L21 16l-2.1.6L18 19l-.9-2.4L15 16z"/></svg>AI 备注</div>
+            <div class="ainote">
+              <div class="ah"><svg class="ico" viewBox="0 0 24 24"><path d="M5 3l1.5 4L11 8.5 6.5 10 5 14l-1.5-4L-2 8.5l4.5-1.5z" transform="translate(3 0)"/></svg>根据你和大众点评整理</div>
+              <p>麻酱小面好吃，芋泥小笼包偏腻不建议多点；招牌小笼包必点。</p>
+              <span class="warn"><svg class="ico" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>周五等位约 4h · 建议错峰</span>
+            </div>
+          </div>
+
+          <div class="infogrid">
+            <div class="icell">
+              <div class="l"><svg class="ico" viewBox="0 0 24 24"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>地址</div>
+              <div class="vv">Spectrum Center</div>
+            </div>
+            <div class="icell">
+              <div class="l"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>营业</div>
+              <div class="vv">11:00–21:30</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ============================================================= ③ -->
+  <div class="col">
+    <div class="label"><span class="n">③</span> AI 聊天 · 可操作推荐</div>
+    <div class="phone"><div class="screen" id="s3">
+      <div class="statusbar">
+        <span>9:41</span>
+        <span class="dots">
+          <svg width="17" height="11" viewBox="0 0 17 11" fill="none"><rect x="0" y="6" width="3" height="5" rx="1" fill="#211B14"/><rect x="4.5" y="4" width="3" height="7" rx="1" fill="#211B14"/><rect x="9" y="2" width="3" height="9" rx="1" fill="#211B14"/><rect x="13.5" y="0" width="3" height="11" rx="1" fill="#211B14"/></svg>
+          <svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="3" stroke="#211B14" stroke-width="1.2"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.5" fill="#211B14"/><rect x="22" y="4" width="1.6" height="4" rx="0.8" fill="#211B14"/></svg>
+        </span>
+      </div>
+      <div class="scroll">
+        <div class="c-head">
+          <span class="bk"><svg class="ico" viewBox="0 0 24 24"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></span>
+          <span class="ai-av"><svg class="ico" viewBox="0 0 24 24"><path d="M5 3l1.5 4L11 8.5 6.5 10 5 14l-1.5-4L-2 8.5l4.5-1.5z" transform="translate(3 0)"/><path d="M18 13l.9 2.4L21 16l-2.1.6L18 19l-.9-2.4L15 16z"/></svg></span>
+          <div class="ti">
+            <div class="nm">Bite 帮你挑</div>
+            <div class="st"><span class="dot"></span>读了你的 24 家想去</div>
+          </div>
+        </div>
+
+        <div class="c-body">
+          <div class="bub me">今晚和女朋友吃啥，想日料 200 以内</div>
+          <div class="ai-lead">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M5 3l1.5 4L11 8.5 6.5 10 5 14l-1.5-4L-2 8.5l4.5-1.5z" transform="translate(3 0)"/></svg>
+            从你的库里挑了 2 家，都在预算内、约会氛围好：
+          </div>
+
+          <!-- rich rec card 1 -->
+          <div class="rec">
+            <div class="top">
+              <div class="img" style="background-image:url('https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=300&q=72')"></div>
+              <div class="meta">
+                <div class="rk">推荐 1 · 氛围首选</div>
+                <h4>鳥貴族 <span class="status want" style="padding:2px 7px;font-size:9.5px">想去</span></h4>
+                <div class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Diamond Jamboree · 1.9km · <span class="price">$$</span></div>
+              </div>
+            </div>
+            <div class="why">你标了 <b>「约会氛围好」</b>，串烧人均 $30 出头，预算很宽松，适合慢慢聊。</div>
+            <div class="acts">
+              <span class="a primary"><svg class="ico" viewBox="0 0 24 24" stroke="#fff"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>就去这家</span>
+              <span class="a"><svg class="ico" viewBox="0 0 24 24" stroke="var(--ink-2)"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>看详情</span>
+            </div>
+          </div>
+
+          <!-- rich rec card 2 -->
+          <div class="rec">
+            <div class="top">
+              <div class="img" style="background-image:url('https://images.unsplash.com/photo-1563245372-f21724e3856d?w=300&q=72')"></div>
+              <div class="meta">
+                <div class="rk">推荐 2 · 你打过 4 星</div>
+                <h4>Sushi Noguchi <span class="status been" style="padding:2px 7px;font-size:9.5px">去过</span></h4>
+                <div class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Tustin · 4.5km · <span class="price">$$$</span></div>
+              </div>
+            </div>
+            <div class="why">上次你给了 <b>4 星</b>，备注「鳗鱼饭绝了」。人均略高但在 200 内，想吃好点选它。</div>
+            <div class="acts">
+              <span class="a primary"><svg class="ico" viewBox="0 0 24 24" stroke="#fff"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>就去这家</span>
+              <span class="a"><svg class="ico" viewBox="0 0 24 24" stroke="var(--ink-2)"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>看详情</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="c-foot">
+          <div class="qr">
+            <span class="q">换更便宜的</span>
+            <span class="q">离我更近</span>
+            <span class="q">不要日料</span>
+            <span class="q">帮我订位</span>
+          </div>
+          <div class="c-input">
+            <span class="ph">问问今晚吃啥…</span>
+            <span class="send"><svg class="ico" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></span>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ============================================================= ④ -->
+  <div class="col">
+    <div class="label"><span class="n">④</span> 加店流程 · 所见即所得</div>
+    <div class="phone"><div class="screen" id="s4">
+      <div class="statusbar">
+        <span>9:41</span>
+        <span class="dots">
+          <svg width="17" height="11" viewBox="0 0 17 11" fill="none"><rect x="0" y="6" width="3" height="5" rx="1" fill="#211B14"/><rect x="4.5" y="4" width="3" height="7" rx="1" fill="#211B14"/><rect x="9" y="2" width="3" height="9" rx="1" fill="#211B14"/><rect x="13.5" y="0" width="3" height="11" rx="1" fill="#211B14"/></svg>
+          <svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="3" stroke="#211B14" stroke-width="1.2"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.5" fill="#211B14"/><rect x="22" y="4" width="1.6" height="4" rx="0.8" fill="#211B14"/></svg>
+        </span>
+      </div>
+      <div class="scroll">
+        <div class="a-head">
+          <span class="x"><svg class="ico" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></span>
+          <span class="ti">确认入库</span>
+          <span class="step">2 / 2</span>
+        </div>
+
+        <div class="a-source">
+          <span class="ic"><svg class="ico" viewBox="0 0 24 24" stroke="#E0457A"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="3.5"/><path d="M16.5 7.5h.01"/></svg></span>
+          <div class="tx">
+            <div class="l">来自小红书链接</div>
+            <div class="u">xhslink.com/漁人码头Capital Seafood 探店…</div>
+          </div>
+        </div>
+
+        <div class="a-conf">
+          <svg class="ico" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          提取信心 · 高 — 字段已对齐，确认即可
+          <span class="bars"><i></i><i></i><i></i></span>
+        </div>
+
+        <div class="a-prevlabel">
+          <svg class="ico" viewBox="0 0 24 24" stroke="currentColor"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          入库后长这样 · 点字段可改
+        </div>
+
+        <div class="a-body">
+          <div class="prev">
+            <div class="ph" style="background-image:url('https://images.unsplash.com/photo-1552566626-52f8b828add9?w=600&q=74')">
+              <span class="edit"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>换封面</span>
+            </div>
+            <div class="bd">
+              <div class="nm-row">
+                <h3 class="field live">Capital Seafood 漁人</h3>
+                <span class="ed-pen"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
+              </div>
+              <div class="sub">
+                <span class="field">Irvine · Diamond Jamboree</span>
+                <span class="ed-pen"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
+              </div>
+              <div class="sub" style="margin-top:8px">
+                <span class="chip terra">粤菜</span>
+                <span class="chip ghost">海鲜</span>
+                <span class="chip ghost">茶点</span>
+                <span class="price field">$$<span class="off">$</span></span>
+              </div>
+              <div class="tags">
+                <span class="status want"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>想去</span>
+                <span class="tag-add"><svg class="ico" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>加标签</span>
+              </div>
+              <div class="ai-mini">
+                <div class="ah"><svg class="ico" viewBox="0 0 24 24"><path d="M5 3l1.5 4L11 8.5 6.5 10 5 14l-1.5-4L-2 8.5l4.5-1.5z" transform="translate(3 0)"/></svg>AI 从博主笔记提取</div>
+                <p>主推茶点和环境；评论区 1 条提到等位约 1.5h，建议错峰前往。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="a-dest">
+            <span class="ic"><svg class="ico" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
+            <div class="tx">
+              <div class="l">存到清单</div>
+              <div class="v">Irvine 想吃的</div>
+            </div>
+            <svg class="ico chev" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+          <div style="height:14px"></div>
+        </div>
+
+        <div class="a-foot">
+          <span class="b ghost"><svg class="ico" viewBox="0 0 24 24" stroke="var(--ink-2)"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>再改</span>
+          <span class="b go"><svg class="ico" viewBox="0 0 24 24" stroke="#fff"><path d="M20 6L9 17l-5-5"/></svg>确认入库</span>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+</body>
+</html>

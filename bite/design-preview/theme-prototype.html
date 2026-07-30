@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bite · 主题切换原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,450;0,9..144,560;1,9..144,450&family=Space+Grotesk:wght@400;500;600;700&family=Archivo:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================ 主题 token ============================ */
+:root, [data-theme="terracotta"] {
+  --bg:#faf5ef; --surface:#ffffff; --surface2:#f1eae0; --sunken:#ebe2d3;
+  --text:#1f1a14; --text-2:#4a4337; --muted:#8c8170; --faint:#b0a48c;
+  --primary:#c75b3a; --primary-deep:#9c4226; --primary-fg:#ffffff; --primary-soft:#fbe9e0; --primary-soft-tx:#8c3a1c;
+  --accent:#5f7155; --accent-soft:#e7ede2; --accent-tx:#3f4f37;
+  --gold:#b98a2f; --gold-soft:#f7edd8; --gold-tx:#7a5a1b;
+  --border:#ebe2d3; --border-2:#e0d3bc;
+  --r-card:18px; --r-btn:14px; --r-chip:999px;
+  --bw:1px;
+  --shadow:0 1px 2px rgba(76,49,32,.05), 0 2px 12px rgba(76,49,32,.06);
+  --shadow-press:none;
+  --font-head:'Fraunces',Georgia,serif; --font-body:ui-sans-serif,system-ui,"PingFang SC","Microsoft YaHei",sans-serif;
+  --head-tracking:-0.01em; --head-weight:560; --head-transform:none;
+}
+[data-theme="minimal"] {
+  --bg:#fafafa; --surface:#ffffff; --surface2:#f4f4f5; --sunken:#ececee;
+  --text:#09090b; --text-2:#3f3f46; --muted:#71717a; --faint:#a1a1aa;
+  --primary:#18181b; --primary-deep:#000000; --primary-fg:#ffffff; --primary-soft:#eef2ff; --primary-soft-tx:#1e40af;
+  --accent:#2563eb; --accent-soft:#eff6ff; --accent-tx:#1d4ed8;
+  --gold:#2563eb; --gold-soft:#eff6ff; --gold-tx:#1d4ed8;
+  --border:#e4e4e7; --border-2:#d4d4d8;
+  --r-card:10px; --r-btn:8px; --r-chip:6px;
+  --bw:1px;
+  --shadow:none;
+  --shadow-press:none;
+  --font-head:'Space Grotesk',sans-serif; --font-body:'Archivo',ui-sans-serif,system-ui,"PingFang SC",sans-serif;
+  --head-tracking:-0.02em; --head-weight:600; --head-transform:none;
+}
+[data-theme="dark"] {
+  --bg:#0e0e10; --surface:#18181c; --surface2:#222228; --sunken:#0a0a0c;
+  --text:#f5f0e8; --text-2:#d8d2c6; --muted:#9a958c; --faint:#6f6a61;
+  --primary:#e8c39e; --primary-deep:#d8af86; --primary-fg:#1a1408; --primary-soft:#2a2218; --primary-soft-tx:#e8c39e;
+  --accent:#cf9f6f; --accent-soft:#241d12; --accent-tx:#e8c39e;
+  --gold:#e8c39e; --gold-soft:#241d12; --gold-tx:#e8c39e;
+  --border:#2a2a30; --border-2:#37373f;
+  --r-card:16px; --r-btn:12px; --r-chip:999px;
+  --bw:1px;
+  --shadow:0 8px 30px rgba(0,0,0,.55);
+  --shadow-press:none;
+  --font-head:'Playfair Display',Georgia,serif; --font-body:ui-sans-serif,system-ui,"PingFang SC",sans-serif;
+  --head-tracking:0; --head-weight:600; --head-transform:none;
+}
+[data-theme="vibrant"] {
+  --bg:#fff1f2; --surface:#ffffff; --surface2:#ffe4e6; --sunken:#ffd9dd;
+  --text:#881337; --text-2:#9f1239; --muted:#b06a7e; --faint:#cf9aa8;
+  --primary:#e11d48; --primary-deep:#be123c; --primary-fg:#ffffff; --primary-soft:#ffe4e6; --primary-soft-tx:#9f1239;
+  --accent:#2563eb; --accent-soft:#dbeafe; --accent-tx:#1d4ed8;
+  --gold:#d97706; --gold-soft:#fef3c7; --gold-tx:#92400e;
+  --border:#fb7185; --border-2:#f43f5e;
+  --r-card:24px; --r-btn:18px; --r-chip:999px;
+  --bw:2.5px;
+  --shadow:0 5px 0 rgba(225,29,72,.18), 0 12px 22px rgba(225,29,72,.18);
+  --shadow-press:0 2px 0 rgba(225,29,72,.18);
+  --font-head:'Fredoka',sans-serif; --font-body:'Nunito',ui-sans-serif,system-ui,"PingFang SC",sans-serif;
+  --head-tracking:0; --head-weight:600; --head-transform:none;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#52525b; font-family:var(--font-body); padding:0 0 60px; }
+
+/* ============================ 切换器 + 舞台 ============================ */
+.switcher { position:sticky; top:0; z-index:50; display:flex; gap:8px; justify-content:center; padding:16px; background:#3f3f46; flex-wrap:wrap; }
+.switcher button { border:0; cursor:pointer; padding:9px 18px; border-radius:999px; font-size:14px; font-weight:600; background:#27272a; color:#d4d4d8; transition:all .15s; font-family:ui-sans-serif,system-ui; }
+.switcher button.active { background:#fff; color:#18181b; }
+.stage-title { text-align:center; color:#d4d4d8; font-family:ui-sans-serif,system-ui; font-size:13px; padding:8px; }
+.stage { display:flex; gap:22px; padding:24px; overflow-x:auto; align-items:flex-start; justify-content:flex-start; }
+
+/* 手机框 */
+.phone-wrap { flex:none; }
+.phone-label { color:#e4e4e7; font-family:ui-sans-serif,system-ui; font-size:13px; font-weight:600; text-align:center; margin-bottom:10px; }
+.phone { width:380px; height:760px; background:var(--bg); border-radius:34px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,.4); border:8px solid #18181b; position:relative; color:var(--text); display:flex; flex-direction:column; }
+.screen { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.body-scroll { flex:1; overflow:hidden; padding:22px 18px 0; }
+
+/* ============================ 通用组件 ============================ */
+.h-display { font-family:var(--font-head); font-weight:var(--head-weight); letter-spacing:var(--head-tracking); text-transform:var(--head-transform); line-height:1.15; }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; border:0; cursor:pointer; font-weight:600; font-family:var(--font-body); border-radius:var(--r-btn); padding:12px 18px; background:var(--primary); color:var(--primary-fg); }
+[data-theme="vibrant"] .btn { border:var(--bw) solid var(--primary-deep); box-shadow:var(--shadow-press); }
+.card { background:var(--surface); border:var(--bw) solid var(--border); border-radius:var(--r-card); box-shadow:var(--shadow); }
+[data-theme="minimal"] .card { box-shadow:none; }
+.chip { display:inline-flex; align-items:center; gap:5px; border-radius:var(--r-chip); padding:4px 11px; font-size:12px; font-weight:600; }
+.chip-want { background:var(--gold-soft); color:var(--gold-tx); }
+.chip-visited { background:var(--accent-soft); color:var(--accent-tx); }
+.chip::before { content:""; width:6px; height:6px; border-radius:99px; background:currentColor; opacity:.8; }
+[data-theme="minimal"] .chip { border:1px solid var(--border-2); }
+[data-theme="minimal"] .chip::before { display:none; }
+.tag { display:inline-flex; border-radius:var(--r-chip); padding:3px 10px; font-size:11.5px; font-weight:600; background:var(--primary-soft); color:var(--primary-soft-tx); }
+[data-theme="minimal"] .tag { background:var(--surface2); color:var(--text-2); border-radius:5px; }
+.muted { color:var(--muted); }
+.faint { color:var(--faint); }
+.svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+
+/* 顶部 app 标题行 */
+.apphead { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.brand { font-family:var(--font-head); font-weight:var(--head-weight); font-size:19px; color:var(--primary-deep); }
+[data-theme="dark"] .brand, [data-theme="minimal"] .brand { color:var(--text); }
+[data-theme="vibrant"] .brand { color:var(--primary); }
+.avatar { width:34px; height:34px; border-radius:99px; background:var(--primary); color:var(--primary-fg); display:grid; place-items:center; font-weight:700; font-size:13px; }
+
+/* 搜索 + 加号 */
+.searchrow { display:flex; gap:9px; margin-bottom:14px; }
+.searchbox { flex:1; display:flex; align-items:center; gap:9px; background:var(--surface); border:var(--bw) solid var(--border); border-radius:var(--r-btn); padding:12px 15px; color:var(--muted); font-size:13.5px; box-shadow:var(--shadow); }
+[data-theme="minimal"] .searchbox { box-shadow:none; }
+.addbtn { width:46px; border-radius:var(--r-btn); background:var(--primary); color:var(--primary-fg); display:grid; place-items:center; flex:none; }
+[data-theme="vibrant"] .addbtn { border:var(--bw) solid var(--primary-deep); box-shadow:var(--shadow-press); }
+
+/* 区块标题 */
+.sec { display:flex; align-items:baseline; justify-content:space-between; margin:22px 0 12px; }
+.sec h2 { font-family:var(--font-head); font-weight:var(--head-weight); font-size:18px; letter-spacing:var(--head-tracking); }
+.sec a { font-size:13px; color:var(--primary); font-weight:600; text-decoration:none; }
+[data-theme="dark"] .sec a { color:var(--primary); }
+
+/* ====== 屏 1：Lists ====== */
+.lcard { display:flex; align-items:center; gap:15px; padding:16px; margin-bottom:11px; }
+.lcount { width:46px; text-align:center; flex:none; }
+.lcount b { font-family:var(--font-head); font-size:27px; font-weight:var(--head-weight); display:block; line-height:1; }
+.lcount span { font-size:10px; color:var(--faint); font-weight:600; }
+.ldiv { flex:1; border-left:var(--bw) solid var(--border); padding-left:15px; min-width:0; }
+[data-theme="minimal"] .lcard { box-shadow:none; border-radius:0; border:0; border-bottom:1px solid var(--border); margin-bottom:0; }
+[data-theme="minimal"] .lcard:first-child { border-top:1px solid var(--border); }
+
+/* ====== 屏 2：店铺卡片/详情 ====== */
+.pcard { overflow:hidden; margin-bottom:14px; }
+.pcover { height:150px; background-size:cover; background-position:center; position:relative; }
+.pcover .chip { position:absolute; left:12px; bottom:12px; background:rgba(255,255,255,.94); color:var(--text); }
+.pcover .chip::before { background:var(--gold); }
+[data-theme="dark"] .pcover .chip { background:rgba(0,0,0,.6); color:#fff; backdrop-filter:blur(4px); }
+.pbody { padding:15px 17px 17px; }
+.pname { font-family:var(--font-head); font-size:20px; font-weight:var(--head-weight); letter-spacing:var(--head-tracking); }
+.psub { margin-top:4px; font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+.quote { margin-top:11px; font-size:13px; line-height:1.5; color:var(--text-2); padding-left:11px; border-left:3px solid var(--gold); }
+[data-theme="minimal"] .quote { border-left-color:var(--accent); }
+.signal { margin-top:11px; font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+.signal b { color:var(--accent); font-weight:700; }
+[data-theme="dark"] .signal b { color:var(--primary); }
+
+/* ====== 屏 3：聊天 ====== */
+.chathead { padding:14px 16px; border-bottom:var(--bw) solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.chathead .ttl { font-family:var(--font-head); font-weight:var(--head-weight); font-size:15px; }
+.provpill { font-size:11px; color:var(--muted); background:var(--surface2); border-radius:999px; padding:4px 10px; display:flex; align-items:center; gap:5px; }
+.provpill::before { content:""; width:6px; height:6px; border-radius:99px; background:#10b981; }
+.bubbles { flex:1; padding:18px 16px; display:flex; flex-direction:column; gap:13px; overflow:hidden; }
+.brow { display:flex; }
+.brow.me { justify-content:flex-end; }
+.bubble { max-width:82%; padding:11px 14px; border-radius:18px; font-size:13.5px; line-height:1.5; }
+.bubble.me { background:var(--primary); color:var(--primary-fg); border-bottom-right-radius:5px; }
+.bubble.ai { background:var(--surface); border:var(--bw) solid var(--border); color:var(--text); border-bottom-left-radius:5px; box-shadow:var(--shadow); }
+[data-theme="minimal"] .bubble.ai { box-shadow:none; }
+.toolcard { margin:8px 0; border:var(--bw) solid var(--border); border-radius:10px; background:var(--surface2); padding:8px 10px; font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:7px; }
+.toolcard .ok { color:var(--accent); }
+[data-theme="dark"] .toolcard .ok { color:var(--primary); }
+.plink { color:var(--primary); text-decoration:underline; text-underline-offset:2px; font-weight:600; }
+[data-theme="dark"] .plink { color:var(--primary); }
+.composer { padding:12px 16px; border-top:var(--bw) solid var(--border); display:flex; gap:9px; align-items:center; }
+.composer .inp { flex:1; background:var(--surface2); border-radius:var(--r-btn); padding:11px 14px; color:var(--muted); font-size:13px; }
+
+/* ====== 屏 4：加店流程 ====== */
+.detect { margin:6px 0 16px; font-size:12.5px; color:var(--accent-tx); background:var(--accent-soft); border-radius:10px; padding:9px 12px; display:flex; align-items:center; gap:7px; }
+.field { margin-bottom:13px; }
+.field label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); display:block; margin-bottom:5px; }
+.field .val { background:var(--surface); border:var(--bw) solid var(--border); border-radius:var(--r-btn); padding:11px 14px; font-size:14px; color:var(--text); }
+.confbadge { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:5px 11px; border-radius:var(--r-chip); background:var(--accent-soft); color:var(--accent-tx); }
+
+.botnav { display:flex; border-top:var(--bw) solid var(--border); background:var(--surface); }
+.botnav div { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:9px 0 14px; font-size:10px; color:var(--muted); font-weight:600; }
+.botnav div.on { color:var(--primary); }
+[data-theme="dark"] .botnav div.on { color:var(--primary); }
+</style>
+</head>
+<body data-theme="terracotta">
+
+<div class="switcher">
+  <button data-t="terracotta" class="active" onclick="setT('terracotta',this)">陶土暖食</button>
+  <button data-t="minimal" onclick="setT('minimal',this)">极简留白</button>
+  <button data-t="dark" onclick="setT('dark',this)">暗夜质感</button>
+  <button data-t="vibrant" onclick="setT('vibrant',this)">鲜活活泼</button>
+</div>
+<div class="stage-title">同一套界面 · 切上面的按钮换风格（终极目标：做进 app 让用户自己切）</div>
+
+<div class="stage">
+
+  <!-- ===== 屏 1：Lists ===== -->
+  <div class="phone-wrap"><div class="phone-label">① Lists 主页</div>
+  <div class="phone"><div class="screen">
+    <div class="body-scroll">
+      <div class="apphead"><span class="brand">Bite</span><span class="avatar">C</span></div>
+      <div class="h-display" style="font-size:28px;line-height:1.2;">今晚吃啥，<span style="color:var(--primary)">从这里挑</span></div>
+      <p class="muted" style="margin-top:6px;font-size:13px;">3 个清单 · 24 家店 · 8 家还没去过</p>
+      <div class="searchrow" style="margin-top:16px;">
+        <div class="searchbox"><svg class="svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>搜店名、菜系、标签…</div>
+        <div class="addbtn"><svg class="svg" viewBox="0 0 24 24" style="stroke:var(--primary-fg)"><path d="M12 5v14M5 12h14"/></svg></div>
+      </div>
+      <div class="sec"><h2>我的清单</h2><a>管理 ›</a></div>
+      <div class="card lcard"><div class="lcount"><b>12</b><span>家店</span></div><div class="ldiv"><div style="font-weight:700;font-size:15px;">Irvine 想吃的</div><div class="muted" style="font-size:12px;margin-top:3px;">想去 9 · 昨天更新</div><div style="margin-top:8px;display:flex;gap:6px;"><span class="tag">中餐</span><span class="tag">日料</span></div></div></div>
+      <div class="card lcard"><div class="lcount"><b>8</b><span>家店</span></div><div class="ldiv"><div style="font-weight:700;font-size:15px;">罗兰岗暴走</div><div class="muted" style="font-size:12px;margin-top:3px;">想去 5 · 3 天前</div><div style="margin-top:8px;display:flex;gap:6px;"><span class="tag">火锅</span><span class="tag">川菜</span></div></div></div>
+      <div class="card lcard"><div class="lcount"><b>4</b><span>家店</span></div><div class="ldiv"><div style="display:flex;align-items:center;gap:7px;"><span style="font-weight:700;font-size:15px;">约会清单</span><span class="chip chip-visited">共享</span></div><div class="muted" style="font-size:12px;margin-top:3px;">by @caleb</div></div></div>
+    </div>
+    <div class="botnav"><div class="on"><svg class="svg" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>清单</div><div><svg class="svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>添加</div><div><svg class="svg" viewBox="0 0 24 24"><path d="M21 12a8 8 0 1 1-4-6.9L21 4l-1 4.5A8 8 0 0 1 21 12z"/></svg>聊天</div><div><svg class="svg" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>地图</div><div><svg class="svg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>我的</div></div>
+  </div></div></div>
+
+  <!-- ===== 屏 2：店铺卡片/详情 ===== -->
+  <div class="phone-wrap"><div class="phone-label">② 店铺卡片 + 详情</div>
+  <div class="phone"><div class="screen">
+    <div class="body-scroll">
+      <div class="sec" style="margin-top:4px;"><h2>Irvine 想吃的</h2></div>
+      <div class="card pcard">
+        <div class="pcover" style="background-image:url('https://images.unsplash.com/photo-1563245372-f21724e3856d?w=700&q=70')"><span class="chip chip-want">想去</span></div>
+        <div class="pbody">
+          <div class="pname">上水小馆</div>
+          <div class="psub"><svg class="svg" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>Irvine · 粤菜 · $$</div>
+          <div style="margin-top:10px;display:flex;gap:6px;"><span class="tag">炒饭一绝</span><span class="tag">分量大</span></div>
+          <div class="quote">"炒饭烧鸭都好吃，没吃完打包" —— 你的理由</div>
+        </div>
+      </div>
+      <div class="card pcard">
+        <div class="pcover" style="background-image:url('https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=700&q=70')"><span class="chip chip-visited">去过</span></div>
+        <div class="pbody">
+          <div class="pname">鼎泰丰 <span class="faint" style="font-size:12px;font-family:var(--font-body);font-weight:500">· Spectrum</span></div>
+          <div class="psub"><svg class="svg" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>Spectrum · 台菜 · $$$</div>
+          <div class="signal"><b>去过 2 次 · 会再来</b> · 上周 · ★★★★</div>
+          <div class="quote">AI 备注：麻酱小面好吃，芋泥小笼包偏腻；周五等位 4h 建议错峰</div>
+        </div>
+      </div>
+    </div>
+    <div class="botnav"><div class="on"><svg class="svg" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>清单</div><div><svg class="svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>添加</div><div><svg class="svg" viewBox="0 0 24 24"><path d="M21 12a8 8 0 1 1-4-6.9L21 4l-1 4.5A8 8 0 0 1 21 12z"/></svg>聊天</div><div><svg class="svg" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>地图</div><div><svg class="svg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>我的</div></div>
+  </div></div></div>
+
+  <!-- ===== 屏 3：AI 聊天 ===== -->
+  <div class="phone-wrap"><div class="phone-label">③ AI 聊天</div>
+  <div class="phone"><div class="screen">
+    <div class="chathead"><span class="ttl">今晚和女朋友</span><span class="provpill">Gemini</span></div>
+    <div class="bubbles">
+      <div class="brow me"><div class="bubble me">今晚和女朋友吃啥，想日料 200 以内</div></div>
+      <div class="brow"><div class="bubble ai">
+        <div class="toolcard"><span class="ok">✓</span> 搜索我的库 · 日料 · 找到 3 家</div>
+        从你库里挑了 2 家「想去」的日料：<br><br>
+        1. <span class="plink">«鳥贵族»</span>（Diamond Jamboree，$$）— 你标了"约会氛围好"<br>
+        2. <span class="plink">«Sushi Noguchi»</span>（Tustin，$$$）— 上次 4 星，"鳗鱼饭绝了"<br><br>
+        都在 200 内，要看哪家详情？
+      </div></div>
+    </div>
+    <div class="composer"><div class="inp">回个话…</div><div class="addbtn"><svg class="svg" viewBox="0 0 24 24" style="stroke:var(--primary-fg)"><path d="M21 3 10.5 13.5M21 3l-6.8 18-3.7-7.5L3 9.8z"/></svg></div></div>
+  </div></div></div>
+
+  <!-- ===== 屏 4：加店流程 ===== -->
+  <div class="phone-wrap"><div class="phone-label">④ 加店流程</div>
+  <div class="phone"><div class="screen">
+    <div class="body-scroll">
+      <div class="h-display" style="font-size:22px;">确认店铺信息</div>
+      <div class="detect"><svg class="svg" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7z"/></svg>从小红书帖子 AI 抽取 · 单店</div>
+      <div class="field"><label>店名</label><div class="val">Capital Seafood 漁人</div></div>
+      <div class="field"><label>地址</label><div class="val">Irvine · Diamond Jamboree</div></div>
+      <div class="field"><label>菜系</label><div style="display:flex;gap:7px;"><span class="tag">粤菜</span><span class="tag">海鲜</span><span class="tag">茶点</span></div></div>
+      <div class="field"><label>提取信心</label><span class="confbadge"><svg class="svg" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>高 · 字段齐全</span></div>
+      <div class="field"><label>AI 备注</label><div class="val faint" style="font-size:12.5px;line-height:1.5;">博主主推茶点和环境，评论区 1 条提到等位 1.5h，建议错峰或预约。</div></div>
+      <button class="btn" style="width:100%;margin-top:6px;">确认添加</button>
+    </div>
+  </div></div></div>
+
+</div>
+
+<script>
+function setT(t, btn){
+  document.body.setAttribute('data-theme', t);
+  document.querySelectorAll('.switcher button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

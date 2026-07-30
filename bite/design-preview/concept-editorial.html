@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bite · 概念 A — 编辑大片 / 美食杂志</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600&family=Noto+Serif+SC:wght@500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============ TOKENS — 暖中性色调 (米白/陶土/暖灰) ============ */
+:root{
+  --paper:#F4EFE7;        /* 米白纸张 */
+  --paper-2:#EDE6DA;
+  --ink:#211C17;          /* 近黑 暖墨 */
+  --ink-2:#574E44;        /* 次级文字 */
+  --ink-3:#8B8175;        /* 辅助文字 */
+  --line:#DCD3C5;         /* 分隔线 */
+  --terra:#B5552E;        /* 陶土 主强调 */
+  --terra-soft:#E8D7CB;
+  --gold:#9A7B3F;         /* 暖金 (星级/信号) */
+  --card:#FCF9F3;         /* 卡片白 */
+  --sage:#6E7456;         /* 暖橄榄 (去过状态) */
+  --shadow-1:0 1px 3px rgba(33,28,23,.08);
+  --shadow-2:0 6px 18px rgba(33,28,23,.10);
+  --shadow-3:0 18px 40px rgba(33,28,23,.18);
+  --serif:'Playfair Display','Noto Serif SC',serif;
+  --serif-cn:'Noto Serif SC',serif;
+  --sans:'Noto Sans SC',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+body{
+  background:#17120D;
+  background-image:radial-gradient(1200px 600px at 50% -10%,#2A2118 0%,#17120D 60%);
+  font-family:var(--sans);color:#fff;padding:46px 0 70px;min-height:100vh;
+}
+.stage-head{text-align:center;margin-bottom:40px;padding:0 24px}
+.stage-head .kicker{font-family:var(--serif);font-style:italic;font-size:15px;letter-spacing:.06em;color:#C99A6B;margin-bottom:8px}
+.stage-head h1{font-family:var(--serif);font-weight:700;font-size:30px;letter-spacing:.01em;margin-bottom:10px}
+.stage-head p{color:#9C9082;font-size:13.5px;max-width:760px;margin:0 auto;line-height:1.6}
+.rail{display:flex;gap:30px;justify-content:center;align-items:flex-start;flex-wrap:nowrap;padding:0 30px;max-width:1700px;margin:0 auto}
+.frame-wrap{flex:0 0 auto;display:flex;flex-direction:column;align-items:center}
+.frame-label{font-family:var(--serif-cn);font-weight:600;font-size:14px;color:#E8DCC9;margin-bottom:14px;letter-spacing:.04em}
+.frame-label .num{color:#C99A6B;font-family:var(--serif);font-style:italic;margin-right:4px}
+
+/* ============ PHONE FRAME ============ */
+.phone{
+  width:380px;height:782px;background:var(--paper);
+  border-radius:42px;border:9px solid #0D0A07;
+  box-shadow:0 0 0 2px #2c2419, 0 30px 60px rgba(0,0,0,.5);
+  overflow:hidden;position:relative;display:flex;flex-direction:column;
+}
+.screen{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--paper)}
+.scroll{flex:1;overflow:hidden;position:relative}
+/* status bar */
+.status{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:12.5px;font-weight:600;color:var(--ink);flex:0 0 auto;z-index:5}
+.status .dots{display:flex;gap:5px;align-items:center}
+.status svg{display:block}
+
+/* ============ TYPE HELPERS ============ */
+.ed-serif{font-family:var(--serif)}
+.ed-serif-cn{font-family:var(--serif-cn)}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--ink-2);background:rgba(33,28,23,.05);border:1px solid var(--line);padding:4px 9px;border-radius:20px;line-height:1}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;line-height:1.4}
+.pill.want{color:var(--terra);background:var(--terra-soft)}
+.pill.been{color:#fff;background:var(--sage)}
+.stars{color:var(--gold);letter-spacing:1px;font-size:12px}
+.dollar{color:var(--ink-3);font-weight:600;letter-spacing:1px}
+.dollar b{color:var(--ink)}
+.divider-rule{height:1px;background:var(--line);border:0}
+
+/* generic content padding */
+.pad{padding:0 18px}
+
+/* ===================================================================
+   ① LISTS 主页 — 杂志刊头 + Hero 大片 + 专栏式清单
+   =================================================================== */
+.l-masthead{padding:14px 18px 10px;display:flex;align-items:flex-end;justify-content:space-between}
+.l-masthead .brand{font-family:var(--serif);font-weight:800;font-size:30px;letter-spacing:-.01em;line-height:.9;color:var(--ink)}
+.l-masthead .issue{font-family:var(--serif);font-style:italic;font-size:11px;color:var(--ink-3);letter-spacing:.08em;margin-top:3px}
+.l-masthead .avatar{width:38px;height:38px;border-radius:50%;background:#D9C7B3 url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=200&q=70') center/cover;border:2px solid var(--card);box-shadow:var(--shadow-1)}
+/* 顶部统一加店输入框 */
+.l-addbar{margin:4px 18px 16px;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:30px;padding:11px 14px;box-shadow:var(--shadow-1)}
+.l-addbar svg{color:var(--terra);flex:0 0 auto}
+.l-addbar input{border:0;background:transparent;flex:1;font-family:var(--sans);font-size:14px;color:var(--ink);outline:none}
+.l-addbar input::placeholder{color:var(--ink-3)}
+.l-addbar .go{width:30px;height:30px;border-radius:50%;background:var(--terra);display:flex;align-items:center;justify-content:center;color:#fff;flex:0 0 auto}
+
+.section-kicker{display:flex;align-items:center;gap:10px;margin:2px 18px 12px}
+.section-kicker .line{flex:1;height:1px;background:var(--line)}
+.section-kicker .txt{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--terra);letter-spacing:.04em}
+
+/* Hero 精选大片 */
+.hero{margin:0 18px 22px;border-radius:18px;overflow:hidden;position:relative;height:248px;box-shadow:var(--shadow-2)}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,14,9,0) 28%,rgba(20,14,9,.42) 60%,rgba(20,14,9,.86) 100%)}
+.hero .top{position:absolute;top:13px;left:14px;display:flex;gap:8px}
+.hero .badge{font-family:var(--serif);font-style:italic;font-size:11.5px;color:#1c140d;background:rgba(255,250,242,.92);padding:4px 11px;border-radius:20px;letter-spacing:.03em}
+.hero .body{position:absolute;left:16px;right:16px;bottom:14px;color:#fff}
+.hero .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.85;margin-bottom:6px;font-weight:600}
+.hero h2{font-family:var(--serif);font-weight:700;font-size:27px;line-height:1.05;margin-bottom:7px;text-shadow:0 1px 10px rgba(0,0,0,.3)}
+.hero .meta{display:flex;gap:8px;align-items:center;font-size:12px;opacity:.95}
+.hero .meta .dot{width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.6)}
+.hero .reason{font-family:var(--serif-cn);font-size:12.5px;line-height:1.5;margin-top:8px;opacity:.92;border-left:2px solid rgba(255,255,255,.55);padding-left:9px}
+
+/* 专栏式清单行 */
+.collist{padding:0 18px}
+.colrow{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.colrow:last-child{border-bottom:0}
+.colthumb{width:60px;height:60px;border-radius:12px;overflow:hidden;flex:0 0 auto;position:relative;box-shadow:var(--shadow-1)}
+.colthumb img{width:100%;height:100%;object-fit:cover}
+.colthumb .cnt{position:absolute;right:0;bottom:0;background:rgba(20,14,9,.78);color:#fff;font-family:var(--serif);font-size:11px;font-weight:600;padding:2px 6px;border-top-left-radius:8px}
+.colmeta{flex:1;min-width:0}
+.colmeta .no{font-family:var(--serif);font-style:italic;font-size:11px;color:var(--ink-3);letter-spacing:.05em}
+.colmeta h3{font-family:var(--serif-cn);font-weight:700;font-size:17px;color:var(--ink);margin:1px 0 4px;letter-spacing:.01em}
+.colmeta .sub{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-3)}
+.colmeta .shared{display:inline-flex;align-items:center;gap:4px;color:var(--terra);font-weight:600}
+.colchev{color:var(--ink-3);flex:0 0 auto}
+.faces{display:flex}
+.faces span{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--card);background:#cdbba6 center/cover;margin-left:-6px}
+.faces span:first-child{margin-left:0}
+
+/* ===================================================================
+   ② 店铺详情 — 全宽图集横滑 + 主编点评引用块
+   =================================================================== */
+.d-gallery{position:relative;height:300px;flex:0 0 auto;overflow:hidden}
+.d-track{display:flex;height:100%;width:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.d-track::-webkit-scrollbar{display:none}
+.d-slide{flex:0 0 100%;height:100%;scroll-snap-align:start;position:relative}
+.d-slide img{width:100%;height:100%;object-fit:cover}
+.d-gallery .topgrad{position:absolute;top:0;left:0;right:0;height:90px;background:linear-gradient(180deg,rgba(20,14,9,.45),transparent);pointer-events:none}
+.d-gallery .botgrad{position:absolute;bottom:0;left:0;right:0;height:70px;background:linear-gradient(0deg,var(--paper),transparent);pointer-events:none}
+.d-nav{position:absolute;top:12px;left:14px;right:14px;display:flex;justify-content:space-between;z-index:3}
+.d-ico{width:38px;height:38px;border-radius:50%;background:rgba(255,250,242,.92);display:flex;align-items:center;justify-content:center;color:var(--ink);box-shadow:var(--shadow-1)}
+.d-dots{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:3}
+.d-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.55)}
+.d-dots i.on{width:18px;border-radius:4px;background:#fff}
+.d-count{position:absolute;bottom:14px;right:14px;font-family:var(--serif);font-style:italic;font-size:11px;color:#fff;background:rgba(20,14,9,.5);padding:3px 9px;border-radius:14px;z-index:3}
+
+.d-head{padding:4px 20px 0;margin-top:-6px;position:relative;z-index:2}
+.d-head .eyebrow{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--terra);font-weight:700;margin-bottom:5px}
+.d-head h1{font-family:var(--serif-cn);font-weight:700;font-size:28px;color:var(--ink);line-height:1.08;letter-spacing:.01em}
+.d-head .romName{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--ink-3);margin-top:3px}
+.d-metaline{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:12px 20px 4px}
+.d-statusrow{display:flex;align-items:center;gap:10px;padding:8px 20px 14px;border-bottom:1px solid var(--line);margin:0 0 0}
+.d-signal{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2)}
+.d-signal .stars{font-size:13px}
+
+.d-block{padding:16px 20px 4px}
+.d-block .lbl{display:flex;align-items:center;gap:7px;font-family:var(--serif);font-style:italic;font-size:13px;color:var(--ink-3);margin-bottom:8px}
+.d-block .lbl::after{content:"";flex:1;height:1px;background:var(--line)}
+.d-reason{font-family:var(--serif-cn);font-size:14.5px;line-height:1.62;color:var(--ink);font-weight:500}
+.d-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+
+/* 主编点评引用块 */
+.quote{margin:18px 20px 8px;background:linear-gradient(180deg,#FBF6ED,#F6EEE0);border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px;position:relative;box-shadow:var(--shadow-1)}
+.quote .mark{position:absolute;top:6px;left:14px;font-family:var(--serif);font-size:54px;color:var(--terra-soft);line-height:1}
+.quote .qhead{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.quote .qhead .ai{width:26px;height:26px;border-radius:50%;background:var(--terra);display:flex;align-items:center;justify-content:center;color:#fff}
+.quote .qhead .t{font-family:var(--serif-cn);font-weight:700;font-size:13px;color:var(--ink)}
+.quote .qhead .by{font-family:var(--serif);font-style:italic;font-size:11px;color:var(--ink-3)}
+.quote p{font-family:var(--serif-cn);font-size:13.5px;line-height:1.68;color:var(--ink-2);position:relative;z-index:1}
+.quote .warn{display:inline-flex;align-items:center;gap:5px;margin-top:9px;font-size:11.5px;color:var(--terra);font-weight:600;background:var(--terra-soft);padding:4px 9px;border-radius:8px}
+
+/* ===================================================================
+   ③ AI 聊天 — 图文推荐卡片
+   =================================================================== */
+.c-top{display:flex;align-items:center;gap:11px;padding:10px 18px 12px;border-bottom:1px solid var(--line)}
+.c-top .ai{width:40px;height:40px;border-radius:50%;background:var(--terra);display:flex;align-items:center;justify-content:center;color:#fff;flex:0 0 auto;box-shadow:var(--shadow-1)}
+.c-top .who{flex:1}
+.c-top .who h3{font-family:var(--serif-cn);font-weight:700;font-size:16px;color:var(--ink)}
+.c-top .who .st{font-size:11px;color:var(--sage);display:flex;align-items:center;gap:5px;margin-top:1px}
+.c-top .who .st i{width:6px;height:6px;border-radius:50%;background:var(--sage)}
+.c-thread{padding:14px 18px 4px}
+.bubble-user{margin-left:auto;max-width:80%;background:var(--ink);color:#F4EFE7;border-radius:18px 18px 5px 18px;padding:11px 14px;font-size:13.5px;line-height:1.5;box-shadow:var(--shadow-1)}
+.bubble-ai-intro{max-width:88%;margin:14px 0 4px;font-family:var(--serif-cn);font-size:14px;line-height:1.6;color:var(--ink)}
+.bubble-ai-intro b{color:var(--terra)}
+
+/* 推荐图文卡片 */
+.rec{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin:12px 0;box-shadow:var(--shadow-2)}
+.rec .top{display:flex;gap:12px;padding:12px 12px 10px}
+.rec .img{width:78px;height:78px;border-radius:12px;overflow:hidden;flex:0 0 auto;position:relative;box-shadow:var(--shadow-1)}
+.rec .img img{width:100%;height:100%;object-fit:cover}
+.rec .rank{position:absolute;top:0;left:0;background:var(--terra);color:#fff;font-family:var(--serif);font-weight:700;font-size:12px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-bottom-right-radius:10px}
+.rec .info{flex:1;min-width:0}
+.rec .info h4{font-family:var(--serif-cn);font-weight:700;font-size:16px;color:var(--ink);line-height:1.1}
+.rec .info .loc{font-size:11.5px;color:var(--ink-3);margin:3px 0 6px;display:flex;align-items:center;gap:5px}
+.rec .info .mrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rec .why{font-family:var(--serif-cn);font-size:12.5px;line-height:1.56;color:var(--ink-2);padding:0 12px 10px;border-bottom:1px solid var(--line)}
+.rec .why b{color:var(--terra);font-weight:600}
+.rec .acts{display:flex}
+.rec .acts button{flex:1;border:0;background:transparent;padding:11px 0;font-family:var(--sans);font-size:12.5px;font-weight:600;color:var(--ink-2);display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+.rec .acts button:first-child{border-right:1px solid var(--line);color:var(--terra)}
+.rec .acts svg{display:block}
+
+/* quick-reply chips */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:6px 18px 12px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;font-size:12.5px;font-weight:600;color:var(--terra);background:var(--card);border:1px solid var(--terra-soft);border-radius:20px;padding:8px 14px;white-space:nowrap;cursor:pointer}
+/* composer */
+.composer{display:flex;align-items:center;gap:9px;padding:10px 16px 12px;border-top:1px solid var(--line);background:var(--paper)}
+.composer .box{flex:1;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:10px 14px}
+.composer input{flex:1;border:0;background:transparent;outline:none;font-family:var(--sans);font-size:13.5px;color:var(--ink)}
+.composer input::placeholder{color:var(--ink-3)}
+.composer .send{width:42px;height:42px;border-radius:50%;background:var(--terra);display:flex;align-items:center;justify-content:center;color:#fff;flex:0 0 auto;box-shadow:var(--shadow-1)}
+
+/* ===================================================================
+   ④ 加店流程 — "即将入册" 杂志条目预览
+   =================================================================== */
+.a-top{padding:12px 18px 6px;display:flex;align-items:center;justify-content:space-between}
+.a-top .x{width:34px;height:34px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--ink-2)}
+.a-top .t{font-family:var(--serif-cn);font-weight:700;font-size:15px;color:var(--ink)}
+.a-step{padding:0 18px 4px}
+.a-stepbar{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-3);margin-bottom:2px}
+.a-stepbar .on{color:var(--terra);font-weight:700}
+.a-prog{height:3px;background:var(--line);border-radius:3px;overflow:hidden;margin:4px 0 0}
+.a-prog i{display:block;height:100%;width:66%;background:var(--terra);border-radius:3px}
+
+/* 来源链接条 */
+.a-source{margin:12px 18px;display:flex;align-items:center;gap:10px;background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:10px 12px}
+.a-source .ico{width:30px;height:30px;border-radius:8px;background:#FDE8E2;display:flex;align-items:center;justify-content:center;color:#E0563B;flex:0 0 auto}
+.a-source .meta{flex:1;min-width:0}
+.a-source .meta .src{font-size:10.5px;color:var(--ink-3);letter-spacing:.04em}
+.a-source .meta .url{font-size:12px;color:var(--ink-2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.a-source .ok{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--sage);font-weight:600}
+
+.a-prevlabel{display:flex;align-items:center;gap:9px;margin:6px 18px 0}
+.a-prevlabel .t{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--terra)}
+.a-prevlabel .line{flex:1;height:1px;background:var(--line)}
+
+/* 即将入册 — 所见即所得卡片 (复用详情视觉语言) */
+.entry{margin:12px 18px;background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-2);position:relative}
+.entry .stamp{position:absolute;top:12px;right:12px;z-index:3;font-family:var(--serif);font-style:italic;font-size:10px;color:var(--terra);border:1.5px solid var(--terra);border-radius:8px;padding:4px 9px;transform:rotate(5deg);background:rgba(252,249,243,.85);letter-spacing:.04em}
+.entry .cover{height:140px;position:relative}
+.entry .cover img{width:100%;height:100%;object-fit:cover}
+.entry .cover .grad{position:absolute;inset:0;background:linear-gradient(0deg,rgba(20,14,9,.55),transparent 55%)}
+.entry .cover .conf{position:absolute;left:12px;bottom:10px;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#1c140d;background:rgba(255,250,242,.92);padding:4px 10px;border-radius:20px}
+.entry .cover .conf .d{width:7px;height:7px;border-radius:50%;background:var(--sage)}
+.entry .ebody{padding:13px 15px 15px}
+.entry .ebody h2{font-family:var(--serif-cn);font-weight:700;font-size:20px;color:var(--ink);line-height:1.1}
+.entry .ebody .rom{font-family:var(--serif);font-style:italic;font-size:12px;color:var(--ink-3);margin-top:2px}
+.entry .efields{margin-top:12px;display:flex;flex-direction:column;gap:0}
+.efield{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.efield:last-child{border-bottom:0}
+.efield .k{font-size:11px;color:var(--ink-3);width:54px;flex:0 0 auto;letter-spacing:.03em}
+.efield .v{flex:1;font-size:13px;color:var(--ink);font-weight:500;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.efield .edit{color:var(--ink-3);flex:0 0 auto;cursor:pointer}
+.entry .ainote{margin:12px 0 0;background:#FBF4EA;border:1px solid var(--line);border-radius:11px;padding:11px 12px}
+.entry .ainote .h{display:flex;align-items:center;gap:6px;font-family:var(--serif-cn);font-weight:700;font-size:11.5px;color:var(--terra);margin-bottom:5px}
+.entry .ainote p{font-family:var(--serif-cn);font-size:12px;line-height:1.55;color:var(--ink-2)}
+/* segmented control — 入哪个清单 */
+.a-seg{margin:4px 18px 0}
+.a-seg .lbl{font-size:11.5px;color:var(--ink-3);margin-bottom:7px;letter-spacing:.03em}
+.seg{display:flex;background:var(--paper-2);border:1px solid var(--line);border-radius:11px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:transparent;padding:8px 4px;border-radius:8px;font-family:var(--sans);font-size:12px;font-weight:600;color:var(--ink-3);cursor:pointer}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow-1)}
+/* CTA */
+.a-cta{padding:14px 18px 16px;display:flex;gap:10px}
+.a-cta .ghost{flex:0 0 auto;width:52px;border:1px solid var(--line);background:var(--card);border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--ink-2);cursor:pointer}
+.a-cta .primary{flex:1;border:0;background:var(--terra);color:#fff;border-radius:14px;padding:14px;font-family:var(--serif-cn);font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:var(--shadow-2)}
+
+/* ===================================================================
+   BOTTOM NAV (① 与 ③ 用)
+   =================================================================== */
+.bnav{flex:0 0 auto;height:64px;background:rgba(252,249,243,.96);border-top:1px solid var(--line);display:flex;align-items:stretch;padding:6px 6px 8px;backdrop-filter:blur(8px)}
+.bnav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--ink-3);text-decoration:none;font-size:10px;font-weight:600}
+.bnav a.on{color:var(--terra)}
+.bnav a .add{width:44px;height:44px;margin-top:-16px;border-radius:50%;background:var(--terra);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 6px 16px rgba(181,85,46,.45);border:3px solid var(--paper)}
+.bnav a.addbtn{justify-content:flex-start}
+.bnav a svg{display:block}
+
+/* gloss highlight on phone */
+.phone::after{content:"";position:absolute;top:0;left:0;right:0;height:34px;background:linear-gradient(180deg,rgba(255,255,255,.05),transparent);pointer-events:none;z-index:9;border-radius:42px 42px 0 0}
+.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:26px;background:#0D0A07;border-bottom-left-radius:14px;border-bottom-right-radius:14px;z-index:8}
+
+@media (max-width:1640px){
+  .rail{flex-wrap:wrap;gap:40px}
+}
+</style>
+</head>
+<body>
+
+<div class="stage-head">
+  <div class="kicker">Concept A — Editorial / Food Magazine</div>
+  <h1>Bite · 编辑大片</h1>
+  <p>摄影驱动的美食刊物范式：大幅食物图打头、衬线展示字体、编辑节奏的版式与阔绰留白。把"被否掉的横条卡片表单"重做成一本被精心策划的美食杂志。</p>
+</div>
+
+<div class="rail">
+
+  <!-- =================== ① LISTS 主页 =================== -->
+  <div class="frame-wrap">
+    <div class="frame-label"><span class="num">①</span> Lists 主页</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status">
+          <span>9:41</span>
+          <span class="dots">
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="4" y="4" width="3" height="7" rx="1"/><rect x="8" y="2" width="3" height="9" rx="1"/><rect x="12" y="0" width="3" height="11" rx="1"/></svg>
+            <svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="3" stroke="currentColor" stroke-width="1.2"/><rect x="2.5" y="2.5" width="13" height="7" rx="1.5" fill="currentColor"/><rect x="21" y="4" width="2" height="4" rx="1" fill="currentColor"/></svg>
+          </span>
+        </div>
+        <div class="scroll">
+          <!-- 刊头 -->
+          <div class="l-masthead">
+            <div>
+              <div class="brand">Bite</div>
+              <div class="issue">第 12 期 · Irvine 食事</div>
+            </div>
+            <div class="avatar"></div>
+          </div>
+          <!-- 顶部统一加店输入框 -->
+          <div class="l-addbar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            <input placeholder="粘小红书链接 / 打店名，加进清单" readonly>
+            <span class="go"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+          </div>
+
+          <div class="section-kicker"><span class="txt ed-serif">Today's Pick · 今日精选</span><span class="line"></span></div>
+          <!-- Hero 大片 -->
+          <div class="hero">
+            <img src="https://images.unsplash.com/photo-1563245372-f21724e3856d?w=800&q=75" alt="点心">
+            <div class="veil"></div>
+            <div class="top"><span class="badge ed-serif">想去 · 你的「约会清单」</span></div>
+            <div class="body">
+              <div class="eyebrow">Spectrum · 台菜 · $$$</div>
+              <h2 class="ed-serif">鼎泰丰</h2>
+              <div class="meta"><span class="stars">★★★★</span><span class="dot"></span><span>去过 2 次 · 会再来</span></div>
+              <div class="reason ed-serif-cn">麻酱小面好吃，芋泥小笼包偏腻；周五等位 4h，建议错峰。</div>
+            </div>
+          </div>
+
+          <div class="section-kicker"><span class="txt ed-serif">My Columns · 我的清单</span><span class="line"></span></div>
+          <div class="collist">
+            <div class="colrow">
+              <div class="colthumb"><img src="https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=300&q=70"><span class="cnt">12</span></div>
+              <div class="colmeta">
+                <div class="no ed-serif">No.01</div>
+                <h3>Irvine 想吃的</h3>
+                <div class="sub"><span>想去 9</span><span>·</span><span>去过 3</span></div>
+              </div>
+              <span class="colchev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span>
+            </div>
+            <div class="colrow">
+              <div class="colthumb"><img src="https://images.unsplash.com/photo-1552566626-52f8b828add9?w=300&q=70"><span class="cnt">8</span></div>
+              <div class="colmeta">
+                <div class="no ed-serif">No.02</div>
+                <h3>罗兰岗暴走</h3>
+                <div class="sub"><span>想去 8</span></div>
+              </div>
+              <span class="colchev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span>
+            </div>
+            <div class="colrow">
+              <div class="colthumb"><img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=300&q=70"><span class="cnt">4</span></div>
+              <div class="colmeta">
+                <div class="no ed-serif">No.03</div>
+                <h3>约会清单</h3>
+                <div class="sub"><span class="shared"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5" stroke-linecap="round"/></svg>共享</span><span>·</span><span>by @caleb</span></div>
+              </div>
+              <span class="faces"><span style="background-image:url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=80&q=60')"></span><span style="background-image:url('https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=80&q=60')"></span></span>
+            </div>
+          </div>
+          <div style="height:14px"></div>
+        </div>
+        <!-- 底部导航 -->
+        <nav class="bnav">
+          <a class="on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10" stroke-linecap="round"/></svg>清单</a>
+          <a><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15V7a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v8M3 15l4.5-4 4 3 4-5 4.5 6M3 15a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>发现</a>
+          <a class="addbtn"><span class="add"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></a>
+          <a><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12 7.6L3 21l1.9-6A8.5 8.5 0 1 1 21 11.5z"/></svg>聊天</a>
+          <a><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.7-7-11a7 7 0 0 1 14 0c0 5.3-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg>地图</a>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== ② 店铺详情 =================== -->
+  <div class="frame-wrap">
+    <div class="frame-label"><span class="num">②</span> 店铺卡片 + 详情</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="scroll">
+          <!-- 全宽图集横滑 -->
+          <div class="d-gallery">
+            <div class="d-track">
+              <div class="d-slide"><img src="https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=800&q=75"></div>
+              <div class="d-slide"><img src="https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800&q=75"></div>
+              <div class="d-slide"><img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=75"></div>
+            </div>
+            <div class="topgrad"></div>
+            <div class="botgrad"></div>
+            <div class="d-nav">
+              <span class="d-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></span>
+              <span class="d-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.7-9.7-9C.9 8.6 2.6 5 6 5c2 0 3.2 1.1 4 2.3C10.8 6.1 12 5 14 5c3.4 0 5.1 3.6 3.7 7-2.2 4.3-9.7 9-9.7 9z" opacity="0"/><path d="M12.1 8.6C11.3 7.2 10 6 8 6 4.7 6 3 9.4 4.3 12.6 6 16.7 12.1 20 12.1 20s6.1-3.3 7.8-7.4C21.2 9.4 19.5 6 16.2 6c-2 0-3.3 1.2-4.1 2.6z" stroke="currentColor" stroke-width="1.7" fill="none"/></svg></span>
+            </div>
+            <div class="d-dots"><i class="on"></i><i></i><i></i></div>
+            <div class="d-count ed-serif">1 / 3</div>
+          </div>
+
+          <div class="d-head">
+            <div class="eyebrow">想去 · Irvine 想吃的</div>
+            <h1>上水小馆</h1>
+            <div class="romName">Sheung Shui · 粤菜小馆</div>
+          </div>
+          <div class="d-metaline">
+            <span class="dollar">$ <b>$</b></span>
+            <span class="tag">粤菜</span>
+            <span class="tag">炒饭一绝</span>
+            <span class="tag">分量大</span>
+          </div>
+          <div class="d-statusrow">
+            <span class="pill want">想去</span>
+            <span class="d-signal"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.7-7-11a7 7 0 0 1 14 0c0 5.3-7 11-7 11z" stroke-linejoin="round"/></svg>Irvine · 0.8 mi</span>
+          </div>
+
+          <!-- 我的理由 -->
+          <div class="d-block">
+            <div class="lbl ed-serif">Why I saved it · 我的理由</div>
+            <p class="d-reason ed-serif-cn">炒饭烧鸭都好吃，没吃完打包。分量很大，两个人点三个菜刚好，记得留肚子给炒饭。</p>
+          </div>
+
+          <!-- 主编点评引用块 -->
+          <div class="quote">
+            <span class="mark ed-serif">"</span>
+            <div class="qhead">
+              <span class="ai"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z"/></svg></span>
+              <span class="t ed-serif-cn">主编点评</span>
+              <span class="by ed-serif">by Bite AI</span>
+            </div>
+            <p class="ed-serif-cn">招牌生炒糯米饭锅气足、烧鸭皮脆，是社区粤菜里少见的稳定水准。茶位与小菜中规中矩，建议把胃口留给主食。</p>
+            <span class="warn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 4l-7 12a2 2 0 0 0 1.7 3h14a2 2 0 0 0 1.7-3l-7-12a2 2 0 0 0-3.4 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>周末晚市约 40 分钟等位</span>
+          </div>
+          <div style="height:14px"></div>
+        </div>
+        <!-- 详情底部操作条 -->
+        <div class="composer" style="border-top:1px solid var(--line);gap:10px;padding:12px 16px 14px">
+          <button class="d-ico" style="position:static;background:var(--card);border:1px solid var(--line)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12.1 8.6C11.3 7.2 10 6 8 6 4.7 6 3 9.4 4.3 12.6 6 16.7 12.1 20 12.1 20s6.1-3.3 7.8-7.4C21.2 9.4 19.5 6 16.2 6c-2 0-3.3 1.2-4.1 2.6z"/></svg></button>
+          <button class="send" style="flex:1;width:auto;border-radius:24px;font-family:var(--serif-cn);font-weight:700;font-size:14.5px;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>标记去过</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== ③ AI 聊天 =================== -->
+  <div class="frame-wrap">
+    <div class="frame-label"><span class="num">③</span> AI 聊天</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status">
+          <span>9:41</span>
+          <span class="dots">
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="4" y="4" width="3" height="7" rx="1"/><rect x="8" y="2" width="3" height="9" rx="1"/><rect x="12" y="0" width="3" height="11" rx="1"/></svg>
+            <svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="3" stroke="currentColor" stroke-width="1.2"/><rect x="2.5" y="2.5" width="13" height="7" rx="1.5" fill="currentColor"/><rect x="21" y="4" width="2" height="4" rx="1" fill="currentColor"/></svg>
+          </span>
+        </div>
+        <div class="c-top">
+          <span class="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z"/></svg></span>
+          <div class="who"><h3 class="ed-serif-cn">今晚吃啥</h3><div class="st"><i></i>已读你的 24 家想去 · 即时推荐</div></div>
+        </div>
+        <div class="scroll">
+          <div class="c-thread">
+            <div class="bubble-user">今晚和女朋友吃啥，想日料 200 以内</div>
+            <div class="bubble-ai-intro ed-serif-cn">从你的库里挑了 <b>2 家</b>都在预算内、又有约会氛围的——</div>
+
+            <!-- 推荐卡 1 -->
+            <div class="rec">
+              <div class="top">
+                <div class="img"><img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=300&q=75"><span class="rank ed-serif">1</span></div>
+                <div class="info">
+                  <h4>鳥貴族</h4>
+                  <div class="loc"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.7-7-11a7 7 0 0 1 14 0c0 5.3-7 11-7 11z" stroke-linejoin="round"/></svg>Diamond Jamboree · 日式居酒屋</div>
+                  <div class="mrow"><span class="dollar">$ <b>$</b></span><span class="pill want">想去</span><span class="tag">约会氛围好</span></div>
+                </div>
+              </div>
+              <div class="why ed-serif-cn">你给它标了 <b>「约会氛围好」</b>，烤串人均 ~$35 稳进预算；昏黄灯光、卡座，适合两个人慢慢吃。</div>
+              <div class="acts">
+                <button><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>看详情</button>
+                <button><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.7-9.7-9C.9 8.6 2.6 5 6 5c2 0 3.2 1.1 4 2.3C10.8 6.1 12 5 14 5c3.4 0 5.1 3.6 3.7 7-2.2 4.3-9.7 9-9.7 9z" opacity="0"/><path d="M12.1 8.6C11.3 7.2 10 6 8 6 4.7 6 3 9.4 4.3 12.6 6 16.7 12.1 20 12.1 20s6.1-3.3 7.8-7.4C21.2 9.4 19.5 6 16.2 6c-2 0-3.3 1.2-4.1 2.6z"/></svg>就它了</button>
+              </div>
+            </div>
+
+            <!-- 推荐卡 2 -->
+            <div class="rec">
+              <div class="top">
+                <div class="img"><img src="https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=300&q=75"><span class="rank ed-serif">2</span></div>
+                <div class="info">
+                  <h4>Sushi Noguchi</h4>
+                  <div class="loc"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.7-7-11a7 7 0 0 1 14 0c0 5.3-7 11-7 11z" stroke-linejoin="round"/></svg>Tustin · 寿司割烹</div>
+                  <div class="mrow"><span class="dollar">$$ <b>$</b></span><span class="pill been">去过 · ★★★★</span></div>
+                </div>
+              </div>
+              <div class="why ed-serif-cn">上次你打了 <b>4 星</b>，备注「鳗鱼饭绝了」。点 omakase 偏预算上限，单点鳗鱼饭 + 刺身拼盘约 $80/人正好。</div>
+              <div class="acts">
+                <button><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>看详情</button>
+                <button><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.1 8.6C11.3 7.2 10 6 8 6 4.7 6 3 9.4 4.3 12.6 6 16.7 12.1 20 12.1 20s6.1-3.3 7.8-7.4C21.2 9.4 19.5 6 16.2 6c-2 0-3.3 1.2-4.1 2.6z"/></svg>就它了</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- quick-reply chips -->
+        <div class="chips">
+          <span class="chip">换近一点的</span>
+          <span class="chip">再便宜些</span>
+          <span class="chip">要安静的</span>
+          <span class="chip">换中餐</span>
+        </div>
+        <!-- composer -->
+        <div class="composer">
+          <div class="box">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="1.8"><path d="M12 19a4 4 0 0 0 4-4V7a4 4 0 0 0-8 0v8a4 4 0 0 0 4 4zM5 11a7 7 0 0 0 14 0M12 19v3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <input placeholder="再问问看…" readonly>
+          </div>
+          <span class="send"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== ④ 加店流程 =================== -->
+  <div class="frame-wrap">
+    <div class="frame-label"><span class="num">④</span> 加店流程</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status">
+          <span>9:41</span>
+          <span class="dots">
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="4" y="4" width="3" height="7" rx="1"/><rect x="8" y="2" width="3" height="9" rx="1"/><rect x="12" y="0" width="3" height="11" rx="1"/></svg>
+            <svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="19" height="10" rx="3" stroke="currentColor" stroke-width="1.2"/><rect x="2.5" y="2.5" width="13" height="7" rx="1.5" fill="currentColor"/><rect x="21" y="4" width="2" height="4" rx="1" fill="currentColor"/></svg>
+          </span>
+        </div>
+        <div class="a-top">
+          <span class="x"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
+          <span class="t ed-serif-cn">即将入册</span>
+          <span style="width:34px"></span>
+        </div>
+        <div class="a-step">
+          <div class="a-stepbar"><span>1 链接</span><span>›</span><span class="on">2 确认</span><span>›</span><span>3 入库</span></div>
+          <div class="a-prog"><i></i></div>
+        </div>
+        <div class="scroll">
+          <!-- 来源 -->
+          <div class="a-source">
+            <span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg></span>
+            <div class="meta">
+              <div class="src">来源 · 小红书</div>
+              <div class="url">xiaohongshu.com/explore/漁人码头探店…</div>
+            </div>
+            <span class="ok"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>已抽取</span>
+          </div>
+
+          <div class="a-prevlabel"><span class="t ed-serif">Preview · 所见即所得</span><span class="line"></span></div>
+
+          <!-- 即将入册条目 — 所见即所得预览 -->
+          <div class="entry">
+            <span class="stamp ed-serif">PENDING</span>
+            <div class="cover">
+              <img src="https://images.unsplash.com/photo-1563245372-f21724e3856d?w=800&q=75">
+              <div class="grad"></div>
+              <span class="conf"><span class="d"></span>提取信心 高</span>
+            </div>
+            <div class="ebody">
+              <h2 class="ed-serif-cn">Capital Seafood 漁人</h2>
+              <div class="rom ed-serif">Irvine · Diamond Jamboree</div>
+              <div class="efields">
+                <div class="efield"><span class="k">菜系</span><span class="v"><span class="tag">粤菜</span><span class="tag">海鲜</span><span class="tag">茶点</span></span><span class="edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></span></div>
+                <div class="efield"><span class="k">价位</span><span class="v"><span class="dollar">$$ <b>$</b></span></span><span class="edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></span></div>
+                <div class="efield"><span class="k">状态</span><span class="v"><span class="pill want">想去</span></span><span class="edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></span></div>
+              </div>
+              <!-- AI 备注 -->
+              <div class="ainote">
+                <div class="h ed-serif-cn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z"/></svg>AI 备注</div>
+                <p class="ed-serif-cn">博主主推茶点和环境，评论区 1 条提到等位 1.5h，建议错峰前往。</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- segmented control 入哪个清单 -->
+          <div class="a-seg">
+            <div class="lbl">收进哪个清单</div>
+            <div class="seg">
+              <button class="on">Irvine 想吃的</button>
+              <button>约会清单</button>
+              <button>＋ 新建</button>
+            </div>
+          </div>
+          <div style="height:10px"></div>
+        </div>
+        <!-- CTA -->
+        <div class="a-cta">
+          <button class="ghost"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></button>
+          <button class="primary ed-serif-cn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>确认入册</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
