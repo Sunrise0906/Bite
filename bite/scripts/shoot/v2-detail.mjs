@@ -3,7 +3,7 @@ import { chromium } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
 const env = Object.fromEntries(
-  readFileSync(new URL("../.env.local", import.meta.url), "utf8")
+  readFileSync(new URL("../../.env.local", import.meta.url), "utf8")
     .split("\n").filter((l) => l.includes("=") && !l.trim().startsWith("#"))
     .map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^"|"$/g, "")]; }),
 );
@@ -38,7 +38,7 @@ async function shot(p, name) {
   if (!p) { console.log("skip", name); return; }
   await page.goto(`${BASE}/lists/${p.list_id}/places/${p.id}`);
   await page.waitForTimeout(2200);
-  await page.screenshot({ path: `design-preview/${name}.png`, fullPage: true });
+  await page.screenshot({ path: `screenshots/${name}.png`, fullPage: true });
   console.log("shot", name);
 }
 await shot(visited[0], "v2chk-detail-visited");

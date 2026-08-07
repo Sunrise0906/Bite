@@ -3,7 +3,7 @@ import { chromium } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
 const env = Object.fromEntries(
-  readFileSync(new URL("../.env.local", import.meta.url), "utf8")
+  readFileSync(new URL("../../.env.local", import.meta.url), "utf8")
     .split("\n")
     .filter((l) => l.includes("=") && !l.trim().startsWith("#"))
     .map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^"|"$/g, "")]; }),
@@ -27,7 +27,7 @@ await login(page);
 
 // V1 主页（基线）
 await page.goto(`${BASE}/lists`); await page.waitForTimeout(2000);
-await page.screenshot({ path: "design-preview/v2chk-home-v1.png", fullPage: true });
+await page.screenshot({ path: "screenshots/v2chk-home-v1.png", fullPage: true });
 console.log("shot v1 home");
 
 // 切 V2
@@ -35,7 +35,7 @@ await page.goto(`${BASE}/profile`); await page.waitForTimeout(1500);
 await page.getByRole("button", { name: /V2 新版/ }).click();
 await page.waitForTimeout(2000);
 await page.goto(`${BASE}/lists`); await page.waitForTimeout(2500);
-await page.screenshot({ path: "design-preview/v2chk-home-v2.png", fullPage: true });
+await page.screenshot({ path: "screenshots/v2chk-home-v2.png", fullPage: true });
 console.log("shot v2 home");
 await ctx.close();
 
@@ -47,7 +47,7 @@ await pageD.goto(`${BASE}/profile`); await pageD.waitForTimeout(1500);
 await pageD.getByRole("button", { name: /V2 新版/ }).click();
 await pageD.waitForTimeout(2000);
 await pageD.goto(`${BASE}/lists`); await pageD.waitForTimeout(2500);
-await pageD.screenshot({ path: "design-preview/v2chk-home-v2-dark.png", fullPage: true });
+await pageD.screenshot({ path: "screenshots/v2chk-home-v2-dark.png", fullPage: true });
 console.log("shot v2 home dark");
 // 切回 V1 收尾（不污染账号默认）
 await pageD.goto(`${BASE}/profile`); await pageD.waitForTimeout(1200);

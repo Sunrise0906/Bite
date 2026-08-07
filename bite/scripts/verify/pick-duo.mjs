@@ -7,7 +7,7 @@ import { chromium } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
 const env = Object.fromEntries(
-  readFileSync(new URL("../.env.local", import.meta.url), "utf8")
+  readFileSync(new URL("../../.env.local", import.meta.url), "utf8")
     .split("\n")
     .filter((l) => l.includes("=") && !l.trim().startsWith("#"))
     .map((l) => {
@@ -15,7 +15,7 @@ const env = Object.fromEntries(
       return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^"|"$/g, "")];
     }),
 );
-const BASE = process.env.VERIFY_BASE || "https://bite-sand.vercel.app";
+const BASE = process.env.VERIFY_BASE || "http://localhost:3000";
 const SUPA = env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SVC = env.SUPABASE_SERVICE_ROLE_KEY;
@@ -114,7 +114,7 @@ try {
   await pb.waitForTimeout(1600);
   const bBody = await pb.textContent("body");
   check("B 立刻看到「就它了」", /你们都想吃/.test(bBody ?? ""));
-  await pb.screenshot({ path: "design-preview/pick-match-b.png" });
+  await pb.screenshot({ path: "screenshots/pick-match-b.png" });
 
   // A 的等待页轮询（4s 间隔）应在 ~10s 内翻到匹配
   let aMatched = false;
@@ -124,7 +124,7 @@ try {
     if (/你们都想吃/.test(t ?? "")) { aMatched = true; break; }
   }
   check("A 轮询后也看到「就它了」", aMatched);
-  await pa.screenshot({ path: "design-preview/pick-match-a.png" });
+  await pa.screenshot({ path: "screenshots/pick-match-a.png" });
 } finally {
   await browser.close();
   // 清理：session/votes（级联）+ 测试店

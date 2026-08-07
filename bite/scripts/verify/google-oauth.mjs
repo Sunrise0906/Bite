@@ -3,7 +3,7 @@
 import { chromium } from "@playwright/test";
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport: { width: 430, height: 900 } })).newPage();
-await page.goto("https://bite-sand.vercel.app/login");
+await page.goto(`${process.env.VERIFY_BASE || "http://localhost:3000"}/login`);
 await page.getByRole("button", { name: /Google/ }).click();
 // server action redirect 链：app → supabase authorize → accounts.google.com
 await page.waitForURL(/accounts\.google\.com/, { timeout: 25000 });
@@ -13,6 +13,6 @@ console.log("landed:", url.slice(0, 90));
 const body = await page.textContent("body").catch(() => "");
 console.log("页面包含应用名 Bite:", /Bite/.test(body) ? "✓" : "（未见，可能是账号选择页）");
 console.log("是登录/授权页:", /Sign in|登录|使用您的 Google/i.test(body) ? "✓" : "?");
-await page.screenshot({ path: "design-preview/google-oauth-page.png" });
+await page.screenshot({ path: "screenshots/google-oauth-page.png" });
 await browser.close();
 console.log("PASS: 已到达 Google 授权页");

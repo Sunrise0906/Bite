@@ -3,7 +3,7 @@ import { chromium } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
 const env = Object.fromEntries(
-  readFileSync(new URL("../.env.local", import.meta.url), "utf8")
+  readFileSync(new URL("../../.env.local", import.meta.url), "utf8")
     .split("\n").filter((l) => l.includes("=") && !l.trim().startsWith("#"))
     .map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^"|"$/g, "")]; }),
 );
@@ -35,11 +35,11 @@ await page.getByRole("button", { name: /V2 新版/ }).click();
 await page.waitForTimeout(1500);
 
 await page.goto(`${BASE}/lists/${target.id}`); await page.waitForTimeout(2500);
-await page.screenshot({ path: "design-preview/v2chk-listdetail.png", fullPage: true });
+await page.screenshot({ path: "screenshots/v2chk-listdetail.png", fullPage: true });
 console.log("shot list detail");
 
 await page.goto(`${BASE}/map`); await page.waitForTimeout(4000);
-await page.screenshot({ path: "design-preview/v2chk-map.png", fullPage: true });
+await page.screenshot({ path: "screenshots/v2chk-map.png", fullPage: true });
 console.log("shot map");
 
 await page.goto(`${BASE}/profile`); await page.waitForTimeout(1000);

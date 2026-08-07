@@ -1,10 +1,10 @@
 // 主题系统视觉验证：4 主题 × 手机(390)/桌面(1366) × 主页/清单详情/登录。
-// 用法：node design-preview/shoot-themes.mjs（dev server 需在 :3000）
+// 用法：node scripts/shoot/themes.mjs（dev server 需在 :3000）
 import { chromium } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
 const env = Object.fromEntries(
-  readFileSync(new URL("../.env.local", import.meta.url), "utf8")
+  readFileSync(new URL("../../.env.local", import.meta.url), "utf8")
     .split("\n")
     .filter((l) => l.includes("=") && !l.trim().startsWith("#"))
     .map((l) => {
@@ -38,7 +38,7 @@ const setTheme = (ctx, t) =>
     await setTheme(ctx, t);
     await page.goto(`${BASE}/lists`);
     await page.waitForTimeout(1100);
-    await page.screenshot({ path: `design-preview/theme-${t}-m-home.png` });
+    await page.screenshot({ path: `screenshots/theme-${t}-m-home.png` });
     console.log(`✓ ${t} m-home`);
   }
   await ctx.close();
@@ -52,7 +52,7 @@ const setTheme = (ctx, t) =>
     await anon.addCookies([{ name: "bite_theme", value: t, url: BASE }]);
     await ap.goto(`${BASE}/login`);
     await ap.waitForTimeout(700);
-    await ap.screenshot({ path: `design-preview/theme-${t}-m-login.png` });
+    await ap.screenshot({ path: `screenshots/theme-${t}-m-login.png` });
     console.log(`✓ ${t} m-login`);
   }
   await anon.close();
@@ -67,11 +67,11 @@ const setTheme = (ctx, t) =>
     await setTheme(ctx, t);
     await page.goto(`${BASE}/lists`);
     await page.waitForTimeout(1100);
-    await page.screenshot({ path: `design-preview/theme-${t}-d-home.png` });
+    await page.screenshot({ path: `screenshots/theme-${t}-d-home.png` });
     if (href) {
       await page.goto(`${BASE}${href}`);
       await page.waitForTimeout(900);
-      await page.screenshot({ path: `design-preview/theme-${t}-d-list.png` });
+      await page.screenshot({ path: `screenshots/theme-${t}-d-list.png` });
     }
     console.log(`✓ ${t} desktop`);
   }

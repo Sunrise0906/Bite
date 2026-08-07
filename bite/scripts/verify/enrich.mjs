@@ -1,7 +1,7 @@
 // 验证 Google 口碑：点 enrich → service-role 查评分是否落库 → 截图一家店详情看 ★ 显示
 import { chromium } from "@playwright/test";
 import { readFileSync } from "node:fs";
-const env = Object.fromEntries(readFileSync(new URL("../.env.local", import.meta.url),"utf8").split("\n").filter(l=>l.includes("=")&&!l.trim().startsWith("#")).map(l=>{const i=l.indexOf("=");return [l.slice(0,i).trim(),l.slice(i+1).trim().replace(/^"|"$/g,"")]}));
+const env = Object.fromEntries(readFileSync(new URL("../../.env.local", import.meta.url),"utf8").split("\n").filter(l=>l.includes("=")&&!l.trim().startsWith("#")).map(l=>{const i=l.indexOf("=");return [l.slice(0,i).trim(),l.slice(i+1).trim().replace(/^"|"$/g,"")]}));
 const B="http://localhost:3000";
 const SUPA=env.NEXT_PUBLIC_SUPABASE_URL, SVC=env.SUPABASE_SERVICE_ROLE_KEY;
 const hdr={apikey:SVC,Authorization:`Bearer ${SVC}`};
@@ -36,7 +36,7 @@ console.log("rated places:", JSON.stringify(rated.map(r=>({n:r.name,r:r.google_r
 if(rated.length){
   const one=await get(`places?list_id=in.(${listIds})&google_rating=not.is.null&select=id,list_id&limit=1`);
   await p.goto(`${B}/lists/${one[0].list_id}/places/${one[0].id}`); await p.waitForTimeout(2200);
-  await p.screenshot({path:"design-preview/verify-detail-rated.png",fullPage:true});
+  await p.screenshot({path:"screenshots/verify-detail-rated.png",fullPage:true});
   console.log("shot detail with rating");
 }
 console.log("console errors:", errs.length?errs.join(" | "):"none");

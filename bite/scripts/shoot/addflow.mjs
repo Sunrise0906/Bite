@@ -1,10 +1,10 @@
 // V2 add-flow 视觉验证：登录 → 贴文本（单店 / 合集）→ LLM 抽取 → 确认页截图。
-// 用法：node design-preview/shoot-addflow.mjs（需 dev server 跑在 :3000）
+// 用法：node scripts/shoot/addflow.mjs（需 dev server 跑在 :3000）
 import { chromium } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
 const env = Object.fromEntries(
-  readFileSync(new URL("../.env.local", import.meta.url), "utf8")
+  readFileSync(new URL("../../.env.local", import.meta.url), "utf8")
     .split("\n")
     .filter((l) => l.includes("=") && !l.trim().startsWith("#"))
     .map((l) => {
@@ -56,24 +56,24 @@ try {
   // 1. V2 主页（含新建清单行）
   await page.goto(`${BASE}/lists`);
   await page.waitForTimeout(1500);
-  await page.screenshot({ path: "design-preview/addflow-home.png", fullPage: true });
+  await page.screenshot({ path: "screenshots/addflow-home.png", fullPage: true });
   console.log("✓ addflow-home.png");
 
   // 2. 单店确认页
   await submitText(SINGLE_TEXT, /\/quick-add(\?|$)/);
-  await page.screenshot({ path: "design-preview/addflow-single.png", fullPage: true });
+  await page.screenshot({ path: "screenshots/addflow-single.png", fullPage: true });
   console.log("✓ addflow-single.png");
   await cancel();
 
   // 3. 合集确认页
   await submitText(MULTI_TEXT, /\/quick-add\/multi/);
-  await page.screenshot({ path: "design-preview/addflow-multi.png", fullPage: true });
+  await page.screenshot({ path: "screenshots/addflow-multi.png", fullPage: true });
   console.log("✓ addflow-multi.png");
   await cancel();
 
   console.log("DONE");
 } catch (e) {
-  await page.screenshot({ path: "design-preview/addflow-error.png", fullPage: true });
+  await page.screenshot({ path: "screenshots/addflow-error.png", fullPage: true });
   console.error("FAIL:", e.message);
   process.exitCode = 1;
 } finally {

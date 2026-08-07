@@ -3,7 +3,7 @@ import { chromium } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
 const env = Object.fromEntries(
-  readFileSync(new URL("../.env.local", import.meta.url), "utf8")
+  readFileSync(new URL("../../.env.local", import.meta.url), "utf8")
     .split("\n")
     .filter((l) => l.includes("=") && !l.trim().startsWith("#"))
     .map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^"|"$/g, "")]; }),
@@ -37,7 +37,7 @@ try {
   await page.waitForTimeout(8000);
 }
 await page.waitForTimeout(1500);
-await page.screenshot({ path: "design-preview/v2chk-chat.png", fullPage: true });
+await page.screenshot({ path: "screenshots/v2chk-chat.png", fullPage: true });
 console.log("shot v2 chat");
 
 // 切回 V1 收尾

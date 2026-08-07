@@ -12,7 +12,7 @@ const env = Object.fromEntries(
     }),
 );
 
-const BASE = "https://bite-sand.vercel.app";
+const BASE = process.env.E2E_BASE_URL || "http://localhost:3000";
 const browser = await chromium.launch();
 const page = await browser.newPage();
 

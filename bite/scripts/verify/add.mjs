@@ -1,7 +1,7 @@
 // 端到端：加一家带菜名的真实店 → 验 dishes 抽取 + 自动 enrich 评分 → 清理
 import { chromium } from "@playwright/test";
 import { readFileSync } from "node:fs";
-const env = Object.fromEntries(readFileSync(new URL("../.env.local", import.meta.url),"utf8").split("\n").filter(l=>l.includes("=")&&!l.trim().startsWith("#")).map(l=>{const i=l.indexOf("=");return [l.slice(0,i).trim(),l.slice(i+1).trim().replace(/^"|"$/g,"")]}));
+const env = Object.fromEntries(readFileSync(new URL("../../.env.local", import.meta.url),"utf8").split("\n").filter(l=>l.includes("=")&&!l.trim().startsWith("#")).map(l=>{const i=l.indexOf("=");return [l.slice(0,i).trim(),l.slice(i+1).trim().replace(/^"|"$/g,"")]}));
 const B="http://localhost:3000";
 const SUPA=env.NEXT_PUBLIC_SUPABASE_URL, SVC=env.SUPABASE_SERVICE_ROLE_KEY;
 const hdr={apikey:SVC,Authorization:`Bearer ${SVC}`,"Content-Type":"application/json"};
