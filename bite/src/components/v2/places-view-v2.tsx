@@ -2,12 +2,19 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { Place, PlaceStatus } from "@/lib/db/types";
+import type { Place, PlacePrice, PlaceStatus } from "@/lib/db/types";
 import { relDate } from "@/lib/util/rel-date";
 import { menuSearchUrl } from "@/lib/places/menu-url";
 import type { VisitSignal } from "@/lib/visits/aggregate";
 
 const STATUS_ORDER: PlaceStatus[] = ["want_to_go", "visited", "archived"];
+const PRICE_ORDER: PlacePrice[] = ["$", "$$", "$$$", "$$$$"];
+const PRICE_LABEL: Record<PlacePrice, string> = {
+  $: "$ · <$15",
+  $$: "$$ · $15-30",
+  $$$: "$$$ · $30-60",
+  $$$$: "$$$$ · >$60",
+};
 const STATUS_LABEL: Record<PlaceStatus, string> = {
   want_to_go: "想去",
   visited: "去过",
@@ -38,21 +45,28 @@ export function PlacesViewV2({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | PlaceStatus>("all");
   const [cuisineSel, setCuisineSel] = useState<Set<string>>(() => new Set());
+  const [priceSel, setPriceSel] = useState<Set<PlacePrice>>(() => new Set());
 
-  const { statusCounts, cuisines } = useMemo(() => {
+  const { statusCounts, cuisines, prices } = useMemo(() => {
     const sc: Record<PlaceStatus, number> = {
       want_to_go: 0,
       visited: 0,
       archived: 0,
     };
     const cc = new Map<string, number>();
+    const pc = new Map<PlacePrice, number>();
     for (const p of places) {
       sc[p.status] = (sc[p.status] ?? 0) + 1;
       for (const c of p.cuisine) cc.set(c, (cc.get(c) ?? 0) + 1);
+      if (p.price_range) pc.set(p.price_range, (pc.get(p.price_range) ?? 0) + 1);
     }
     return {
       statusCounts: sc,
       cuisines: [...cc.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8),
+      // 保持 $ → $$$$ 的固定顺序（不按频次排），只显示实际有店的档位
+      prices: PRICE_ORDER.filter((p) => (pc.get(p) ?? 0) > 0).map(
+        (p) => [p, pc.get(p)!] as const,
+      ),
     };
   }, [places]);
 
@@ -62,6 +76,9 @@ export function PlacesViewV2({
       if (statusFilter !== "all" && p.status !== statusFilter) return false;
       if (cuisineSel.size > 0 && !p.cuisine.some((c) => cuisineSel.has(c)))
         return false;
+      if (priceSel.size > 0) {
+        if (!p.price_range || !priceSel.has(p.price_range)) return false;
+      }
       if (q) {
         const hay = [
           p.name,
@@ -77,7 +94,7 @@ export function PlacesViewV2({
       }
       return true;
     });
-  }, [places, search, statusFilter, cuisineSel]);
+  }, [places, search, statusFilter, cuisineSel, priceSel]);
 
   const grouped = useMemo(() => {
     const m = new Map<PlaceStatus, Place[]>();
@@ -93,6 +110,27 @@ export function PlacesViewV2({
       else n.add(c);
       return n;
     });
+
+  const togglePrice = (p: PlacePrice) =>
+    setPriceSel((prev) => {
+      const n = new Set(prev);
+      if (n.has(p)) n.delete(p);
+      else n.add(p);
+      return n;
+    });
+
+  const hasFilters =
+    Boolean(search.trim()) ||
+    statusFilter !== "all" ||
+    cuisineSel.size > 0 ||
+    priceSel.size > 0;
+
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("all");
+    setCuisineSel(new Set());
+    setPriceSel(new Set());
+  };
 
   return (
     <div>
@@ -139,7 +177,7 @@ export function PlacesViewV2({
       </div>
 
       {cuisines.length > 0 && (
-        <div className="v2-filters" style={{ marginBottom: 16 }}>
+        <div className="v2-filters">
           {cuisines.map(([c, n]) => (
             <button
               key={c}
@@ -150,6 +188,27 @@ export function PlacesViewV2({
               {c} {n}
             </button>
           ))}
+        </div>
+      )}
+
+      {(prices.length > 0 || hasFilters) && (
+        <div className="v2-filters" style={{ marginBottom: 16 }}>
+          {prices.map(([p, n]) => (
+            <button
+              key={p}
+              type="button"
+              className={`v2-fchip${priceSel.has(p) ? " on" : ""}`}
+              onClick={() => togglePrice(p)}
+              title={PRICE_LABEL[p]}
+            >
+              {p} {n}
+            </button>
+          ))}
+          {hasFilters && (
+            <button type="button" className="v2-fchip" onClick={clearFilters}>
+              清除筛选
+            </button>
+          )}
         </div>
       )}
 
