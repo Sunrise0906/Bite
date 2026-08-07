@@ -1,4 +1,10 @@
-# Bite Autonomous Dev Plan
+# Bite Autonomous Dev Plan（历史归档）
+
+> **⚠️ 已冻结于 2026-07-30，不再更新。** 这是一份只增不减的自主开发流水账，
+> 保留下来是为了「当时为什么这么做」的考古价值。
+>
+> **当前状态以 `git log` + [`bite/README.md`](../../bite/README.md) 为准；
+> 未决的架构分叉见 [`docs/decisions/`](../decisions/)。**
 
 > 用户离开 10h，我自主续干。每半小时一个 /loop iteration。
 

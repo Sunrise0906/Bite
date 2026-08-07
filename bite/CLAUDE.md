@@ -6,14 +6,18 @@
 
 完整产品设计：[../docs/Bite_设计文档.md](../docs/Bite_设计文档.md)
 
-## 关键决策（设计文档之外，2026-05-19 对齐）
+## 关键决策
 
-- **15 天工期**（压缩自原 4 周计划）
-- v1 外部数据源仅小红书，且仅 **纯文本粘贴路径**（不爬 xhs 服务器）；Yelp / Reddit → v2
-- **多 LLM 抽象层**：Claude（默认）+ OpenAI + DeepSeek + Qwen，统一 `src/lib/llm/provider.ts`
-- **App 默认 LLM key 由开发者出**，朋友 / 女朋友开箱即用；Settings 可填自带 key 覆盖
+- **多 LLM 抽象层**：Gemini（默认，`DEFAULT_PROVIDER`）+ Anthropic + OpenAI + DeepSeek +
+  Qwen。抽象在 `src/lib/llm/types.ts`（接口 + `StreamChunk` 联合）和 `src/lib/llm/router.ts`
+  （settings 加载 + provider 工厂）。Anthropic 单独一份实现，其余四家共用 `openai-compat.ts`。
+- **App 默认 LLM key 由开发者出**，朋友 / 女朋友开箱即用；Settings 可填自带 key 覆盖。
+  ⚠️ 目前这个承诺**没有支出上限**——四条入口零限流，见 `docs/decisions/`。
 - **登录**：Email/密码 + Magic Link + Google OAuth；任意邮箱（QQ/163/Gmail/Outlook）可注册
 - **Place 跨 list 不去重**：同店在不同 list 是独立记录；仅共享 list 内 reason 字段聚合 `[{user_id, text}]`
+- **小红书**：`src/lib/places/xhs.ts` 会**实际抓取** xiaohongshu.com（伪装 Chrome UA 读
+  `__INITIAL_STATE__`），并把帖子图片转存进自有 Storage bucket。这与最初「仅纯文本粘贴、
+  不爬服务器」的决策相反 —— 见 [`docs/decisions/0001-xhs-scraping-scope.md`](../docs/decisions/0001-xhs-scraping-scope.md)（**未决**）。
 
 ## Next.js 16 关键变化
 
@@ -22,12 +26,25 @@
 - 类型 helper：`PageProps<'/路径'>` / `LayoutProps<'/路径'>` / `RouteContext<'/路径'>`
 - 默认 Turbopack，不需要 `--turbopack` flag
 - `next lint` 命令删除，用 `npx eslint` 或 `npm run lint`（已配置）
-- `revalidateTag(tag, 'max')` 需要第二个参数；Server Action 内用 `updateTag` 实现 read-your-writes
 
 ## 代码约定
 
 - UI 文案 **全中文**
-- 服务端写入用 **Server Actions**；route handlers 仅用于 OAuth 回调等必要场景
+- **`src/lib/actions/` 是全应用唯一的写入面**。这条不变量可以一行验证，别破坏它：
+  ```bash
+  grep -rl '"use server"' src/ | grep -v 'src/lib/actions' # 必须为空
+  ```
+- 缓存失效统一用 `revalidatePath`（全仓库 63 处）。不用 `updateTag` / `revalidateTag` / `cacheTag`
 - DB 权限走 **Supabase RLS**，应用层不再重复鉴权
+- ⚠️ **RLS 挡掉写入时 Postgres 不报错、只是影响 0 行**。所以 UPDATE / DELETE 后必须
+  追加 `.select("id")` 检查行数，否则 UI 会显示「已完成」而数据库毫无变化。
+  参考 `lib/actions/visits.ts` 的 `updateVisit` / `deleteVisit`
 - 错误信息对用户友好（中文），不直接抛 Supabase 错误码
 - 路径别名 `@/*` → `./src/*`
+- 提交前跑 `npm run verify`（typecheck + lint + test + build）；CI 也跑这四项
+
+## migration
+
+`sql/` 下手工编号的 `.sql`，在 Supabase SQL Editor 里按顺序粘贴执行。**没有 migration
+ledger**——没有任何地方记录某个环境跑到哪一版。权威清单只有一份：
+[`README.md` → 数据库初始化](./README.md#数据库初始化)。

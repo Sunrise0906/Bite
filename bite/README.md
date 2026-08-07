@@ -10,7 +10,9 @@
 - **Supabase**（Postgres + RLS + Auth + Storage）
 - **多 LLM provider**：Google Gemini（默认免费）/ Anthropic Claude / OpenAI GPT / DeepSeek / 通义千问 Qwen
 - **地图**：Google Maps + Places API (New)
-- **邮件**：Supabase 默认邮件服务（注册验证 / Magic Link）。生产想要更可靠 + 自家域名发件可接 Resend / SendGrid
+- **邮件**：两套并存 —— 登录邮件（注册验证 / Magic Link）走 Supabase Auth 内置服务；
+  产品通知邮件（朋友推荐提醒）走 Resend（`src/lib/email/send.ts`，未配 `RESEND_API_KEY` 则静默跳过）
+- **通知**：Web Push（VAPID + `web-push`），四个触发点：推荐 / 邀请 / 共享清单加新店 / 一起选匹配
 
 ## 本地开发
 
@@ -43,7 +45,12 @@ npm run dev
 
 - 配 Resend / SendGrid SMTP 到 Supabase Auth → Email Settings；当前代码用 Supabase 默认邮件，足够开发 + 小流量使用
 
-> 注：`SUPABASE_SERVICE_ROLE_KEY` 当前代码**未使用**（写入全走 RLS + anon key），无需配置。将来若加服务端 admin 操作再补。
+可选（Web Push 通知）：
+
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` · `VAPID_PRIVATE_KEY` · `VAPID_SUBJECT`（`npx web-push generate-vapid-keys` 生成）
+- `SUPABASE_SERVICE_ROLE_KEY` —— **Web Push 必需**。发推送要读*别人的* `push_subscriptions` 行，RLS 挡得死死的，只能走 service role（唯一消费者 `src/lib/push/send.ts`，经 `src/lib/supabase/admin.ts`）。不配则 `createAdminClient()` 返回 `null`，推送**永久静默失效**。它能绕过所有 RLS，绝不能加 `NEXT_PUBLIC_` 前缀。
+
+可选（站内小红书搜索）：`SERPER_API_KEY`（[serper.dev](https://serper.dev) 免费 2500 次/月）。
 
 ### 数据库初始化
 
@@ -102,17 +109,16 @@ bite/
 └── .env.example            # 环境变量模板
 ```
 
-## Phase 进度
+## 当前状态
 
-| Phase | 状态 | 内容 |
-| --- | --- | --- |
-| 1 · 地基 | ✅ | Next.js + Supabase + Auth + List/Place CRUD |
-| 2 · 智能添加 | ✅ | 统一输入框 + AI 抽取 + Google Places + 小红书富抽取 + 多图 + 搜索 |
-| 3 · AI 决策聊天 | ✅ | 流式 chat + tool calling + 多 provider + 顶栏/复制/时间戳/重新生成/用量 |
-| 4 · 我去了 + 地图 | ✅ | VisitLog CRUD + 我去了按钮 + 造访历史 + chat 信号 + Google Maps |
-| 5 · 协作 + 收尾 | 🚧 | PWA / 共享 list / 推荐 inbox / Vercel 部署 |
+v1 全部主线功能已上线并在生产运行（`bite-sand.vercel.app`）：收集（统一输入框 / 拍照识店 /
+小红书导入 / 合集帖分图）、决策（AI 聊天 tool calling / 决策中枢 / 一起选双人滑卡）、
+记录（造访日志 / 足迹统计）、协作（共享清单 / 邀请 / 推荐收件箱 / Web Push）、
+4 套主题 + 桌面响应式，以及吃/喝/玩多领域地基。
 
-参见 [`PHASE_PLAN.md`](./PHASE_PLAN.md) 看每个 phase 的具体待办。
+- **历史开发日志**（已冻结）：[`../docs/history/PHASE_PLAN.md`](../docs/history/PHASE_PLAN.md)
+- **未决的架构分叉**：[`../docs/decisions/`](../docs/decisions/)
+- 最新进展以 `git log` 为准
 
 ## 部署到 Vercel
 
@@ -134,6 +140,7 @@ bite/
 - DB 权限走 **Supabase RLS**，应用层不重复鉴权
 - 错误信息对用户友好（中文）
 - Path alias `@/*` → `./src/*`
-- 不要把 `bite/note` / `.env.local` 提交（已 gitignore）
+- 不要把 `.env.local` 提交（已 gitignore）
+- 提交前跑 `npm run verify`（typecheck + lint + test + build）
 
 详见 [`CLAUDE.md`](./CLAUDE.md) 和 [`AGENTS.md`](./AGENTS.md)。

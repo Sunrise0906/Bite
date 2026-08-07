@@ -1,27 +1,28 @@
-# Bite · 换到 Mac 继续开发
+# Bite · 换机器 / 新环境准备
 
-> 交接文档。生成于 2026-07-30，对应 commit `0304531`。
+> 原为 Windows → Mac 的交接文档（2026-07-30，commit `0304531`），
+> 现作为通用的新环境 setup 说明保留。
 
-## 0. 这个包里有什么
+## 0. 仓库布局
 
 ```
-IrvinePlay/
-├── bite/                 # Next.js app（开发主目录）
+Bite/                     # git 仓库根
+├── bite/                 # Next.js app（开发主目录，Vercel Root Directory）
 │   ├── src/              # 全部源码
 │   ├── sql/              # 16 个 Postgres migration（云端已全部跑完）
-│   ├── design-preview/    # 设计原型 HTML + 验证/截图脚本
-│   ├── .env.local        # ⚠️ 真实密钥，已包含（git 里没有这个文件）
-│   └── ...
-├── docs/Bite_设计文档.md   # 原始产品设计文档
-├── .git/                 # 完整提交历史，可直接 push
-└── MAC_SETUP.md          # 本文件
+│   ├── scripts/          # verify/ 子系统验证 + shoot/ 截图脚本
+│   ├── tests/e2e/        # Playwright
+│   ├── screenshots/      # 截图输出（gitignore）
+│   └── .env.local        # ⚠️ 真实密钥，不入 git
+├── docs/                 # 产品设计 / 决策记录 / 历史归档 / 设计原型存档
+└── .github/workflows/    # CI
 ```
 
-**没包含**（Mac 上重新生成）：`node_modules/`、`.next/`、`test-results/`、
-design-preview 的 60 张验证截图。
+**不入库**（本地重新生成）：`node_modules/`、`.next/`、`test-results/`、`screenshots/`。
 
-> ⚠️ **这个压缩包含真实 API 密钥**（`bite/.env.local`）。别传到公开云盘链接、
-> 别发群、别提交进 git（已 gitignore）。传输走 AirDrop / U 盘 / 私有云盘。
+> ⚠️ **`bite/.env.local` 是真实 API 密钥**，git 里没有这个文件。换机器时单独用
+> AirDrop / U 盘 / 私有云盘传，别传公开链接、别发群、别提交进 git。
+> 如果你是从一个含 `.env.local` 的压缩包恢复的，**用完把那个压缩包删掉或加密**。
 
 ---
 
@@ -32,8 +33,8 @@ design-preview 的 60 张验证截图。
 brew install node        # 或 nvm install 22 && nvm use 22
 node -v                  # 应 ≥ 22
 
-cd IrvinePlay/bite
-npm install              # ~527MB node_modules，2-3 分钟
+cd Bite/bite
+npm install              # ~300MB node_modules，几分钟
 
 # Playwright 浏览器（跑 e2e / 截图脚本才需要）
 npx playwright install chromium
@@ -53,20 +54,24 @@ npm run dev              # → http://localhost:3000
 | 命令 | 作用 |
 | --- | --- |
 | `npm run dev` | 开发服务器（Turbopack） |
-| `npm test` | 239 个单元测试（vitest，~2 秒） |
-| `npx tsc --noEmit` | 类型检查 |
+| `npm run verify` | **提交前一把梭**：typecheck + lint + test + build |
+| `npm test` | 单元测试（vitest，~1.5 秒） |
+| `npm run typecheck` | 类型检查 |
 | `npm run lint` | ESLint |
-| `npm run build` | 生产构建（提交前必跑） |
-| `npm run test:e2e` | Playwright e2e（默认打生产站） |
-| `E2E_BASE_URL=http://localhost:3000 npx playwright test` | e2e 打本地 |
+| `npm run build` | 生产构建 |
+| `npm run test:e2e` | Playwright e2e（默认打本地，自动起 dev server） |
+| `E2E_BASE_URL=https://bite-sand.vercel.app npm run test:e2e` | ⚠️ 打生产站——会在真人正在用的库里增删数据 |
 
-**验证脚本**（都在 `bite/design-preview/`，需要 dev server 在跑）：
+CI（`.github/workflows/ci.yml`）在每次 push / PR 上跑 `verify` 的前四项。e2e 不进 CI
+（要真实凭据 + 会写库）。
+
+**验证脚本**见 [`bite/scripts/README.md`](../bite/scripts/README.md)——那里逐个说明了
+每个脚本验证什么、要不要 dev server、写不写库。最常用的三个：
 
 ```bash
-node design-preview/shoot-themes.mjs          # 4 主题 × 手机/桌面截图
-node design-preview/test-pick-duo.mjs         # 「一起选」双人匹配流（打生产站）
-node design-preview/verify-signed-render.mjs  # 照片签名 URL 不变量
-VERIFY_BASE=https://bite-sand.vercel.app node design-preview/verify-signed-render.mjs
+node scripts/shoot/themes.mjs           # 4 主题 × 手机/桌面截图（改 CSS 后的前后对比）
+node scripts/verify/pick-duo.mjs        # 「一起选」双人匹配流
+node scripts/verify/signed-render.mjs   # 照片签名 URL 不变量
 ```
 
 ## 4. Windows → Mac 的差异
@@ -74,8 +79,6 @@ VERIFY_BASE=https://bite-sand.vercel.app node design-preview/verify-signed-rende
 - **杀端口**：Windows 用 `taskkill /PID`，Mac 用 `lsof -ti:3000 | xargs kill -9`
 - **行尾**：仓库里有 CRLF/LF 混用（Windows git autocrlf 的产物）。Mac 上如果 diff
   出现大量"整文件改动"，跑 `git config core.autocrlf input` 后重新 checkout
-- **脚本兼容**：`design-preview/*.mjs` 是纯 Node，跨平台无差异
-- 项目里没有任何 Windows 专属依赖或路径硬编码
 
 ## 5. 云端资源（不需要在 Mac 上重建）
 
@@ -91,9 +94,10 @@ VERIFY_BASE=https://bite-sand.vercel.app node design-preview/verify-signed-rende
 `.env.local` 和 Vercel 环境变量已经一致，**唯一可选缺项**：`SERPER_API_KEY`
 （站内小红书搜索板块，见第 7 节）。
 
-## 6. 项目当前状态（2026-07-30）
+## 6. 项目当前状态
 
-**质量**：239 单测 ✅ / tsc ✅ / lint ✅ / build ✅ / e2e 9/9 ✅，工作树干净。
+> 功能清单快照于 2026-07-30。**最新状态以 `git log` 为准**；未决的架构分叉见
+> [`docs/decisions/`](./decisions/)。
 
 **已上线的功能**：
 
@@ -107,17 +111,17 @@ VERIFY_BASE=https://bite-sand.vercel.app node design-preview/verify-signed-rende
   **/stats 吃喝足迹**（KPI + 菜系分布 + 近 6 月趋势）
 - **协作**：共享清单（co-owner/viewer）、邀请链接、多人各写理由、推荐收件箱、
   **Web Push 通知**（推荐/邀请/新店/匹配四个触发点）
-- **外观**：V1/V2 双版本 + **4 套完整设计语言主题**（陶土/深夜食堂/鲜果软糖/
-  净白画廊）+ 桌面响应式（左侧栏 + 多列）+ 暗色模式
+- **外观**：**4 套完整设计语言主题**（陶土/深夜食堂/鲜果软糖/净白画廊）+
+  桌面响应式（左侧栏 + 多列）+ 暗色模式
 - **多领域地基**：清单分 吃/喝/玩/其他，AI 已能跨领域组合查询
 
 **架构要点**（详见 `bite/CLAUDE.md`）：
 
 - Next.js 16（`proxy.ts` 而非 middleware；cookies/params 全 async）+ React 19 + Tailwind 4
-- 写库走 Server Actions；权限全靠 Supabase RLS
+- 写库走 Server Actions（`src/lib/actions/` 是**唯一**写入面）；权限全靠 Supabase RLS
 - 多 LLM 抽象（`src/lib/llm/`）：Gemini 默认免费，可切 Claude/GPT/DeepSeek/Qwen
 - 照片：DB 只存 canonical URL，渲染层换 7 天 signed URL（`lib/storage/signed-photos.ts`）
-- 主题：`v2.css` 全 token 化，`.ui-v2.theme-*` 覆写；V1 token 桥接到 `--v2-*`
+- 主题：`globals.css` 全 token 化，`.theme-*` 覆写
 
 ## 7. 待办 / 下一步
 
@@ -141,14 +145,14 @@ VERIFY_BASE=https://bite-sand.vercel.app node design-preview/verify-signed-rende
    （iOS PWA 不支持 Share Target，所以 web 端不做这个）
 
 **未验证项**：Web Push 的真机收信（需真手机开通知后互发一条推荐验证）。
+注意 Web Push 依赖 `SUPABASE_SERVICE_ROLE_KEY`——不配则整个推送静默失效。
 
 **已知小事**：小红书 CDN 老图会 403（新加的店已自动转存，老图可考虑写个
-一次性抢救脚本）；`bite/note` 里有明文密钥副本（已 gitignore，建议删掉，
-`.env.local` 已包含所有需要的值）。
+一次性抢救脚本）。
 
-## 8. 如果不用这个压缩包
+## 8. 从 GitHub 全新 clone
 
-代码全在 GitHub，也可以直接 clone —— 只需单独把 `bite/.env.local` 拷过去：
+代码全在 GitHub —— 只需单独把 `bite/.env.local` 拷过去：
 
 ```bash
 git clone https://github.com/Sunrise0906/Bite.git

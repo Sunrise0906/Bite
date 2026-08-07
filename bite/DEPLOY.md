@@ -1,7 +1,8 @@
 # Bite 上线 Runbook · 复用现有 Supabase + 新建 Vercel
 
 > 目标：把本地这套跑通的 app 部署到 Vercel，拉女朋友 / 朋友 dogfood。
-> 数据库复用你现在本地连的 Supabase 项目（8 个 migration 都已跑过，含 `0008`）。
+> 数据库复用你现在本地连的 Supabase 项目（`sql/` 下 16 个 migration 都已跑过）。
+> **migration 清单只有一份权威版本**：[`README.md`](./README.md#数据库初始化)。
 >
 > ⚠️ dogfood 阶段复用 dev Supabase 没问题，但**正式对外前**建议另起一个生产 Supabase
 > 项目（见 [§8](#8-正式对外前再做不影响-dogfood)），避免测试垃圾数据和真实数据混在一起。
@@ -25,11 +26,17 @@
 | `DEEPSEEK_API_KEY` | ⬜ 可选 | 同上 | |
 | `DASHSCOPE_API_KEY` | ⬜ 可选 | Qwen，同上 | |
 
-**不要设的两个：**
+**⚠️ `SUPABASE_SERVICE_ROLE_KEY` 是 Web Push 的必需项**（此处原先写着「代码零引用、
+不要设」，是错的）。发推送要读**别人的** `push_subscriptions` 行，RLS 挡得死死的，
+只能走 service role。唯一消费者是 `src/lib/push/send.ts`（经 `src/lib/supabase/admin.ts:10`）。
+不配 → `createAdminClient()` 返回 `null` → 推送**永久静默失效**（不报错，只是没有通知）。
 
-- ❌ `SUPABASE_SERVICE_ROLE_KEY` —— **代码里零引用**（grep 确认）。它能绕过所有 RLS，
-  设到 Vercel 纯属凭空多一个最危险的可泄露 secret 却没任何代码用它。等将来真有
-  服务端 admin 操作需要再加。
+它能绕过所有 RLS，是最危险的 secret：
+- 绝不能加 `NEXT_PUBLIC_` 前缀，绝不能进浏览器 bundle
+- Vercel 里只勾 Production / Preview，不要给它开 Development 之外的多余曝光
+
+**不要设的：**
+
 - ❌ `NODE_ENV` —— Vercel 自动设成 `production`，手动设会出乱子。
 
 > 填变量时 Environment 勾 **Production**（要也可勾 Preview）。`NEXT_PUBLIC_*` 是
@@ -144,8 +151,10 @@ git status                                           # 确认 .env.local 没被 
 
 现在为了快，复用 dev Supabase + 没有邮件通知。dogfood 没问题，但要更多人用之前：
 
-- **独立生产 Supabase 项目**：新建一个，按 `sql/0001` → `0008` 顺序重跑 migration，
-  Vercel 的 Supabase 三个变量换成生产项目的。dev 的测试垃圾数据就不会混进来。
+- **独立生产 Supabase 项目**：新建一个，按 [`README.md` 的完整清单](./README.md#数据库初始化)
+  跑 `sql/0001` → `0016`（⚠️ 是 16 个不是 8 个——少跑就会缺 photos bucket、缺让邀请
+  能工作的 RLS 修复、缺 pick_sessions、缺 push_subscriptions、缺清单 category，
+  应用能启动然后一半功能失效）。Vercel 的 Supabase 变量换成生产项目的。
 - **生产 LLM key 独立 + 预算监控**：dogfood 人多了 Gemini 免费额度（15 RPM）可能不够。
 - **邮件通知缺口**：当前推荐 / 邀请**全靠对方主动开收件箱**，没有邮件推送。dogfood 时
   先口头提醒"我推了家店给你，去 /recommendations 看"。这是 P1 待办（接 Resend）。
@@ -169,5 +178,8 @@ GEMINI_API_KEY=
 # DEEPSEEK_API_KEY=
 # DASHSCOPE_API_KEY=
 
-# 不要设：SUPABASE_SERVICE_ROLE_KEY（代码没用）、NODE_ENV（Vercel 自动）
+# Web Push 必需（读别人的订阅要绕 RLS；不配则推送静默失效）
+SUPABASE_SERVICE_ROLE_KEY=
+
+# 不要设：NODE_ENV（Vercel 自动）
 ```
