@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Place, PlacePrice, PlaceStatus } from "@/lib/db/types";
+import type { VisitSignal } from "@/lib/visits/aggregate";
 import { SearchIcon } from "@/components/ui/icons";
 import { PlaceCard } from "./place-card";
 
@@ -22,12 +23,6 @@ const PRICE_LABEL: Record<PlacePrice, string> = {
 
 type StatusFilter = "all" | PlaceStatus;
 
-export type PlaceVisitSummary = {
-  count: number;
-  last_visit: string;
-  last_sentiment: "will_return" | "okay" | "wont_return";
-  avg_star: number | null;
-};
 
 export function PlacesView({
   places,
@@ -39,7 +34,7 @@ export function PlacesView({
   places: Place[];
   currentUserId: string;
   canEdit?: boolean;
-  visitsByPlace?: Record<string, PlaceVisitSummary>;
+  visitsByPlace?: Record<string, VisitSignal>;
   /** user_id → display name，给 PlaceCard 显示别人的 reasons */
   reasonAuthors?: Record<string, string>;
 }) {

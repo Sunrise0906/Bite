@@ -16,10 +16,10 @@ import {
   StarIcon,
   ThumbsDownIcon,
 } from "@/components/ui/icons";
-import type { PlaceVisitSummary } from "./places-view";
+import type { VisitSignal } from "@/lib/visits/aggregate";
 
 const SENTIMENT_DISPLAY: Record<
-  PlaceVisitSummary["last_sentiment"],
+  VisitSignal["last_sentiment"],
   { icon: ReactNode; label: string }
 > = {
   will_return: { icon: <HeartIcon size={12} filled />, label: "还想再来" },
@@ -69,7 +69,7 @@ export function PlaceCard({
   place: Place;
   currentUserId: string;
   canEdit?: boolean;
-  visitSummary?: PlaceVisitSummary | null;
+  visitSummary?: VisitSignal | null;
   reasonAuthors?: Record<string, string>;
 }) {
   const reasons = place.reasons ?? [];

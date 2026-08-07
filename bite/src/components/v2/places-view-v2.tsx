@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Place, PlaceStatus } from "@/lib/db/types";
 import { relDate } from "@/lib/util/rel-date";
 import { menuSearchUrl } from "@/lib/places/menu-url";
-import type { PlaceVisitSummary } from "@/components/places/places-view";
+import type { VisitSignal } from "@/lib/visits/aggregate";
 
 const STATUS_ORDER: PlaceStatus[] = ["want_to_go", "visited", "archived"];
 const STATUS_LABEL: Record<PlaceStatus, string> = {
@@ -33,7 +33,7 @@ export function PlacesViewV2({
   listId: string;
   places: Place[];
   currentUserId: string;
-  visitsByPlace?: Record<string, PlaceVisitSummary>;
+  visitsByPlace?: Record<string, VisitSignal>;
 }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | PlaceStatus>("all");
@@ -200,7 +200,7 @@ function PlaceCardV2({
   listId: string;
   place: Place;
   currentUserId: string;
-  visit: PlaceVisitSummary | null;
+  visit: VisitSignal | null;
 }) {
   const photo = place.photo_urls?.[0] ?? null;
   const myReason = place.reasons.find((r) => r.user_id === currentUserId)?.text;

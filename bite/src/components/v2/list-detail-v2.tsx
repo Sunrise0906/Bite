@@ -13,7 +13,7 @@ import {
 import { DeleteListButton } from "@/components/lists/delete-list-button";
 import { LeaveListButton } from "@/components/lists/leave-list-button";
 import { PlacesViewV2 } from "./places-view-v2";
-import type { PlaceVisitSummary } from "@/components/places/places-view";
+import type { VisitSignal } from "@/lib/visits/aggregate";
 
 export function ListDetailV2({
   list,
@@ -36,7 +36,7 @@ export function ListDetailV2({
   ownerName: string | null;
   members: MemberDisplay[];
   activeInvites: ActiveInvite[];
-  visitsByPlace: Record<string, PlaceVisitSummary>;
+  visitsByPlace: Record<string, VisitSignal>;
 }) {
   const wantCount = places.filter((p) => p.status === "want_to_go").length;
   const visitedCount = places.filter((p) => p.status === "visited").length;
