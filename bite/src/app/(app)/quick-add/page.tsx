@@ -116,7 +116,7 @@ export default async function QuickAddPage({
         "拉取 Google Places 详情失败：" +
         (err instanceof Error ? err.message : "未知错误") +
         "。常见原因：API key 加了 HTTP referrer 限制（服务端没 referrer），" +
-        "或这三个 API 没在 Google Cloud Console 里启用：Maps JavaScript API / Places API (New) / Geocoding API。";
+        "或这两个 API 没在 Google Cloud Console 里启用：Maps JavaScript API / Places API (New)。";
     }
   } else {
     pageSource = "text";

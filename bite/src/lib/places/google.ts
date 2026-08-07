@@ -1,25 +1,17 @@
-// Google Places API (New) - REST 调用封装
-// 拆两把 key：
-//   - getClientApiKey(): NEXT_PUBLIC_GOOGLE_MAPS_API_KEY，浏览器侧（autocomplete 实时下拉、地图渲染）。
-//     生产建议在 GCP 加 HTTP referrer 限制（白名单本站域名 + localhost）防盗刷。
-//   - getServerApiKey(): 优先 GOOGLE_PLACES_SERVER_KEY，仅服务端用（fetchPlaceDetails 等）。
-//     服务端请求没有 Referer 头，若 NEXT_PUBLIC 的 key 加了 referrer 限制，复用会被 403。
-//     因此服务端 key 应**不设 referrer 限制**，靠 API restrictions + 预算告警兜底。
-//     dev 阶段未设 GOOGLE_PLACES_SERVER_KEY 时回退到 NEXT_PUBLIC（dev 用 key 通常未加限制），方便本地跑通。
+// Google Places API (New) - REST 调用封装（服务端专用）
 //
-// 文档：https://developers.google.com/maps/documentation/places/web-service/place-autocomplete
+// 拆两把 key，这个文件只用服务端那把：
+//   - getServerApiKey()：优先 GOOGLE_PLACES_SERVER_KEY。服务端请求没有 Referer 头，
+//     若复用 NEXT_PUBLIC 那把（生产上加了 HTTP referrer 限制）会被 Google 403，
+//     错误信息形如 "Requests from referer <empty> are blocked"。
+//     所以服务端 key 必须**不设 referrer 限制**，靠 API restrictions + 预算告警兜底。
+//     dev 未设时回退到 NEXT_PUBLIC（dev 用 key 通常未加限制），方便本地跑通。
+//   - 浏览器侧那把（NEXT_PUBLIC_GOOGLE_MAPS_API_KEY）由消费方直接读 process.env：
+//     实时补全下拉在 components/places/quick-add-input.tsx，地图渲染在 app/(app)/map/page.tsx。
+//
+// 文档：https://developers.google.com/maps/documentation/places/web-service/overview
 
 const PLACES_BASE = "https://places.googleapis.com/v1";
-
-export function getClientApiKey(): string {
-  const k = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  if (!k) {
-    throw new Error(
-      "缺少 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY 环境变量。请在 .env.local 中填入。",
-    );
-  }
-  return k;
-}
 
 export function getServerApiKey(): string {
   const serverKey = process.env.GOOGLE_PLACES_SERVER_KEY;
@@ -53,79 +45,6 @@ export type PlaceDetails = {
   primaryType: string | null;
   primaryTypeDisplayName: string | null;
 };
-
-// Google Places API 限制最多 5 个 included_primary_types
-const AUTOCOMPLETE_FOOD_TYPES = [
-  "restaurant",
-  "cafe",
-  "bar",
-  "bakery",
-  "meal_takeaway",
-];
-
-export async function autocompletePlace(
-  input: string,
-  sessionToken: string,
-  options?: { signal?: AbortSignal; latitude?: number; longitude?: number },
-): Promise<PlaceSuggestion[]> {
-  const body: Record<string, unknown> = {
-    input,
-    sessionToken,
-    languageCode: "zh-CN",
-    includedPrimaryTypes: AUTOCOMPLETE_FOOD_TYPES,
-  };
-
-  if (
-    options?.latitude !== undefined &&
-    options?.longitude !== undefined
-  ) {
-    body.locationBias = {
-      circle: {
-        center: { latitude: options.latitude, longitude: options.longitude },
-        radius: 30000,
-      },
-    };
-  }
-
-  // 注意：此服务端 autocompletePlace 当前没有任何调用方（浏览器侧 autocomplete 由
-  // src/components/places/quick-add-input.tsx 直接打 Google）。如果将来要从 server action
-  // 触发 autocomplete，用 server key（无 referrer 限制）。
-  const res = await fetch(`${PLACES_BASE}/places:autocomplete`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": getServerApiKey(),
-    },
-    body: JSON.stringify(body),
-    signal: options?.signal,
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Places autocomplete ${res.status}: ${text.slice(0, 200)}`);
-  }
-
-  const data: {
-    suggestions?: Array<{
-      placePrediction?: {
-        placeId: string;
-        structuredFormat?: {
-          mainText?: { text?: string };
-          secondaryText?: { text?: string };
-        };
-      };
-    }>;
-  } = await res.json();
-
-  return (data.suggestions ?? [])
-    .map((s) => s.placePrediction)
-    .filter((p): p is NonNullable<typeof p> => Boolean(p))
-    .map((p) => ({
-      placeId: p.placeId,
-      mainText: p.structuredFormat?.mainText?.text ?? "",
-      secondaryText: p.structuredFormat?.secondaryText?.text ?? "",
-    }));
-}
 
 export async function getPlaceDetails(
   placeId: string,
@@ -372,38 +291,6 @@ export async function findPlaceOnGoogle(
       address: p.formattedAddress ?? "",
       mapsUri: p.googleMapsUri ?? null,
     };
-  } catch {
-    return null;
-  }
-}
-
-// 地址 → 经纬度（Geocoding API，服务端 key）。用于给只有文字地址、没坐标的店补坐标，
-// 让它们能上地图。模糊地址（"尔湾"）会返回城市级坐标——够把 pin 放上去。
-// 需要 server key 启用 Geocoding API；失败/无结果一律返回 null（不抛，调用方跳过即可）。
-export async function geocodeAddress(
-  address: string,
-): Promise<{ lat: number; lng: number } | null> {
-  const a = address.trim();
-  if (!a) return null;
-  try {
-    const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
-    url.searchParams.set("address", a);
-    url.searchParams.set("key", getServerApiKey());
-    url.searchParams.set("language", "zh-CN");
-    // 限定美国：用户的店都在南加州，模糊中文地址（"尔湾"/"罗兰岗"）不限定会被
-    // 歧义解析到中国。如果将来有非美国的店，再放开这条。
-    url.searchParams.set("components", "country:US");
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data: {
-      status?: string;
-      results?: Array<{ geometry?: { location?: { lat?: number; lng?: number } } }>;
-    } = await res.json();
-    const loc = data.results?.[0]?.geometry?.location;
-    if (loc && typeof loc.lat === "number" && typeof loc.lng === "number") {
-      return { lat: loc.lat, lng: loc.lng };
-    }
-    return null;
   } catch {
     return null;
   }

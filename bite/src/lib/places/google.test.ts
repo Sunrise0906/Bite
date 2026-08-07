@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
-  inferCuisineFromTypes,
-  getClientApiKey,
-  getServerApiKey,
-} from "./google";
+import { inferCuisineFromTypes, getServerApiKey } from "./google";
 
 describe("inferCuisineFromTypes", () => {
   it("基础单 type 映射", () => {
@@ -97,7 +93,7 @@ describe("inferCuisineFromTypes", () => {
   });
 });
 
-describe("getClientApiKey / getServerApiKey 拆 key 回退", () => {
+describe("getServerApiKey 拆 key 回退", () => {
   const savedPublic = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const savedServer = process.env.GOOGLE_PLACES_SERVER_KEY;
 
@@ -117,15 +113,6 @@ describe("getClientApiKey / getServerApiKey 拆 key 回退", () => {
     } else {
       process.env.GOOGLE_PLACES_SERVER_KEY = savedServer;
     }
-  });
-
-  it("getClientApiKey 读 NEXT_PUBLIC_", () => {
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = "client-abc";
-    expect(getClientApiKey()).toBe("client-abc");
-  });
-
-  it("getClientApiKey 缺值时抛", () => {
-    expect(() => getClientApiKey()).toThrow(/NEXT_PUBLIC_GOOGLE_MAPS_API_KEY/);
   });
 
   it("getServerApiKey 优先 GOOGLE_PLACES_SERVER_KEY", () => {
