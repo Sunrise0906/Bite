@@ -29,6 +29,12 @@ if (existsSync(envPath)) {
   }
 }
 
+// ⚠️ 默认打本地。e2e spec 会在库里真实创建 / 删除 [E2E] 数据，
+// 默认值指向生产就等于在真人正在用的库里跑破坏性测试。
+// 要打生产站必须显式 E2E_BASE_URL=https://bite-sand.vercel.app（并接受后果）。
+const BASE_URL = process.env.E2E_BASE_URL || "http://localhost:3000";
+const IS_LOCAL = BASE_URL.startsWith("http://localhost");
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
@@ -36,9 +42,17 @@ export default defineConfig({
   workers: 1,
   timeout: 60_000,
   reporter: "list",
+  // 打本地时自动起 dev server（已在跑就复用）；打远端时不起
+  webServer: IS_LOCAL
+    ? {
+        command: "npm run dev",
+        url: BASE_URL,
+        reuseExistingServer: true,
+        timeout: 120_000,
+      }
+    : undefined,
   use: {
-    // 默认打生产；本地测新代码时用 E2E_BASE_URL=http://localhost:3000 覆盖
-    baseURL: process.env.E2E_BASE_URL || "https://bite-sand.vercel.app",
+    baseURL: BASE_URL,
     headless: true,
     viewport: { width: 1280, height: 800 },
     trace: "on-first-retry",

@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Next.js 应用在仓库子目录 bite/（与 Vercel 的 Root Directory 设置一致）。
+# 这是仓库里唯一把「app 在 bite/」写成可执行事实的地方。
+defaults:
+  run:
+    working-directory: bite
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: bite/package-lock.json
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      # build 需要构建期注入的 NEXT_PUBLIC_* 才不至于在预渲染时崩。
+      # 这里给的是占位值——CI 只验证「能编译」，不连真实服务。
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: placeholder-maps-key
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+# 注意：e2e 不在 CI 跑。tests/e2e 会真实读写数据库，需要 E2E_TEST_EMAIL /
+# E2E_TEST_PASSWORD 凭据和一个可丢弃的 Supabase 项目。本地跑：
+#   npm run test:e2e            # 默认打 localhost，自动起 dev server
