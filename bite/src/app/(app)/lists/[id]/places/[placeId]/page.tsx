@@ -1,7 +1,6 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import type { Place, VisitLog } from "@/lib/db/types";
-import { getUiVersion } from "@/lib/ui-version";
 import {
   aggregateVisitSignals,
   type VisitLogRow,
@@ -28,11 +27,6 @@ export async function generateMetadata(props: { params: Params }) {
 
 export default async function PlaceDetailPage({ params }: { params: Params }) {
   const { id: listId, placeId } = await params;
-
-  // 详情页是 V2 专属；V1 回到原来的编辑页
-  if ((await getUiVersion()) !== "v2") {
-    redirect(`/lists/${listId}/places/${placeId}/edit`);
-  }
 
   const user = await requireUser();
   const supabase = await createClient();

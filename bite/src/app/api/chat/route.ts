@@ -332,7 +332,29 @@ export async function POST(req: NextRequest) {
             break;
           }
 
-          // 写 assistant 这一轮
+          // 写 assistant 这一轮。
+          // ⚠️ 空 content 绝不能落库：Anthropic 对空 content 数组直接 400，
+          // toOpenAiMessages 则产出 {role:'assistant', content:null} 且无 tool_calls，
+          // OpenAI 兼容端同样拒。一旦写进去，这个会话之后每条消息重放时都会 400 ——
+          // 永久砖化，用户除了删会话别无他法。refusal / content_filter 停止，或
+          // max_tokens 停止但一个字都没吐出来，都会走到这里。
+          // （sanitizeTailOrphan 只剥尾部未配对的 tool_use，救不了这种情况。）
+          if (assistantBlocks.length === 0) {
+            const hint =
+              stopReason === "max_tokens"
+                ? "这轮回复超长被截断了，重新发一次或换个更具体的问题试试。"
+                : "模型这轮没有返回内容（可能被安全策略拦下）。换个说法再试一次吧。";
+            send(controller, { type: "text", delta: hint });
+            await appendMessage(supabase, {
+              conversationId,
+              role: "assistant",
+              content: [{ type: "text", text: hint }],
+              usage: turnUsage,
+              stopReason,
+            });
+            break;
+          }
+
           await appendMessage(supabase, {
             conversationId,
             role: "assistant",

@@ -181,6 +181,8 @@
 .ui-v2 .v2-pcard .pcard-main { flex:1; min-width:0; display:flex; gap:12px; }
 .ui-v2 .v2-pcard .pcard-menu { flex:none; align-self:stretch; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; width:52px; margin-left:10px; padding-left:10px; border-left:var(--v2-bw) solid var(--v2-border); color:var(--v2-primary); font-size:11px; font-weight:700; }
 .ui-v2 .v2-pcard .pcard-menu:active { opacity:.6; }
+/* 状态切换 chip：放在 <Link> 之外（交互控件不能嵌在链接里），可编辑时才出现 */
+.ui-v2 .v2-pcard .pcard-status { flex:none; align-self:flex-start; margin-left:10px; }
 .ui-v2 .v2-pcard .cover { width:88px; height:88px; border-radius:var(--v2-r-sm); background-size:cover; background-position:center; background-color:var(--v2-surface2); flex:none; display:grid; place-items:center; color:var(--v2-faint); }
 .ui-v2 .v2-pcard .info { flex:1; min-width:0; display:flex; flex-direction:column; }
 .ui-v2 .v2-pcard .nm { font-weight:700; font-size:15px; display:flex; align-items:center; gap:7px; }

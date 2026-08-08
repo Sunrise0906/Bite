@@ -26,6 +26,7 @@ export function ListDetailV2({
   members,
   activeInvites,
   visitsByPlace,
+  reasonAuthors,
 }: {
   list: { id: string; name: string };
   places: Place[];
@@ -37,6 +38,8 @@ export function ListDetailV2({
   members: MemberDisplay[];
   activeInvites: ActiveInvite[];
   visitsByPlace: Record<string, VisitSignal>;
+  /** user_id → 显示名，用来给共享清单里别人写的理由标作者 */
+  reasonAuthors?: Record<string, string>;
 }) {
   const wantCount = places.filter((p) => p.status === "want_to_go").length;
   const visitedCount = places.filter((p) => p.status === "visited").length;
@@ -131,7 +134,9 @@ export function ListDetailV2({
           listId={list.id}
           places={places}
           currentUserId={currentUserId}
+          canEdit={canEdit}
           visitsByPlace={visitsByPlace}
+          reasonAuthors={reasonAuthors}
         />
       )}
 

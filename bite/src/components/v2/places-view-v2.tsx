@@ -6,6 +6,7 @@ import type { Place, PlacePrice, PlaceStatus } from "@/lib/db/types";
 import { relDate } from "@/lib/util/rel-date";
 import { menuSearchUrl } from "@/lib/places/menu-url";
 import type { VisitSignal } from "@/lib/visits/aggregate";
+import { StatusQuickToggle } from "@/components/places/status-quick-toggle";
 
 const STATUS_ORDER: PlaceStatus[] = ["want_to_go", "visited", "archived"];
 const PRICE_ORDER: PlacePrice[] = ["$", "$$", "$$$", "$$$$"];
@@ -35,12 +36,18 @@ export function PlacesViewV2({
   listId,
   places,
   currentUserId,
+  canEdit = true,
   visitsByPlace = {},
+  reasonAuthors = {},
 }: {
   listId: string;
   places: Place[];
   currentUserId: string;
+  /** viewer 看到的是静态状态 chip，没有切换控件（DB 侧 RLS 也会拒） */
+  canEdit?: boolean;
   visitsByPlace?: Record<string, VisitSignal>;
+  /** user_id → 显示名。共享清单里别人写的理由要标出是谁写的 */
+  reasonAuthors?: Record<string, string>;
 }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | PlaceStatus>("all");
@@ -238,7 +245,9 @@ export function PlacesViewV2({
                     listId={listId}
                     place={p}
                     currentUserId={currentUserId}
+                    canEdit={canEdit}
                     visit={visitsByPlace[p.id] ?? null}
+                    reasonAuthors={reasonAuthors}
                   />
                 ))}
               </div>
@@ -254,16 +263,28 @@ function PlaceCardV2({
   listId,
   place,
   currentUserId,
+  canEdit,
   visit,
+  reasonAuthors,
 }: {
   listId: string;
   place: Place;
   currentUserId: string;
+  canEdit: boolean;
   visit: VisitSignal | null;
+  reasonAuthors: Record<string, string>;
 }) {
   const photo = place.photo_urls?.[0] ?? null;
-  const myReason = place.reasons.find((r) => r.user_id === currentUserId)?.text;
-  const reason = myReason ?? place.reasons[0]?.text ?? null;
+  // 共享清单里理由是多人各写一条。优先显示自己的；没有自己的就显示别人的，
+  // 并标出作者 —— 否则在共享清单上根本看不出「这句是谁写的」。
+  const myReason = place.reasons.find((r) => r.user_id === currentUserId);
+  const otherReason = place.reasons.find((r) => r.user_id !== currentUserId);
+  const shown = myReason ?? otherReason ?? null;
+  const reason = shown?.text ?? null;
+  const reasonAuthor =
+    shown && shown.user_id !== currentUserId
+      ? (reasonAuthors[shown.user_id] ?? null)
+      : null;
   const meta = [place.cuisine[0], place.price_range, place.address]
     .filter(Boolean)
     .join(" · ");
@@ -296,12 +317,16 @@ function PlaceCardV2({
       <div className="info">
         <div className="nm">
           <span className="t">{place.name}</span>
-          <span
-            className={`v2-pill ${STATUS_PILL[place.status]}`}
-            style={{ padding: "2px 7px", flex: "none" }}
-          >
-            {STATUS_LABEL[place.status]}
-          </span>
+          {/* 可编辑时状态 chip 移到卡片右侧的操作区（见 Link 之后），
+              这里只在只读时显示静态 chip —— 交互控件不能嵌在 <Link> 里。 */}
+          {!canEdit && (
+            <span
+              className={`v2-pill ${STATUS_PILL[place.status]}`}
+              style={{ padding: "2px 7px", flex: "none" }}
+            >
+              {STATUS_LABEL[place.status]}
+            </span>
+          )}
         </div>
         {meta && (
           <div className="meta">
@@ -314,7 +339,14 @@ function PlaceCardV2({
             )}
           </div>
         )}
-        {reason && <div className="reason">{reason}</div>}
+        {reason && (
+          <div className="reason">
+            {reasonAuthor && (
+              <span style={{ opacity: 0.7 }}>@{reasonAuthor}：</span>
+            )}
+            {reason}
+          </div>
+        )}
         {visit && visit.count > 0 && (
           <div className="signal">
             去过 {visit.count} 次
@@ -329,6 +361,16 @@ function PlaceCardV2({
         )}
       </div>
       </Link>
+      {canEdit && (
+        <div className="pcard-status">
+          <StatusQuickToggle
+            placeId={place.id}
+            listId={listId}
+            currentStatus={place.status}
+            chipClass={`v2-pill ${STATUS_PILL[place.status]}`}
+          />
+        </div>
+      )}
       <a
         className="pcard-menu"
         href={menuSearchUrl(place.name, place.address)}

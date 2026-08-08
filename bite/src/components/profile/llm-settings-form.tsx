@@ -23,7 +23,12 @@ import {
 type Props = {
   initial: {
     provider: ProviderId;
-    api_key: string | null;
+    /**
+     * 是否已存了自带 key —— **只是一个布尔**。明文 key 绝不回传到浏览器：
+     * 加密存储的意义就在于它不该在一次普通页面浏览里被完整送进 HTML / RSC payload /
+     * bfcache / devtools。留空提交 = 不改动；要清空点「清除」。
+     */
+    has_api_key: boolean;
     base_url: string | null;
     chat_model: string | null;
     extract_model: string | null;
@@ -72,6 +77,7 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
     initial?.provider ?? "gemini",
   );
   const [showKey, setShowKey] = useState(false);
+  const [clearKey, setClearKey] = useState(false);
   const [advanced, setAdvanced] = useState(
     Boolean(initial?.base_url || initial?.chat_model || initial?.extract_model),
   );
@@ -98,7 +104,7 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
 
   const preset = PROVIDER_PRESETS[provider];
   const isInitialProvider = initial?.provider === provider;
-  const currentApiKey = isInitialProvider ? (initial?.api_key ?? "") : "";
+  const hasStoredKey = isInitialProvider && Boolean(initial?.has_api_key);
   const currentBaseUrl = isInitialProvider ? (initial?.base_url ?? "") : "";
   const currentChatModel = isInitialProvider ? (initial?.chat_model ?? "") : "";
   const currentExtractModel = isInitialProvider
@@ -163,29 +169,67 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
           >
             API Key（可选）
           </label>
-          <button
-            type="button"
-            onClick={() => setShowKey((v) => !v)}
-            className="text-xs text-[var(--primary)] hover:underline"
-          >
-            {showKey ? "隐藏" : "显示"}
-          </button>
+          <div className="flex items-baseline gap-3">
+            {hasStoredKey && !clearKey && (
+              <button
+                type="button"
+                onClick={() => setClearKey(true)}
+                className="text-xs text-[var(--text-muted)] hover:underline"
+              >
+                清除
+              </button>
+            )}
+            {clearKey && (
+              <button
+                type="button"
+                onClick={() => setClearKey(false)}
+                className="text-xs text-[var(--primary)] hover:underline"
+              >
+                撤销清除
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowKey((v) => !v)}
+              className="text-xs text-[var(--primary)] hover:underline"
+            >
+              {showKey ? "隐藏" : "显示"}
+            </button>
+          </div>
         </div>
+        {/* 明文 key 不从服务端回传（见 Props.has_api_key）。输入框永远从空开始：
+            留空提交 = 不改动已存的 key；要清空得显式点「清除」。 */}
+        <input type="hidden" name="clear_api_key" value={clearKey ? "1" : ""} />
         <input
           id="api_key"
           name="api_key"
           type={showKey ? "text" : "password"}
-          defaultValue={currentApiKey}
+          defaultValue=""
           key={`api_key_${provider}`}
           autoComplete="off"
           spellCheck={false}
           placeholder={
-            hasAppDefault ? "留空走 app 默认 key" : "未配置 app key，请填入"
+            clearKey
+              ? "保存后将清空，回到 app 默认 key"
+              : hasStoredKey
+                ? "已保存 ····（留空则不改动）"
+                : hasAppDefault
+                  ? "留空走 app 默认 key"
+                  : "未配置 app key，请填入"
           }
           className="field-input font-mono text-sm"
         />
         <p className="text-xs text-[var(--text-muted)]">
-          {hasAppDefault ? (
+          {clearKey ? (
+            <span className="text-[var(--gold-text)]">
+              保存后会清掉你自带的 key，之后走 app 默认额度。
+            </span>
+          ) : hasStoredKey ? (
+            <>
+              已保存你自己的 key（出于安全不回显）。要换一把就直接填新的，
+              留空则保持不变。
+            </>
+          ) : hasAppDefault ? (
             <>
               已配置 app 默认 key —— 留空即用我们的额度，填入则走你自己的额度。
             </>

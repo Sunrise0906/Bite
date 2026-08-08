@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import type { List, Place } from "@/lib/db/types";
@@ -7,27 +6,12 @@ import {
   type VisitLogRow,
   type VisitSignal,
 } from "@/lib/visits/aggregate";
-import { RenameListForm } from "@/components/lists/rename-list-form";
-import { DeleteListButton } from "@/components/lists/delete-list-button";
-import { PlacesView } from "@/components/places/places-view";
-import { InviteButton } from "@/components/invites/invite-button";
-import {
-  ActiveInvitesPanel,
-  type ActiveInvite,
-} from "@/components/invites/active-invites";
-import {
-  MembersPanel,
-  type MemberDisplay,
-} from "@/components/lists/members-panel";
-import { LeaveListButton } from "@/components/lists/leave-list-button";
-import { UsersIcon } from "@/components/ui/icons";
-import { safeDecodeURIComponent } from "@/lib/url/safe-decode";
+import type { ActiveInvite } from "@/components/invites/active-invites";
+import type { MemberDisplay } from "@/components/lists/members-panel";
 import { signNestedPhotoUrls } from "@/lib/storage/signed-photos";
-import { getUiVersion } from "@/lib/ui-version";
 import { ListDetailV2 } from "@/components/v2/list-detail-v2";
 
 type Params = Promise<{ id: string }>;
-type SearchParams = Promise<{ error?: string; toast?: string }>;
 
 export async function generateMetadata(props: { params: Params }) {
   const { id } = await props.params;
@@ -42,15 +26,8 @@ export async function generateMetadata(props: { params: Params }) {
   };
 }
 
-export default async function ListDetailPage({
-  params,
-  searchParams,
-}: {
-  params: Params;
-  searchParams: SearchParams;
-}) {
+export default async function ListDetailPage({ params }: { params: Params }) {
   const { id } = await params;
-  const { error: errorParam } = await searchParams;
 
   const user = await requireUser();
   const supabase = await createClient();
@@ -182,8 +159,7 @@ export default async function ListDetailPage({
     });
   }
 
-  // V2 清单详情：复用上面所有已算好的数据，只换渲染
-  if ((await getUiVersion()) === "v2") {
+  // 单一 UI：清单详情（复用上面已算好的全部数据）
     return (
       <ListDetailV2
         list={{ id: list.id, name: list.name }}
@@ -196,152 +172,7 @@ export default async function ListDetailPage({
         members={members}
         activeInvites={activeInvites}
         visitsByPlace={Object.fromEntries(visitsByPlace)}
+        reasonAuthors={Object.fromEntries(reasonAuthors)}
       />
     );
-  }
-
-  return (
-    <main className="mx-auto w-full max-w-2xl px-5 py-7 sm:py-12">
-      <Link
-        href="/lists"
-        className="mb-5 inline-flex items-center gap-1 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
-      >
-        <svg
-          aria-hidden="true"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.9"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="m15 5-7 7 7 7" />
-        </svg>
-        返回所有 list
-      </Link>
-
-      <header className="sticky top-0 z-20 -mx-5 mb-8 border-b border-[var(--border-subtle)] bg-[var(--background)]/90 px-5 py-3.5 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/70">
-        <div className="flex items-start justify-between gap-3">
-          {isOwner ? (
-            <RenameListForm id={list.id} currentName={list.name} />
-          ) : (
-            <h1 className="heading-display text-2xl text-[var(--text-strong)] sm:text-3xl">
-              {list.name}
-            </h1>
-          )}
-          {isOwner && <InviteButton listId={list.id} />}
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]">
-          <span>{places.length} 家店</span>
-          {!isOwner && (
-            <>
-              <span
-                className="inline-flex items-center gap-1 rounded-full bg-[var(--sage-soft)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--sage-text)]"
-                title={ownerName ? `这个 list 属于 @${ownerName}` : ""}
-              >
-                <UsersIcon size={11} />
-                {memberRole === "co_owner" ? "共享 · 共同所有者" : "共享 · 只读"}
-              </span>
-              {ownerName && (
-                <span className="text-xs text-[var(--text-faint)]">
-                  by{" "}
-                  <span className="font-medium text-[var(--text-default)]">
-                    @{ownerName}
-                  </span>
-                </span>
-              )}
-            </>
-          )}
-        </div>
-      </header>
-
-      {errorParam && (
-        <p role="alert" className="mb-4 alert-error">
-          {safeDecodeURIComponent(errorParam)}
-        </p>
-      )}
-
-      {canEdit && (
-        <div className="mb-8">
-          <Link
-            href={`/lists/${list.id}/places/new`}
-            className="btn-primary w-full py-3 text-base"
-          >
-            + 新增店铺
-          </Link>
-        </div>
-      )}
-
-      {isOwner && members.length > 0 && (
-        <MembersPanel listId={list.id} members={members} />
-      )}
-
-      {isOwner && activeInvites.length > 0 && (
-        <ActiveInvitesPanel invites={activeInvites} />
-      )}
-
-      {places.length === 0 ? (
-        <EmptyPlaces />
-      ) : (
-        <PlacesView
-          places={places}
-          currentUserId={user.id}
-          canEdit={canEdit}
-          visitsByPlace={Object.fromEntries(visitsByPlace)}
-          reasonAuthors={Object.fromEntries(reasonAuthors)}
-        />
-      )}
-
-      {isOwner ? (
-        <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            设置
-          </h3>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-[var(--text-muted)]">危险操作</span>
-            <DeleteListButton id={list.id} name={list.name} />
-          </div>
-        </section>
-      ) : (
-        <section className="mt-12 border-t border-[var(--border-subtle)] pt-6">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            成员操作
-          </h3>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-[var(--text-muted)]">不再关注</span>
-            <LeaveListButton listId={list.id} listName={list.name} />
-          </div>
-        </section>
-      )}
-    </main>
-  );
-}
-
-function EmptyPlaces() {
-  return (
-    <div className="card flex flex-col items-center px-6 py-16 text-center">
-      <svg
-        aria-hidden="true"
-        width="56"
-        height="56"
-        viewBox="0 0 64 64"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        className="mb-5 text-[var(--primary)]"
-      >
-        <ellipse cx="32" cy="34" rx="22" ry="6" />
-        <path d="M10 34v4c0 3 10 6 22 6s22-3 22-6v-4" />
-        <path d="M18 24v-6M28 22v-8M38 24v-6M46 22v-8" strokeLinecap="round" />
-      </svg>
-      <p className="heading-display text-lg text-[var(--text-strong)]">
-        这个 list 还没有店铺
-      </p>
-      <p className="mt-1.5 text-sm text-[var(--text-muted)]">
-        点上面 “+ 新增店铺” 添加一家
-      </p>
-    </div>
-  );
 }

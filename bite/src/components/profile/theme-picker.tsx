@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { setTheme } from "@/lib/actions/ui-version";
+import { setTheme } from "@/lib/actions/theme";
 import { THEMES, type BiteTheme } from "@/lib/theme";
 
 /** V2 主题选择：四套完整设计语言（配色 + 字体 + 形态），即点即换 */

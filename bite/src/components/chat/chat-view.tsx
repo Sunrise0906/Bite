@@ -40,7 +40,7 @@ type IncomingMessage = Omit<DisplayMessage, "uid">;
 let uidCounter = 0;
 const nextUid = () => ++uidCounter;
 
-/** 链接化用 {id,list_id} 即可；V2 推荐卡额外用 photo/cuisine/status/why */
+/** 链接化用 {id,list_id} 即可；推荐卡额外用 photo/cuisine/status/why */
 type PlaceRef = {
   id: string;
   list_id: string;
@@ -58,8 +58,6 @@ type Props = {
   headerProviderLabel: string;
   headerModel: string;
   placeMap: Record<string, PlaceRef>;
-  /** V2 时在 assistant 消息下渲染可操作推荐卡 */
-  uiVersion?: "v1" | "v2";
 };
 
 const QUICK_PROMPTS = [
@@ -80,7 +78,6 @@ export function ChatView({
   headerProviderLabel,
   headerModel,
   placeMap,
-  uiVersion = "v1",
 }: Props) {
   const router = useRouter();
   const [conversationId, setConversationId] = useState<string | null>(
@@ -414,7 +411,6 @@ export function ChatView({
                 key={m.uid}
                 message={m}
                 placeMap={placeMap}
-                v2={uiVersion === "v2"}
                 onRegenerate={
                   isLastAssistant && conversationId ? regenerate : undefined
                 }
@@ -592,7 +588,7 @@ const REC_STATUS_LABEL: Record<string, string> = {
   archived: "归档",
 };
 
-/** V2 聊天里的可操作推荐卡（库内被 AI 提到的店） */
+/** 聊天里的可操作推荐卡（库内被 AI 提到的店） */
 function RecCard({ name, place }: { name: string; place: PlaceRef }) {
   const cuisine = (place.cuisine ?? [])[0];
   const meta = [cuisine, place.price].filter(Boolean).join(" · ");
@@ -640,19 +636,17 @@ function RecCard({ name, place }: { name: string; place: PlaceRef }) {
 function MessageBubble({
   message,
   placeMap,
-  v2,
   onRegenerate,
 }: {
   message: DisplayMessage;
   placeMap: Record<string, PlaceRef>;
-  v2?: boolean;
   onRegenerate?: () => void;
 }) {
   const isUser = message.role === "user";
 
-  // V2：从 assistant 文本里的 «店名» 提取库内店，渲染成可操作推荐卡（去重保序）
+  // 从 assistant 文本里的 «店名» 提取库内店，渲染成可操作推荐卡（去重保序）
   const recCards = useMemo(() => {
-    if (!v2 || isUser) return [];
+    if (isUser) return [];
     const seen = new Set<string>();
     const out: Array<{ name: string; ref: PlaceRef }> = [];
     for (const b of message.content) {
@@ -669,7 +663,7 @@ function MessageBubble({
       }
     }
     return out;
-  }, [v2, isUser, message.content, placeMap]);
+  }, [isUser, message.content, placeMap]);
 
   // 把 tool_use 和它对应的 tool_result 配对渲染
   const paired = useMemo(() => {
@@ -757,7 +751,7 @@ function MessageBubble({
         )}
       </div>
 
-      {/* V2：可操作推荐卡（库内被提到的店） */}
+      {/* 可操作推荐卡（库内被提到的店） */}
       {recCards.length > 0 && !message.streaming && (
         <div className="mt-2 w-full max-w-[85%] space-y-2">
           {recCards.map(({ name, ref }) => (

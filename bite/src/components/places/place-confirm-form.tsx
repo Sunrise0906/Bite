@@ -72,27 +72,17 @@ export type ListOption = {
 const LABEL_CLS = "block text-sm font-medium text-[var(--text-default)]";
 const HELP_CLS = "mt-1.5 text-xs text-[var(--text-muted)]";
 
-/** 来源提示条（icon + 一句说明，分层收纳到小字）。v2 用预置的 .v2-srcbar 皮 */
+/** 来源提示条（icon + 一句说明，分层收纳到小字），用预置的 .v2-srcbar 皮 */
 function SourceBanner({
   icon,
   children,
-  v2,
 }: {
   icon: ReactNode;
   children: ReactNode;
-  v2?: boolean;
 }) {
-  if (v2) {
-    return (
-      <div className="v2-srcbar">
-        <span className="shrink-0">{icon}</span>
-        <span className="min-w-0">{children}</span>
-      </div>
-    );
-  }
   return (
-    <div className="flex items-start gap-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)]/50 px-3.5 py-2.5 text-xs text-[var(--text-default)]">
-      <span className="mt-px shrink-0 text-[var(--text-muted)]">{icon}</span>
+    <div className="v2-srcbar">
+      <span className="shrink-0">{icon}</span>
       <span className="min-w-0">{children}</span>
     </div>
   );
@@ -195,7 +185,6 @@ export function PlaceConfirmForm({
   source,
   confidence,
   existingInLists = [],
-  v2 = false,
   photoDisplayUrls,
 }: {
   initial: InitialPlaceData;
@@ -204,8 +193,6 @@ export function PlaceConfirmForm({
   source: "text" | "place";
   confidence?: "high" | "medium" | "low";
   existingInLists?: string[];
-  /** V2 皮：预览卡 + srcbar + 信心条 + v2 按钮。表单逻辑与 V1 完全一致 */
-  v2?: boolean;
   /** 预览专用 URL（私有桶图已签名）；hidden input / 落库仍走 initial.photo_urls（canonical） */
   photoDisplayUrls?: string[];
 }) {
@@ -251,41 +238,16 @@ export function PlaceConfirmForm({
           value={initial.photo_urls.join("\n")}
         />
       )}
-      {!v2 && initial.photo_urls && initial.photo_urls.length > 0 && (
-        <PhotoCarousel urls={photoDisplayUrls ?? initial.photo_urls} />
-      )}
-
-      {v2 && (
-        <PreviewCardV2 initial={initial} displayPhotos={photoDisplayUrls} />
-      )}
-      {v2 && confidence && <ConfidenceBarV2 confidence={confidence} />}
-
-      {!v2 && confidence && confidence !== "high" && (
-        <div
-          role="alert"
-          className={
-            confidence === "low"
-              ? "alert-error flex items-start gap-2"
-              : "flex items-start gap-2 rounded-[0.875rem] border border-[var(--gold)]/30 bg-[var(--gold-soft)] px-3.5 py-2.5 text-sm text-[var(--gold-text)]"
-          }
-        >
-          <AlertIcon size={15} className="mt-0.5 shrink-0" />
-          <span>
-            <strong>
-              {confidence === "low" ? "信心较低" : "部分字段是推测"}
-            </strong>
-            ，请检查并修改。
-          </span>
-        </div>
-      )}
+      <PreviewCardV2 initial={initial} displayPhotos={photoDisplayUrls} />
+      {confidence && <ConfidenceBarV2 confidence={confidence} />}
 
       {source === "place" && (
-        <SourceBanner icon={<GlobeIcon size={14} />} v2={v2}>
+        <SourceBanner icon={<GlobeIcon size={14} />}>
           来自 Google Places · 已自动填入店名 / 地址 / 菜系推断
         </SourceBanner>
       )}
       {source === "text" && initial.source === "xhs" && (
-        <SourceBanner icon={<BookIcon size={14} />} v2={v2}>
+        <SourceBanner icon={<BookIcon size={14} />}>
           来自小红书链接 · 已抓取并由 Claude 解析
           {initial.source_url && (
             <>
@@ -303,7 +265,7 @@ export function PlaceConfirmForm({
         </SourceBanner>
       )}
       {source === "text" && initial.source !== "xhs" && (
-        <SourceBanner icon={<BotIcon size={14} />} v2={v2}>
+        <SourceBanner icon={<BotIcon size={14} />}>
           来自 Claude 解析 · 你可以修改任何字段
         </SourceBanner>
       )}
@@ -371,15 +333,9 @@ export function PlaceConfirmForm({
       </div>
 
       <section className="space-y-5 pt-1">
-        {v2 ? (
-          <div className="v2-sec" style={{ margin: "0 0 2px" }}>
-            <h3>基本信息</h3>
-          </div>
-        ) : (
-          <div className="section-heading border-b border-[var(--border-subtle)] pb-2">
-            <h2 className="text-lg text-[var(--text-strong)]">基本信息</h2>
-          </div>
-        )}
+        <div className="v2-sec" style={{ margin: "0 0 2px" }}>
+          <h3>基本信息</h3>
+        </div>
 
       <div>
         <label htmlFor="qf-name" className={LABEL_CLS}>
@@ -463,15 +419,9 @@ export function PlaceConfirmForm({
       </section>
 
       <section className="space-y-5 pt-1">
-        {v2 ? (
-          <div className="v2-sec" style={{ margin: "0 0 2px" }}>
-            <h3>偏好与备注</h3>
-          </div>
-        ) : (
-          <div className="section-heading border-b border-[var(--border-subtle)] pb-2">
-            <h2 className="text-lg text-[var(--text-strong)]">偏好与备注</h2>
-          </div>
-        )}
+        <div className="v2-sec" style={{ margin: "0 0 2px" }}>
+          <h3>偏好与备注</h3>
+        </div>
 
       <div>
         <label htmlFor="qf-occasions" className={LABEL_CLS}>
@@ -562,22 +512,14 @@ export function PlaceConfirmForm({
         <button
           type="button"
           formAction={cancelQuickAdd}
-          className={
-            v2
-              ? "v2-btn ghost flex-1 py-3 text-base"
-              : "btn-secondary flex-1 py-3 text-base"
-          }
+          className="v2-btn ghost flex-1 py-3 text-base"
         >
           取消
         </button>
         <button
           type="submit"
           disabled={pending}
-          className={
-            v2
-              ? "v2-btn flex-1 py-3 text-base"
-              : "btn-primary flex-1 py-3 text-base"
-          }
+          className="v2-btn flex-1 py-3 text-base"
         >
           {pending
             ? "保存中…"

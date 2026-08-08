@@ -6,9 +6,7 @@ import { ProfileEditForm } from "@/components/profile/profile-edit-form";
 import { ChevronRightIcon, InboxIcon } from "@/components/ui/icons";
 import { PROVIDER_PRESETS, type ProviderId } from "@/lib/llm/types";
 import type { UserLlmSettings } from "@/lib/llm/router";
-import { decryptSecret } from "@/lib/crypto/secret-box";
-import { getTheme, getUiVersion } from "@/lib/ui-version";
-import { UiVersionToggle } from "@/components/profile/ui-version-toggle";
+import { getTheme } from "@/lib/theme-server";
 import { ThemePicker } from "@/components/profile/theme-picker";
 import { NotificationToggle } from "@/components/profile/notification-toggle";
 
@@ -45,7 +43,6 @@ function UsageBox({
 export default async function ProfilePage() {
   const user = await requireUser();
   const supabase = await createClient();
-  const uiVersion = await getUiVersion();
   const theme = await getTheme();
 
   const [
@@ -125,23 +122,13 @@ export default async function ProfilePage() {
 
       {/* ---- 外观 ---- */}
       <section className="card mb-8 px-5 py-5">
-        <div className="mb-3">
-          <div className="section-heading">
-            <h2 className="text-lg text-[var(--text-strong)]">外观</h2>
-          </div>
-          <p className="mt-1.5 text-xs text-[var(--text-muted)]">
-            V2 新版是默认界面，不习惯可随时切回 V1 经典版。
-          </p>
+        <div className="section-heading mb-3">
+          <h2 className="text-lg text-[var(--text-strong)]">外观</h2>
         </div>
-        <UiVersionToggle current={uiVersion} />
-        {uiVersion === "v2" && (
-          <div className="mt-4">
-            <p className="mb-2 text-xs font-semibold text-[var(--text-muted)]">
-              主题风格（整套设计语言，不只换色）
-            </p>
-            <ThemePicker current={theme} />
-          </div>
-        )}
+        <p className="mb-2 text-xs font-semibold text-[var(--text-muted)]">
+          主题风格（整套设计语言，不只换色）
+        </p>
+        <ThemePicker current={theme} />
       </section>
 
       {/* ---- 通知 ---- */}
@@ -184,7 +171,16 @@ export default async function ProfilePage() {
         <LlmSettingsForm
           initial={
             llmSettings
-              ? { ...llmSettings, api_key: llmSettings.api_key ? decryptSecret(llmSettings.api_key) : null }
+              ? {
+                  // ⚠️ 只传「有没有」，不传 key 本身。此前这里 decryptSecret 后把明文
+                  // 送进 client component，于是加密存储的 key 在一次普通页面浏览里就
+                  // 完整落进 RSC payload / HTML / bfcache / devtools。
+                  provider: llmSettings.provider,
+                  has_api_key: Boolean(llmSettings.api_key),
+                  base_url: llmSettings.base_url,
+                  chat_model: llmSettings.chat_model,
+                  extract_model: llmSettings.extract_model,
+                }
               : null
           }
           appKeyAvailable={appKeyAvailable}

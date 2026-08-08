@@ -115,7 +115,7 @@ export async function updatePlace(
   const notesRaw = formData.get("notes");
   const photoRaw = formData.get("photo_urls_text");
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("places")
     .update({
       name,
@@ -141,9 +141,15 @@ export async function updatePlace(
           }
         : {}),
     })
-    .eq("id", placeId);
+    .eq("id", placeId)
+    // ⚠️ RLS 挡掉时 Postgres 不报错、只是影响 0 行 —— 必须回读行数，
+    // 否则 viewer 保存会看到「已更新」而数据库毫无变化。
+    .select("id");
 
   if (error) return { error: `保存失败：${error.message}` };
+  if (!updated || updated.length === 0) {
+    return { error: "保存失败：你没有这个清单的编辑权限" };
+  }
 
   // 单独处理 reasons：v1 用户只能改 / 删自己的那一条。
   // 失败不阻断（主字段已保存成功），留痕排查
@@ -178,11 +184,13 @@ async function syncOwnReason(
   const next = existing.filter((r) => r.user_id !== userId);
   if (newText) next.push({ user_id: userId, text: newText });
 
-  const { error: updErr } = await supabase
+  const { data: updRows, error: updErr } = await supabase
     .from("places")
     .update({ reasons: next })
-    .eq("id", placeId);
+    .eq("id", placeId)
+    .select("id"); // RLS 静默 0 行的兜底，见 updatePlace 的注释
   if (updErr) return { error: updErr.message };
+  if (!updRows || updRows.length === 0) return { error: "没有编辑权限" };
   return {};
 }
 
@@ -196,12 +204,18 @@ export async function updatePlaceStatus(
   if (!VALID_STATUS.includes(next)) return { ok: false, error: "无效状态" };
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("places")
     .update({ status: next })
-    .eq("id", placeId);
+    .eq("id", placeId)
+    // ⚠️ 必须回读行数：viewer 点状态 chip 时 RLS 影响 0 行且不报错，
+    // 而 status-quick-toggle.tsx 的乐观 UI 靠 `if (!r.ok)` 回滚 —— 不查行数就永远不回滚。
+    .select("id");
 
   if (error) return { ok: false, error: error.message };
+  if (!updated || updated.length === 0) {
+    return { ok: false, error: "你没有这个清单的编辑权限" };
+  }
 
   revalidatePath(`/lists/${listId}`);
   return { ok: true };
@@ -215,14 +229,20 @@ export async function deletePlace(formData: FormData): Promise<void> {
   if (!placeId || !listId) redirect("/lists");
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: deleted, error } = await supabase
     .from("places")
     .delete()
-    .eq("id", placeId);
+    .eq("id", placeId)
+    .select("id"); // RLS 静默 0 行的兜底，见 updatePlace 的注释
 
   if (error) {
     redirect(
       `/lists/${listId}?error=${encodeURIComponent(`删除失败：${error.message}`)}`,
+    );
+  }
+  if (!deleted || deleted.length === 0) {
+    redirect(
+      `/lists/${listId}?error=${encodeURIComponent("删除失败：你没有这个清单的编辑权限")}`,
     );
   }
 

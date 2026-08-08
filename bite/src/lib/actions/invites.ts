@@ -51,6 +51,8 @@ export type InvitePreview = {
   expired: boolean;
   used: boolean;
   is_owner: boolean;
+  /** 清单 owner = 邀请发起人（invites_insert_owner_only 保证两者一致） */
+  owner_id: string;
 };
 
 /** 给 /invite/[token] 页面用，预览邀请详情 */
@@ -89,6 +91,7 @@ export async function loadInvitePreview(
     expired,
     used,
     is_owner,
+    owner_id: data.owner_id,
   };
 }
 
@@ -96,78 +99,60 @@ export type AcceptResult =
   | { ok: true; list_id: string }
   | { error: string };
 
+/** accept_list_invite() 的 error_code → 中文文案（DB 只回码，不写 UI 文案） */
+const ACCEPT_ERROR_TEXT: Record<string, string> = {
+  not_authenticated: "请先登录",
+  not_found: "邀请不存在或已被撤销",
+  already_used: "这个邀请已经被使用过了",
+  expired: "邀请已过期",
+  self_invite: "你不能加入自己创建的邀请",
+  list_gone: "这个清单已经被删除了",
+  already_owner: "你就是这个清单的所有者",
+};
+
 export async function acceptListInvite(token: string): Promise<AcceptResult> {
   const user = await requireUser();
   if (!token) return { error: "缺少 token" };
   const supabase = await createClient();
 
-  const { data: invite } = await supabase
-    .from("list_invites")
-    .select("token, list_id, role, expires_at, used_at, created_by")
-    .eq("token", token)
-    .maybeSingle<{
-      token: string;
-      list_id: string;
-      role: "co_owner" | "viewer";
-      expires_at: string;
-      used_at: string | null;
-      created_by: string;
-    }>();
-  if (!invite) return { error: "邀请不存在或已被撤销" };
-  if (invite.used_at) return { error: "这个邀请已经被使用过了" };
-  if (new Date(invite.expires_at) < new Date())
-    return { error: "邀请已过期" };
-  if (invite.created_by === user.id)
-    return { error: "你不能加入自己创建的邀请" };
+  // 整个「校验 token → 插 list_members → 标 used」收敛进一个 SECURITY DEFINER
+  // 函数（sql/0017），原子完成。此前是应用层分三步做，而 DB 侧为了让它能跑通
+  // 开了三条过宽的策略，叠加起来任何登录用户都能自封任意清单的 co_owner。
+  const { data, error } = await supabase
+    .rpc("accept_list_invite", { p_token: token })
+    .maybeSingle<{ ok: boolean; error_code: string | null; list_id: string | null }>();
 
-  // 防重复：先看是否已经是 member
-  const { data: existing } = await supabase
-    .from("list_members")
-    .select("list_id")
-    .eq("list_id", invite.list_id)
-    .eq("user_id", user.id)
-    .maybeSingle<{ list_id: string }>();
-
-  if (!existing) {
-    const { error: insErr } = await supabase.from("list_members").insert({
-      list_id: invite.list_id,
-      user_id: user.id,
-      role: invite.role,
-      invited_by: invite.created_by,
-    });
-    if (insErr) return { error: `加入失败：${insErr.message}` };
+  if (error) return { error: `加入失败：${error.message}` };
+  if (!data) return { error: "邀请不存在或已被撤销" };
+  if (!data.ok) {
+    return {
+      error: ACCEPT_ERROR_TEXT[data.error_code ?? ""] ?? "加入失败，请重试",
+    };
   }
 
-  // 标 used。失败不阻断用户（成员已加入），但要留痕：token 没标掉意味着
-  // 链接还能被再次使用，owner 可在 ActiveInvitesPanel 手动撤销
-  const { error: usedErr } = await supabase
-    .from("list_invites")
-    .update({
-      used_at: new Date().toISOString(),
-      used_by: user.id,
-    })
-    .eq("token", token);
-  if (usedErr) {
-    console.error(`acceptListInvite: 加入成功但标记 used 失败（token=${token}）：${usedErr.message}`);
-  }
+  const listId = data.list_id!;
 
   revalidatePath("/lists");
-  revalidatePath(`/lists/${invite.list_id}`);
+  revalidatePath(`/lists/${listId}`);
 
-  // 通知邀请发起人：有人加入了（best-effort，未配 push 静默跳过）
+  // 通知邀请发起人：有人加入了（best-effort，未配 push 静默跳过）。
+  // 收紧策略后受邀者读不到 list_invites，改从 preview 函数拿发起人。
+  const preview = await loadInvitePreview(token);
   const { data: joiner } = await supabase
     .from("profiles")
     .select("name, email")
     .eq("id", user.id)
     .maybeSingle<{ name: string | null; email: string }>();
   const joinerLabel = joiner?.name ?? joiner?.email?.split("@")[0] ?? "有人";
-  await sendPushToUsers([invite.created_by], {
-    title: "清单来了新成员",
-    body: `${joinerLabel} 通过邀请链接加入了你的清单`,
-    url: `/lists/${invite.list_id}`,
-  });
+  if (preview) {
+    await sendPushToUsers([preview.owner_id], {
+      title: "清单来了新成员",
+      body: `${joinerLabel} 通过邀请链接加入了你的清单`,
+      url: `/lists/${listId}`,
+    });
+  }
 
-  return { ok: true, list_id: invite.list_id };
+  return { ok: true, list_id: listId };
 }
 
 export async function revokeListInvite(token: string): Promise<{
@@ -176,13 +161,18 @@ export async function revokeListInvite(token: string): Promise<{
   await requireUser();
   if (!token) return { error: "缺少 token" };
   const supabase = await createClient();
-  const { data: invite } = await supabase
+  // ⚠️ RLS 挡掉时 Postgres 不报错、只是影响 0 行。必须 .select() 回读行数，
+  // 否则非 owner 点撤销会看到「撤销成功」而邀请仍然有效。
+  const { data: deleted, error } = await supabase
     .from("list_invites")
-    .select("list_id")
+    .delete()
     .eq("token", token)
-    .maybeSingle<{ list_id: string }>();
-  const { error } = await supabase.from("list_invites").delete().eq("token", token);
+    .select("token, list_id");
   if (error) return { error: `撤销失败：${error.message}` };
-  if (invite?.list_id) revalidatePath(`/lists/${invite.list_id}`);
+  if (!deleted || deleted.length === 0) {
+    return { error: "撤销失败：邀请不存在，或你不是这个清单的所有者" };
+  }
+  const listId = (deleted[0] as { list_id: string }).list_id;
+  if (listId) revalidatePath(`/lists/${listId}`);
   return { ok: true };
 }

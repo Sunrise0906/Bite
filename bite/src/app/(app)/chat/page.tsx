@@ -6,7 +6,6 @@ import { ConvoMenu } from "@/components/chat/convo-menu";
 import { loadUserLlmSettings, resolveConfig } from "@/lib/llm/router";
 import { PROVIDER_LABELS, type LlmContentBlock } from "@/lib/llm/types";
 import { signNestedPhotoUrls } from "@/lib/storage/signed-photos";
-import { getUiVersion } from "@/lib/ui-version";
 
 type SearchParamsForMeta = Promise<{ c?: string }>;
 
@@ -51,7 +50,7 @@ export default async function ChatPage(props: {
     ...(ownerLists ?? []).map((l) => l.id),
     ...(memberLists ?? []).map((m) => m.list_id),
   ];
-  // V2 推荐卡需要图/菜系/状态/why；V1 只用 id/list_id（多余字段忽略）
+  // 推荐卡需要图/菜系/状态/why
   type PlaceRich = {
     id: string;
     list_id: string;
@@ -103,8 +102,6 @@ export default async function ChatPage(props: {
       }),
     );
   }
-
-  const uiVersion = await getUiVersion();
 
   const initialMessages: Array<{
     role: "user" | "assistant";
@@ -313,7 +310,6 @@ export default async function ChatPage(props: {
           headerProviderLabel={headerProviderLabel}
           headerModel={headerModel}
           placeMap={placeMap}
-          uiVersion={uiVersion}
         />
       </section>
     </div>

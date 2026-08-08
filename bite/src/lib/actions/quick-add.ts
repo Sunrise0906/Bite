@@ -383,15 +383,28 @@ async function upsertPlaces(
     existingByName.set(row.name, row);
   }
 
-  // 加店自动丰富：给还没有 google_place_id 的候选并行在 Google 上找一下，
-  // 拿评分 / 评价数 / 精确坐标 / 地图链接（best-effort，失败/没找到就跳过，不阻断加店）
+  // 加店自动丰富：在 Google 上找一下，拿评分 / 评价数 / 精确坐标 / 地图链接
+  // （best-effort，失败/没找到就跳过，不阻断加店）
   await Promise.all(
     candidates.map(async (c) => {
-      if (c.google_place_id) return;
+      // 已经有 place_id **且**已经有口碑数据 → 不用再查。
+      // 只有 place_id 没评分的（店名搜索路径，getPlaceDetails 的 fieldMask 不含
+      // rating/userRatingCount）仍要查一次，否则这家店永远没有评分可用于决策。
+      if (c.google_place_id && c.google_rating != null) return;
+
+      const hadAuthoritativeId = Boolean(c.google_place_id);
       const query = [c.name, c.address].filter(Boolean).join(" ");
       const m = await findPlaceOnGoogle(query);
       if (!m) return;
-      c.google_place_id = m.placeId;
+
+      // 用户从 autocomplete 里亲手选的 place_id 是权威的；文本搜索可能匹配到
+      // 另一家同名店（连锁分店），所以只在它和我们已有的 id 一致时才采纳口碑数据，
+      // 且永远不覆盖已有的 place_id。
+      if (hadAuthoritativeId) {
+        if (m.placeId !== c.google_place_id) return;
+      } else {
+        c.google_place_id = m.placeId;
+      }
       c.google_rating = m.rating;
       c.google_rating_count = m.ratingCount;
       c.google_maps_uri = m.mapsUri;
@@ -430,13 +443,22 @@ async function upsertPlaces(
       const occasions = unionStrings(existing.occasions, c.occasions);
       const dishes = unionStrings(existing.dishes, c.dishes);
 
-      // Google 字段只在这次拿到了才写（不要用 null 覆盖既有评分/坐标）
+      // Google 字段只在这次拿到了才写（不要用 null 覆盖既有评分/坐标）。
+      // ⚠️ 这里必须逐字段判空，不能只判 google_place_id：savePlaceFromDraft 走
+      // 「店名搜索」路径时会带着真实的 google_place_id 但 rating/ratingCount/mapsUri
+      // 全是 null（getPlaceDetails 不返回口碑字段），而上面的自动丰富块因为
+      // `if (c.google_place_id) return;` 被跳过 —— 于是重新保存一家已有评分的店
+      // 会把评分静默清空。评分是决策/推荐那一半产品读的主要信号。
       const googleFields = c.google_place_id
         ? {
             google_place_id: c.google_place_id,
-            google_rating: c.google_rating,
-            google_rating_count: c.google_rating_count,
-            google_maps_uri: c.google_maps_uri,
+            ...(c.google_rating != null
+              ? { google_rating: c.google_rating }
+              : {}),
+            ...(c.google_rating_count != null
+              ? { google_rating_count: c.google_rating_count }
+              : {}),
+            ...(c.google_maps_uri ? { google_maps_uri: c.google_maps_uri } : {}),
             ...(c.lat != null && c.lng != null
               ? { lat: c.lat, lng: c.lng }
               : {}),

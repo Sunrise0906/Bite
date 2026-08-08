@@ -1,5 +1,5 @@
-// V2 主题常量 —— client-safe（不 import next/headers）。
-// 服务端读 cookie 的 getTheme 在 lib/ui-version.ts；这里只放类型/元数据，
+// 主题常量 —— client-safe（不 import next/headers）。
+// 服务端读 cookie 的 getTheme 在 lib/theme-server.ts；这里只放类型/元数据，
 // 客户端组件（ThemePicker）可以安全导入。
 
 export type BiteTheme = "terracotta" | "midnight" | "pop" | "gallery";

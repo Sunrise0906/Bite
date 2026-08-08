@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient, requireUser } from "@/lib/supabase/server";
-import { getTheme, getUiVersion } from "@/lib/ui-version";
 
 export const metadata = { title: "统计 · Bite" };
 
@@ -20,10 +19,6 @@ const MONTH_LABEL = ["1月","2月","3月","4月","5月","6月","7月","8月","9�
 export default async function StatsPage() {
   const user = await requireUser();
   const supabase = await createClient();
-
-  const needsWrap = (await getUiVersion()) !== "v2";
-  const theme = await getTheme();
-  const wrapCls = needsWrap ? `ui-v2 theme-${theme}` : "";
 
   // 我可见的所有清单下的店 + 我自己的造访记录
   const [{ data: ownerLists }, { data: memberLists }] = await Promise.all([
@@ -98,11 +93,6 @@ export default async function StatsPage() {
   const maxMonth = Math.max(1, ...months.map((m) => m.count));
 
   return (
-    // V1 时 wrapper 必须在外层：v2.css 规则是 `.ui-v2 .v2-page` 后代选择器
-    <div
-      className={wrapCls || undefined}
-      style={{ flex: 1, display: "flex", flexDirection: "column" }}
-    >
     <main className="v2-page" style={{ flex: 1 }}>
       <div className="v2-lhead">
         <Link href="/profile" className="v2-back">
@@ -188,6 +178,5 @@ export default async function StatsPage() {
         ))}
       </div>
     </main>
-    </div>
   );
 }

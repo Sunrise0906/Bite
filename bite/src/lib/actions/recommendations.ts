@@ -277,14 +277,15 @@ export async function acceptRecommendation(args: {
 
   // 4. 标推荐 accepted。place 已写入，这步失败会让推荐卡在 pending（再点会重复合并），
   // 必须告知用户而不是假装全成功
-  const { error: markErr } = await supabase
+  const { data: marked, error: markErr } = await supabase
     .from("recommendations")
     .update({ status: "accepted", resolved_at: new Date().toISOString() })
-    .eq("id", args.id);
-  if (markErr) {
+    .eq("id", args.id)
+    .select("id"); // RLS 静默 0 行的兜底
+  if (markErr || !marked || marked.length === 0) {
     revalidatePath(`/lists/${args.target_list_id}`);
     return {
-      error: `店已加入 list，但推荐状态更新失败（${markErr.message}）。刷新后若仍显示待处理，请勿重复接受。`,
+      error: `店已加入 list，但推荐状态更新失败（${markErr?.message ?? "没有匹配的待处理推荐"}）。刷新后若仍显示待处理，请勿重复接受。`,
     };
   }
 
@@ -304,11 +305,13 @@ export async function declineRecommendation(
   await requireUser();
   if (!id) return { error: "缺少 id" };
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: declined, error } = await supabase
     .from("recommendations")
     .update({ status: "declined", resolved_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id"); // RLS 静默 0 行的兜底
   if (error) return { error: `失败：${error.message}` };
+  if (!declined || declined.length === 0) return { error: "失败：这条推荐不存在或不是发给你的" };
   revalidatePath("/recommendations");
   return { ok: true };
 }
@@ -319,11 +322,15 @@ export async function withdrawRecommendation(
   await requireUser();
   if (!id) return { error: "缺少 id" };
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: withdrawn, error } = await supabase
     .from("recommendations")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .select("id"); // RLS 静默 0 行的兜底
   if (error) return { error: `撤回失败：${error.message}` };
+  if (!withdrawn || withdrawn.length === 0) {
+    return { error: "撤回失败：这条推荐不存在或不是你发出的" };
+  }
   revalidatePath("/recommendations");
   return { ok: true };
 }
