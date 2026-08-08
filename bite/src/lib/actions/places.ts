@@ -4,33 +4,18 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { normalizePhotoUrl } from "@/lib/storage/signed-photos";
-import type { PlacePrice, PlaceStatus } from "@/lib/db/types";
+import type { PlaceStatus } from "@/lib/db/types";
+import {
+  parseTags,
+  parseStatus,
+  parsePrice,
+  VALID_STATUS,
+} from "@/lib/places/parse-form";
 
 export type PlaceFormState = {
   error: string | null;
 };
 
-const VALID_STATUS: PlaceStatus[] = ["want_to_go", "visited", "archived"];
-const VALID_PRICE: PlacePrice[] = ["$", "$$", "$$$", "$$$$"];
-
-function parseTags(raw: FormDataEntryValue | null): string[] {
-  if (typeof raw !== "string") return [];
-  return raw
-    .split(/[,，、\s]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-function parseStatus(raw: FormDataEntryValue | null): PlaceStatus {
-  return VALID_STATUS.includes(raw as PlaceStatus)
-    ? (raw as PlaceStatus)
-    : "want_to_go";
-}
-
-function parsePrice(raw: FormDataEntryValue | null): PlacePrice | null {
-  if (typeof raw !== "string" || raw === "") return null;
-  return VALID_PRICE.includes(raw as PlacePrice) ? (raw as PlacePrice) : null;
-}
 
 // ---- 新建 place ---------------------------------------------------------
 export async function createPlace(

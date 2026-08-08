@@ -41,9 +41,10 @@ npm run dev
 
 - `ANTHROPIC_API_KEY` · `OPENAI_API_KEY` · `DEEPSEEK_API_KEY` · `DASHSCOPE_API_KEY`
 
-可选（生产邮件，自家域名发件更专业）：
+可选（推荐通知邮件）：
 
-- 配 Resend / SendGrid SMTP 到 Supabase Auth → Email Settings；当前代码用 Supabase 默认邮件，足够开发 + 小流量使用
+- `RESEND_API_KEY` · `EMAIL_FROM` —— 朋友推荐你一家店时给你发提醒邮件（`src/lib/email/send.ts`，不配则静默跳过）
+- 登录邮件是另一回事：走 Supabase Auth 内置服务；想用自家域名发件就在 Supabase Auth → Email Settings 配 SMTP
 
 可选（Web Push 通知）：
 
@@ -60,7 +61,7 @@ npm run dev
 sql/0001_initial.sql               # 核心表 + RLS
 sql/0002_add_notes_column.sql      # places.notes
 sql/0003_quick_add_drafts.sql      # 草稿表
-sql/0004_add_photo_url.sql         # photo_url (superseded by 0005)
+sql/0004_add_photo_url.sql         # ⚠️ 已被 0005 取代，全新库跳过别跑（见文件头）
 sql/0005_photo_urls_array.sql      # photo_urls text[]
 sql/0006_llm_and_chat.sql          # user_llm_settings + conversations + messages
 sql/0007_add_gemini_provider.sql   # gemini 加入 provider check
@@ -73,6 +74,7 @@ sql/0013_photos_private.sql          # ★ photos bucket 转私有（⚠️ 先�
 sql/0014_pick_sessions.sql           # 「一起选」双人滑卡决策（纯增量，先跑再部署）
 sql/0015_push_subscriptions.sql      # Web Push 订阅表（纯增量，先跑再部署）
 sql/0016_list_categories.sql         # 清单 category 吃/喝/玩/其他（纯增量，先跑再部署）
+sql/0017_invite_privilege_escalation.sql # ★★ 安全：修邀请越权提权（⚠️ 先跑 SQL 再部署代码，见文件头）
 ```
 
 ## 项目结构
@@ -80,32 +82,43 @@ sql/0016_list_categories.sql         # 清单 category 吃/喝/玩/其他（纯�
 ```text
 bite/
 ├── src/
+│   ├── proxy.ts            # ⚠️ Auth session 刷新（Next.js 16 的 middleware，必须在 src/ 或仓库根）
 │   ├── app/
-│   │   ├── (app)/          # 登录后可访问页面：lists / chat / map / profile ...
+│   │   ├── (app)/          # 登录后页面：lists / lists/[id]{,/pick,/places/…} / chat
+│   │   │                   #   / map / stats / profile / quick-add{,/multi}
+│   │   │                   #   / recommendations / invite/[token]
 │   │   ├── (auth)/         # login / signup
 │   │   ├── api/chat/       # SSE 流式聊天 + tool calling
 │   │   ├── auth/callback/  # Supabase OAuth 回调
-│   │   └── globals.css     # Tailwind 4 入口 + 主题 token
+│   │   ├── globals.css     # Tailwind 4 入口 + 基础 token
+│   │   └── v2.css          # 设计语言 token + 4 套主题（.ui-v2 作用域）
 │   ├── components/
+│   │   ├── auth/           # 登录/注册表单、Google 按钮
 │   │   ├── chat/           # /chat 聊天 UI
-│   │   ├── lists/          # list CRUD
+│   │   ├── invites/        # 邀请按钮 / 活跃邀请面板 / 接受邀请
+│   │   ├── lists/          # 清单 CRUD、成员面板
 │   │   ├── map/            # 地图组件
 │   │   ├── nav/            # bottom-nav
-│   │   ├── places/         # PlaceCard / quick-add / 照片轮播
-│   │   ├── profile/        # /profile Settings 表单
+│   │   ├── places/         # quick-add 输入、确认表单、照片轮播/上传
+│   │   ├── profile/        # 设置表单、主题选择、通知开关
+│   │   ├── recommendations/# 推荐收件箱卡片
+│   │   ├── ui/             # 图标
+│   │   ├── v2/             # 主页 / 清单详情 / 店铺详情 / 一起选滑卡
 │   │   └── visits/         # 我去了 + 造访历史
 │   └── lib/
-│       ├── actions/        # Server Actions（写库走这里）
-│       ├── db/             # 类型定义 + 聊天持久化
-│       ├── llm/            # provider 抽象 + 工具 + 抽取
-│       ├── places/         # XHS 抓取 + Google Places
-│       ├── quick-add/      # 输入类型识别
-│       └── supabase/       # client/server helpers
-├── public/
-│   ├── manifest.webmanifest
-│   └── icons/
-├── sql/                    # Postgres migrations
-├── proxy.ts                # Auth session 刷新（Next.js 16，不是 middleware）
+│       ├── actions/        # Server Actions —— 全应用唯一写入面
+│       ├── auth/  chat/  client/  crypto/  db/  email/
+│       ├── llm/            # provider 抽象（types+router）+ 工具 + 抽取
+│       ├── places/         # XHS 抓取 + Google Places + 合并去重
+│       ├── push/  quick-add/  ratelimit/  sql/  storage/
+│       ├── supabase/       # server / admin client
+│       ├── url/  util/  visits/
+│       ├── theme.ts        # 主题常量（client-safe）
+│       └── theme-server.ts # 服务端读主题 cookie
+├── scripts/                # verify/ 子系统验证 + shoot/ 截图（见 scripts/README.md）
+├── tests/e2e/              # Playwright
+├── sql/                    # Postgres migrations（手工在 SQL Editor 跑）
+├── public/                 # manifest.webmanifest / sw.js / icons/
 └── .env.example            # 环境变量模板
 ```
 

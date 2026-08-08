@@ -136,3 +136,43 @@ describe("tryPrettyJson", () => {
     expect(tryPrettyJson("not json")).toBe("not json");
   });
 });
+
+describe("find_similar_places（四个工具里此前唯一没有 case 的，会渲染裸 snake_case）", () => {
+  it("labelForTool 有中文标签", () => {
+    expect(labelForTool("find_similar_places")).toBe("找相似的店");
+  });
+
+  it("有候选 → 带参照店名和数量", () => {
+    const r = summarizeToolResult(
+      "find_similar_places",
+      JSON.stringify({ reference: "海底捞", candidates: [{ name: "A" }, { name: "B" }] }),
+    );
+    expect(r.kind).toBe("ok");
+    expect(r.summary).toBe("像 «海底捞» 的找到 2 家");
+  });
+
+  it("零候选 → 带 note", () => {
+    const r = summarizeToolResult(
+      "find_similar_places",
+      JSON.stringify({ reference: "海底捞", candidates: [], note: "换个说法" }),
+    );
+    expect(r.summary).toBe("没找到相似的（换个说法）");
+  });
+
+  it("缺 reference 时退化成只报数量", () => {
+    const r = summarizeToolResult(
+      "find_similar_places",
+      JSON.stringify({ candidates: [{ name: "A" }] }),
+    );
+    expect(r.summary).toBe("找到 1 家");
+  });
+
+  it("error 字段优先于 per-tool 分支", () => {
+    const r = summarizeToolResult(
+      "find_similar_places",
+      JSON.stringify({ error: "找不到参照店" }),
+    );
+    expect(r.kind).toBe("error");
+    expect(r.summary).toBe("找不到参照店");
+  });
+});

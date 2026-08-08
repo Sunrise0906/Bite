@@ -8,7 +8,7 @@ import {
   labelForTool,
   summarizeToolResult,
   tryPrettyJson,
-} from "@/lib/llm/tool-summary";
+} from "@/lib/chat/tool-summary";
 import { parseLinkifiedSegments } from "@/lib/chat/linkify";
 import { menuSearchUrl } from "@/lib/places/menu-url";
 import {

@@ -15,6 +15,8 @@ export function labelForTool(name: string): string {
       return "查餐厅库";
     case "check_place_details":
       return "查看详情";
+    case "find_similar_places":
+      return "找相似的店";
     case "add_to_list":
       return "添加到 list";
     default:
@@ -52,6 +54,19 @@ export function summarizeToolResult(
     case "check_place_details": {
       const name = typeof o.name === "string" ? o.name : "";
       return { kind: "ok", summary: name ? `«${name}»` : "已查看" };
+    }
+    case "find_similar_places": {
+      // findSimilarPlaces 返回 { reference, candidates[], note? }
+      const n = Array.isArray(o.candidates) ? o.candidates.length : 0;
+      const ref = typeof o.reference === "string" ? o.reference : "";
+      if (n === 0) {
+        const note = typeof o.note === "string" ? `（${o.note}）` : "";
+        return { kind: "ok", summary: `没找到相似的${note}` };
+      }
+      return {
+        kind: "ok",
+        summary: ref ? `像 «${ref}» 的找到 ${n} 家` : `找到 ${n} 家`,
+      };
     }
     case "add_to_list": {
       const name = typeof o.name === "string" ? o.name : "";

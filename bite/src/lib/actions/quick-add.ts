@@ -11,16 +11,17 @@ import { randomUUID } from "node:crypto";
 import { validatePhotoFile } from "@/lib/storage/validate";
 import { extractXhsUrl, scrapeXhsUrl, stripXhsUrl } from "@/lib/places/xhs";
 import { findPlaceOnGoogle } from "@/lib/places/google";
+import { pickPhotosByIndices } from "@/lib/places/merge";
 import {
-  mergeReasons,
-  pickPhotosByIndices,
-  unionStrings,
-} from "@/lib/places/merge";
+  buildUpsertPlan,
+  type ExistingPlaceRow,
+  type UpsertCandidate,
+} from "@/lib/places/upsert-plan";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { normalizePhotoUrl } from "@/lib/storage/signed-photos";
 import { mirrorPhotosToStorage } from "@/lib/storage/mirror-photos";
 import { sendPushToUsers } from "@/lib/push/send";
-import type { PlacePrice, PlaceStatus } from "@/lib/db/types";
+import { parseTags, parseStatus, parsePrice } from "@/lib/places/parse-form";
 
 // 共享清单加了新店 → 通知其他成员（best-effort，未配 push 静默跳过）
 async function notifyListMembersNewPlace(
@@ -272,27 +273,6 @@ export async function clearDraft() {
 }
 
 // ---- helpers ----
-const VALID_STATUS: PlaceStatus[] = ["want_to_go", "visited", "archived"];
-const VALID_PRICE: PlacePrice[] = ["$", "$$", "$$$", "$$$$"];
-
-function parseTags(raw: FormDataEntryValue | null): string[] {
-  if (typeof raw !== "string") return [];
-  return raw
-    .split(/[,，、\s]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-function parseStatus(raw: FormDataEntryValue | null): PlaceStatus {
-  return VALID_STATUS.includes(raw as PlaceStatus)
-    ? (raw as PlaceStatus)
-    : "want_to_go";
-}
-
-function parsePrice(raw: FormDataEntryValue | null): PlacePrice | null {
-  if (typeof raw !== "string" || raw === "") return null;
-  return VALID_PRICE.includes(raw as PlacePrice) ? (raw as PlacePrice) : null;
-}
 
 const SOURCE_VALUES = [
   "manual",
@@ -317,29 +297,6 @@ function parseSource(raw: FormDataEntryValue | null): SourceValue {
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
-type UpsertCandidate = {
-  list_id: string;
-  name: string;
-  address: string;
-  cuisine: string[];
-  price_range: PlacePrice | null;
-  status: PlaceStatus;
-  occasions: string[];
-  tags: string[];
-  recommended_by: string | null;
-  myReason: string | null; // 当前用户的 reason（空 = 不动）
-  notes: string | null;
-  dishes: string[];
-  photo_urls: string[];
-  source: SourceValue;
-  source_url: string | null;
-  google_place_id: string | null;
-  google_rating: number | null;
-  google_rating_count: number | null;
-  google_maps_uri: string | null;
-  lat: number | null;
-  lng: number | null;
-};
 
 async function upsertPlaces(
   supabase: SupabaseClient,
@@ -367,19 +324,8 @@ async function upsertPlaces(
     return { inserted: 0, updated: 0, error: lookupError.message };
   }
 
-  type ExistingRow = {
-    id: string;
-    name: string;
-    reasons: unknown;
-    notes: string | null;
-    photo_urls: unknown;
-    cuisine: unknown;
-    tags: unknown;
-    occasions: unknown;
-    dishes: unknown;
-  };
-  const existingByName = new Map<string, ExistingRow>();
-  for (const row of (existingRows ?? []) as ExistingRow[]) {
+  const existingByName = new Map<string, ExistingPlaceRow>();
+  for (const row of (existingRows ?? []) as ExistingPlaceRow[]) {
     existingByName.set(row.name, row);
   }
 
@@ -415,113 +361,23 @@ async function upsertPlaces(
     }),
   );
 
+  // 决策层（该 INSERT 还是 UPDATE、写哪些字段）已抽成纯函数并单测覆盖，
+  // 见 lib/places/upsert-plan.ts。这里只负责执行。
+  const steps = buildUpsertPlan(candidates, existingByName, userId, options);
+
   let inserted = 0;
   let updated = 0;
 
-  for (const c of candidates) {
-    const existing = existingByName.get(c.name);
-
-    if (existing) {
-      // ---- 智能合并 ----
-      const reasons = mergeReasons(
-        existing.reasons,
-        userId,
-        c.myReason,
-        options.overrideMyReason,
-      );
-
-      // notes: 已有非空内容 → 保留用户手编的；空 → 用 AI 新生成
-      const notes =
-        existing.notes && existing.notes.trim().length > 0
-          ? existing.notes
-          : c.notes;
-
-      // 数组类字段 union 去重（保留既有 + 加入新的）
-      const photo_urls = unionStrings(existing.photo_urls, c.photo_urls);
-      const cuisine = unionStrings(existing.cuisine, c.cuisine);
-      const tags = unionStrings(existing.tags, c.tags);
-      const occasions = unionStrings(existing.occasions, c.occasions);
-      const dishes = unionStrings(existing.dishes, c.dishes);
-
-      // Google 字段只在这次拿到了才写（不要用 null 覆盖既有评分/坐标）。
-      // ⚠️ 这里必须逐字段判空，不能只判 google_place_id：savePlaceFromDraft 走
-      // 「店名搜索」路径时会带着真实的 google_place_id 但 rating/ratingCount/mapsUri
-      // 全是 null（getPlaceDetails 不返回口碑字段），而上面的自动丰富块因为
-      // `if (c.google_place_id) return;` 被跳过 —— 于是重新保存一家已有评分的店
-      // 会把评分静默清空。评分是决策/推荐那一半产品读的主要信号。
-      const googleFields = c.google_place_id
-        ? {
-            google_place_id: c.google_place_id,
-            ...(c.google_rating != null
-              ? { google_rating: c.google_rating }
-              : {}),
-            ...(c.google_rating_count != null
-              ? { google_rating_count: c.google_rating_count }
-              : {}),
-            ...(c.google_maps_uri ? { google_maps_uri: c.google_maps_uri } : {}),
-            ...(c.lat != null && c.lng != null
-              ? { lat: c.lat, lng: c.lng }
-              : {}),
-          }
-        : {};
-
-      // 客观字段：用最新覆盖
-      const updateFields = {
-        address: c.address,
-        price_range: c.price_range,
-        status: c.status,
-        recommended_by: c.recommended_by,
-        source: c.source,
-        source_url: c.source_url,
-        // merged
-        reasons,
-        notes,
-        photo_urls,
-        cuisine,
-        tags,
-        occasions,
-        dishes,
-        ...googleFields,
-      };
-
+  for (const step of steps) {
+    if (step.kind === "update") {
       const { error } = await supabase
         .from("places")
-        .update(updateFields)
-        .eq("id", existing.id);
+        .update(step.fields)
+        .eq("id", step.id);
       if (error) return { inserted, updated, error: error.message };
       updated++;
     } else {
-      // 新增：直接写
-      const reasons = mergeReasons(
-        null,
-        userId,
-        c.myReason,
-        options.overrideMyReason,
-      );
-      const { error } = await supabase.from("places").insert({
-        list_id: c.list_id,
-        name: c.name,
-        address: c.address,
-        cuisine: c.cuisine,
-        price_range: c.price_range,
-        status: c.status,
-        occasions: c.occasions,
-        tags: c.tags,
-        recommended_by: c.recommended_by,
-        reasons,
-        notes: c.notes,
-        dishes: c.dishes,
-        photo_urls: c.photo_urls,
-        source: c.source,
-        source_url: c.source_url,
-        google_place_id: c.google_place_id,
-        google_rating: c.google_rating,
-        google_rating_count: c.google_rating_count,
-        google_maps_uri: c.google_maps_uri,
-        lat: c.lat,
-        lng: c.lng,
-        created_by: userId,
-      });
+      const { error } = await supabase.from("places").insert(step.row);
       if (error) return { inserted, updated, error: error.message };
       inserted++;
     }
