@@ -7,6 +7,7 @@ import {
 } from "next/font/google";
 import { Toaster } from "sonner";
 import { PwaRegister } from "@/components/pwa-register";
+import { getTheme } from "@/lib/theme-server";
 import "./globals.css";
 import "./v2.css";
 
@@ -67,13 +68,21 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // 主题类名挂在 <html>（根元素）上，不是内层 div —— 这一点是有意义的：
+  // globals.css 在 :root 上声明了一批**派生 token**（--status-want-bg: var(--gold-soft)
+  // 等 12 个）。自定义属性的 var() 是在「声明它的那个元素」上求值的，所以只要主题
+  // 覆写不落在同一个元素上，这些派生 token 就永远取不到主题值——四套主题的状态 chip
+  // 会全部渲染成基底陶土色。把 ui-v2/theme-* 提到 <html>，主题覆写与 :root 声明就
+  // 落在同一元素上，级联自然解析正确（.ui-v2 与 :root 同特异性，v2.css 后引入者胜）。
+  const theme = await getTheme();
+
   return (
     <html
       lang="zh-CN"
-      className={`${fraunces.variable} ${inter.variable} ${playfair.variable} ${spaceGrotesk.variable} h-full antialiased`}
+      className={`${fraunces.variable} ${inter.variable} ${playfair.variable} ${spaceGrotesk.variable} h-full antialiased ui-v2 theme-${theme}`}
     >
       <body className="min-h-full flex flex-col">
         {children}
