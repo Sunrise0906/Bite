@@ -28,6 +28,8 @@ Playwright 的 `tests/e2e/` 也不碰它们。改动对应子系统时请手工�
 | `add.mjs` | quick-add 加店主流程 | dev server | ✅ 自清理 |
 | `enrich.mjs` | Google 自动丰富（评分 + 坐标）回填 | dev server | ✅ 自清理 |
 | `google-oauth.mjs` | 登录页 Google OAuth 按钮跳转正确 | — | ❌ |
+| `cancel-button.mjs` | quick-add 确认页「取消」真的能取消（formAction 死按钮回归） | dev server | ❌ |
+| `invite-rls.mjs` | **邀请越权修复**（sql/0017+0018）：越权路径全封 + 完整接受流程 | — | ✅ 自清理 |
 
 需要两个测试账号的脚本读 `E2E_TEST_EMAIL(_2)` / `E2E_TEST_PASSWORD(_2)`。
 

@@ -17,13 +17,7 @@ const PRICE_LABEL: Record<NonNullable<ExtractedPlace["price_range"]>, string> = 
   $$$$: "$$$$ · >$60",
 };
 
-const CONFIDENCE_BADGE: Record<NonNullable<ExtractedPlace["confidence"]>, string> = {
-  high: "chip chip-visited",
-  medium: "chip chip-want",
-  low: "chip chip-archived",
-};
-
-const CONFIDENCE_BADGE_V2: Record<
+const CONFIDENCE_BADGE: Record<
   NonNullable<ExtractedPlace["confidence"]>,
   string
 > = {
@@ -45,7 +39,6 @@ export function MultiPlaceList({
   sourceUrl,
   existingByList = {},
   photoUrls = [],
-  v2 = false,
 }: {
   places: ExtractedPlace[];
   lists: ListOption[];
@@ -53,8 +46,6 @@ export function MultiPlaceList({
   sourceUrl?: string;
   existingByList?: Record<string, string[]>;
   photoUrls?: string[];
-  /** V2 皮：srcbar + v2 勾选卡 + v2 按钮。勾选/保存逻辑与 V1 完全一致 */
-  v2?: boolean;
 }) {
   const [state, action, pending] = useActionState(savePlacesBatch, {
     error: null,
@@ -85,16 +76,9 @@ export function MultiPlaceList({
   return (
     <form action={action} className="space-y-5">
       <div
-        className={
-          v2
-            ? "v2-srcbar"
-            : "flex items-start gap-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)]/50 px-3.5 py-2.5 text-sm text-[var(--text-default)]"
-        }
+        className="v2-srcbar"
       >
-        <BotIcon
-          size={15}
-          className={v2 ? "shrink-0" : "mt-0.5 shrink-0 text-[var(--text-muted)]"}
-        />
+        <BotIcon size={15} className="shrink-0" />
         <span className="min-w-0">
           AI 识别为<strong> 合集帖</strong>，共 <strong>{places.length}</strong> 家店。勾选要添加的：
           {sourceUrl && (
@@ -179,15 +163,7 @@ export function MultiPlaceList({
           return (
             <li key={i}>
               <label
-                className={
-                  v2
-                    ? `v2-ccard${checked ? " on" : ""}`
-                    : `card flex cursor-pointer items-start gap-3 px-5 py-4 transition-colors ${
-                        checked
-                          ? "border-[var(--primary)] bg-[var(--primary-soft)]/20"
-                          : ""
-                      }`
-                }
+                className={`v2-ccard${checked ? " on" : ""}`}
               >
                 <input
                   type="checkbox"
@@ -208,11 +184,7 @@ export function MultiPlaceList({
                       )}
                     </span>
                     <span
-                      className={
-                        v2
-                          ? CONFIDENCE_BADGE_V2[p.confidence]
-                          : CONFIDENCE_BADGE[p.confidence]
-                      }
+                      className={CONFIDENCE_BADGE[p.confidence]}
                     >
                       信心 {CONFIDENCE_LABEL[p.confidence]}
                     </span>
@@ -221,12 +193,12 @@ export function MultiPlaceList({
                   {p.cuisine.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {p.cuisine.slice(0, 5).map((c) => (
-                        <span key={c} className={v2 ? "v2-tag n" : "tag tag-neutral"}>
+                        <span key={c} className="v2-tag n">
                           {c}
                         </span>
                       ))}
                       {p.price_range && (
-                        <span className={v2 ? "v2-tag n" : "tag tag-neutral"}>
+                        <span className="v2-tag n">
                           {PRICE_LABEL[p.price_range]}
                         </span>
                       )}
@@ -241,11 +213,7 @@ export function MultiPlaceList({
                   )}
                   {p.notes && (
                     <p
-                      className={
-                        v2
-                          ? "v2-ainote-sm mt-2"
-                          : "mt-2 flex items-start gap-1.5 rounded-lg bg-[var(--surface-muted)]/60 px-2.5 py-1.5 text-xs italic text-[var(--text-muted)]"
-                      }
+                      className="v2-ainote-sm mt-2"
                     >
                       <BotIcon size={13} className="mt-px shrink-0" />
                       <span className="line-clamp-3">{p.notes}</span>
@@ -283,24 +251,17 @@ export function MultiPlaceList({
 
       <div className="flex gap-3 pt-2">
         <button
-          type="button"
+          type="submit"
           formAction={cancelQuickAdd}
-          className={
-            v2
-              ? "v2-btn ghost flex-1 py-3 text-base"
-              : "btn-secondary flex-1 py-3 text-base"
-          }
+          formNoValidate
+          className="v2-btn ghost flex-1 py-3 text-base"
         >
           取消
         </button>
         <button
           type="submit"
           disabled={pending || selected.size === 0}
-          className={
-            v2
-              ? "v2-btn flex-1 py-3 text-base"
-              : "btn-primary flex-1 py-3 text-base"
-          }
+          className="v2-btn flex-1 py-3 text-base"
         >
           {pending
             ? "保存中…"

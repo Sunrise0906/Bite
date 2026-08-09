@@ -509,9 +509,14 @@ export function PlaceConfirmForm({
       )}
 
       <div className="flex gap-3 pt-2">
+        {/* formAction 只在 type="submit"（或不写 type）时才生效 —— 之前写的是
+            type="button"，React 会警告并忽略 formAction，这个「取消」是个死按钮。
+            formNoValidate 是必需的：否则表单里的 required 字段没填时，浏览器会
+            拦下这次提交，取消就又点不动了。 */}
         <button
-          type="button"
+          type="submit"
           formAction={cancelQuickAdd}
+          formNoValidate
           className="v2-btn ghost flex-1 py-3 text-base"
         >
           取消
