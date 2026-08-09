@@ -75,6 +75,7 @@ sql/0014_pick_sessions.sql           # 「一起选」双人滑卡决策（纯�
 sql/0015_push_subscriptions.sql      # Web Push 订阅表（纯增量，先跑再部署）
 sql/0016_list_categories.sql         # 清单 category 吃/喝/玩/其他（纯增量，先跑再部署）
 sql/0017_invite_privilege_escalation.sql # ★★ 安全：修邀请越权提权（⚠️ 先跑 SQL 再部署代码，见文件头）
+sql/0018_fix_accept_invite_ambiguity.sql # ★★ 必跑：修 0017 函数的 42702，不跑则「接受邀请」失败
 ```
 
 ## 项目结构

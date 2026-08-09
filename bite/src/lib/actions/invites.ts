@@ -118,9 +118,15 @@ export async function acceptListInvite(token: string): Promise<AcceptResult> {
   // 整个「校验 token → 插 list_members → 标 used」收敛进一个 SECURITY DEFINER
   // 函数（sql/0017），原子完成。此前是应用层分三步做，而 DB 侧为了让它能跑通
   // 开了三条过宽的策略，叠加起来任何登录用户都能自封任意清单的 co_owner。
+  // OUT 参数叫 out_list_id 而不是 list_id：后者会和 list_members/list_invites 的
+  // 同名列在 PL/pgSQL 里撞车（42702 ambiguous），见 sql/0018 的文件头。
   const { data, error } = await supabase
     .rpc("accept_list_invite", { p_token: token })
-    .maybeSingle<{ ok: boolean; error_code: string | null; list_id: string | null }>();
+    .maybeSingle<{
+      ok: boolean;
+      error_code: string | null;
+      out_list_id: string | null;
+    }>();
 
   if (error) return { error: `加入失败：${error.message}` };
   if (!data) return { error: "邀请不存在或已被撤销" };
@@ -130,7 +136,7 @@ export async function acceptListInvite(token: string): Promise<AcceptResult> {
     };
   }
 
-  const listId = data.list_id!;
+  const listId = data.out_list_id!;
 
   revalidatePath("/lists");
   revalidatePath(`/lists/${listId}`);
