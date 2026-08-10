@@ -34,7 +34,10 @@ Bite 现在的很多设计，隐含前提是「注册的都是熟人」：
 2. **成本收口** —— 见 [`0003`](./0003-llm-cost-ceiling.md) 第 2 条起。开发者的 key 给
    陌生人用是无底洞。
 3. **限流从内存态换成 Postgres** —— serverless 上每实例一份的 `Map` 挡不住任何人。
-4. **滥用面复核** —— XHS 抓取的 SSRF（见 [`0001`](./0001-xhs-scraping-scope.md)）、
+4. **开启泄露密码防护** —— Supabase Auth 可对着 HaveIBeenPwned 校验密码，
+   目前是关的。⚠️ **该功能需要 Pro 套餐**，当前项目在 Free 套餐上开不了 ——
+   所以「开放注册」这个决定实际上还捆绑着一笔订阅支出。
+5. **滥用面复核** —— XHS 抓取的 SSRF（见 [`0001`](./0001-xhs-scraping-scope.md)）、
    photos bucket 的孤儿对象无 GC、`places.notes` 的无长度上限追加。
 
 ## 如果决定不开放
