@@ -12,6 +12,7 @@ import { validatePhotoFile } from "@/lib/storage/validate";
 import { extractXhsUrl, scrapeXhsUrl, stripXhsUrl } from "@/lib/places/xhs";
 import { findPlaceOnGoogle } from "@/lib/places/google";
 import { pickPhotosByIndices } from "@/lib/places/merge";
+import { isPlaceDomain, type PlaceDomain } from "@/lib/places/domain";
 import {
   buildUpsertPlan,
   type ExistingPlaceRow,
@@ -56,6 +57,24 @@ async function notifyListMembersNewPlace(
     body: `${who} 加了 ${what}`,
     url: `/lists/${listId}`,
   });
+}
+
+
+/**
+ * 目标清单的领域，用来让抽取按「吃/喝/玩」各自的口径理解字段。
+ * 查不到（没传 / 不可读）就返回 undefined —— 抽取会走领域中立的通用 prompt。
+ */
+async function domainOfList(
+  supabase: SupabaseClient,
+  listId: string | undefined,
+): Promise<PlaceDomain | undefined> {
+  if (!listId) return undefined;
+  const { data } = await supabase
+    .from("lists")
+    .select("category")
+    .eq("id", listId)
+    .maybeSingle<{ category: string }>();
+  return isPlaceDomain(data?.category) ? data.category : undefined;
 }
 
 // Draft 存在 Supabase public.quick_add_drafts，按 user_id UPSERT
@@ -141,7 +160,9 @@ export async function processTextDraft(
     }
   }
 
-  const result = await extractPlacesFromText(inputForAI);
+  const supabaseForDomain = await createClient();
+  const domain = await domainOfList(supabaseForDomain, targetListId);
+  const result = await extractPlacesFromText(inputForAI, domain);
   if (!result.ok) return { error: result.error };
 
   // rawInput 留 1000 字够 debug，不影响 DB
@@ -209,9 +230,11 @@ export async function processImageDraft(
 
   const targetListId = String(formData.get("target_list_id") ?? "") || undefined;
   const buf = Buffer.from(await file.arrayBuffer());
+  const domain = await domainOfList(await createClient(), targetListId);
   const result = await extractPlacesFromImage(
     { base64: buf.toString("base64"), mimeType: file.type },
     String(formData.get("hint") ?? ""),
+    domain,
   );
   if (!result.ok) return { error: result.error };
 
@@ -413,7 +436,7 @@ export async function savePlaceFromDraft(
 
   if (!name) return { error: "店名不能为空" };
   if (!address) return { error: "地址不能为空" };
-  if (cuisine.length === 0) return { error: "请填写至少一个菜系标签" };
+  if (cuisine.length === 0) return { error: "请填写至少一个类型标签（吃=菜系 / 喝=品类 / 玩=类型）" };
 
   const source = parseSource(formData.get("source"));
   const sourceUrl = String(formData.get("source_url") ?? "").trim() || null;

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isPlaceDomain } from "@/lib/places/domain";
 import { redirect } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { readDraft } from "@/lib/actions/quick-add";
@@ -39,7 +40,7 @@ export default async function QuickAddPage({
   const [{ data: listsRows }, { data: memberships }] = await Promise.all([
     supabase
       .from("lists")
-      .select("id, name, owner_id")
+      .select("id, name, owner_id, category")
       .order("created_at", { ascending: true }),
     supabase
       .from("list_members")
@@ -47,7 +48,7 @@ export default async function QuickAddPage({
       .eq("user_id", user.id),
   ]);
 
-  type ListRow = { id: string; name: string; owner_id: string };
+  type ListRow = { id: string; name: string; owner_id: string; category?: string };
   const allLists = (listsRows ?? []) as ListRow[];
   const coOwnerListIds = new Set(
     (memberships ?? [])
@@ -60,6 +61,8 @@ export default async function QuickAddPage({
       id: l.id,
       name: l.name,
       isOwner: l.owner_id === user.id,
+      // 清单领域 → 确认页据此把「菜系」显示成「品类 / 类型」
+      category: isPlaceDomain(l.category) ? l.category : undefined,
     }));
 
   // 目标清单：URL（店名搜索路径）或草稿（文本/小红书/拍照路径）。

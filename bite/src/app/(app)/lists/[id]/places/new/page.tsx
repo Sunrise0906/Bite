@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isPlaceDomain } from "@/lib/places/domain";
 import { notFound } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { PlaceForm } from "@/components/places/place-form";
@@ -36,7 +37,7 @@ export default async function NewPlacePage({ params }: { params: Params }) {
 
   const { data: list } = await supabase
     .from("lists")
-    .select("id, name")
+    .select("id, name, category")
     .eq("id", listId)
     .maybeSingle();
 
@@ -57,7 +58,12 @@ export default async function NewPlacePage({ params }: { params: Params }) {
           记下店名和地址就行，细节可以以后慢慢补
         </p>
       </header>
-      <PlaceForm mode="create" listId={listId} currentUserId={user.id} />
+      <PlaceForm
+        mode="create"
+        listId={listId}
+        listCategory={isPlaceDomain(list.category) ? list.category : undefined}
+        currentUserId={user.id}
+      />
     </main>
   );
 }

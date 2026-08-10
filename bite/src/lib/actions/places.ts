@@ -32,7 +32,7 @@ export async function createPlace(
 
   if (!name) return { error: "请填写店名" };
   if (!address) return { error: "请填写地址" };
-  if (cuisine.length === 0) return { error: "请填写至少一个菜系标签" };
+  if (cuisine.length === 0) return { error: "请填写至少一个类型标签（吃=菜系 / 喝=品类 / 玩=类型）" };
 
   const status = parseStatus(formData.get("status"));
   const priceRange = parsePrice(formData.get("price_range"));
@@ -95,7 +95,7 @@ export async function updatePlace(
 
   if (!name) return { error: "请填写店名" };
   if (!address) return { error: "请填写地址" };
-  if (cuisine.length === 0) return { error: "请填写至少一个菜系标签" };
+  if (cuisine.length === 0) return { error: "请填写至少一个类型标签（吃=菜系 / 喝=品类 / 玩=类型）" };
 
   const notesRaw = formData.get("notes");
   const photoRaw = formData.get("photo_urls_text");

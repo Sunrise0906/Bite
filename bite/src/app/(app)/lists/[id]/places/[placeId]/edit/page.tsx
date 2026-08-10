@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isPlaceDomain } from "@/lib/places/domain";
 import { notFound } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import type { Place, VisitLog } from "@/lib/db/types";
@@ -85,9 +86,9 @@ export default async function EditPlacePage({ params }: { params: Params }) {
         .order("visited_at", { ascending: false }),
       supabase
         .from("lists")
-        .select("owner_id")
+        .select("owner_id, category")
         .eq("id", listId)
-        .maybeSingle<{ owner_id: string }>(),
+        .maybeSingle<{ owner_id: string; category?: string }>(),
     ]);
 
   if (!place) notFound();
@@ -167,6 +168,7 @@ export default async function EditPlacePage({ params }: { params: Params }) {
       <PlaceForm
         mode="edit"
         listId={listId}
+        listCategory={isPlaceDomain(listRow?.category) ? listRow.category : undefined}
         place={place}
         currentUserId={user.id}
         readOnly={!canEdit}

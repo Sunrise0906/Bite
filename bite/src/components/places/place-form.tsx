@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { vocabFor, type PlaceDomain } from "@/lib/places/domain";
 import { useActionState, useState } from "react";
 import { createPlace, updatePlace } from "@/lib/actions/places";
 import type { Place } from "@/lib/db/types";
@@ -20,6 +21,8 @@ type Mode =
   | {
       mode: "create";
       listId: string;
+      /** 清单领域（sql/0016）—— 决定字段标签叫「菜系」还是「类型」 */
+      listCategory?: PlaceDomain;
       place?: undefined;
       currentUserId: string;
       readOnly?: boolean;
@@ -29,6 +32,8 @@ type Mode =
   | {
       mode: "edit";
       listId: string;
+      /** 清单领域（sql/0016）—— 决定字段标签叫「菜系」还是「类型」 */
+      listCategory?: PlaceDomain;
       place: Place;
       currentUserId: string;
       readOnly?: boolean;
@@ -43,6 +48,7 @@ export function PlaceForm(props: Mode) {
   const ownReason =
     place?.reasons.find((r) => r.user_id === props.currentUserId)?.text ?? "";
   const readOnly = props.readOnly === true;
+  const vocab = vocabFor(props.listCategory);
 
   // photo URLs 改成 controlled，提供实时预览。
   // textarea / 落库永远是 canonical URL；img 预览把 canonical 换成 signed
@@ -109,7 +115,7 @@ export function PlaceForm(props: Mode) {
 
           <div>
             <label htmlFor="p-cuisine" className={LABEL_CLS}>
-              菜系 {Req}
+              {vocab.typeLabel} {Req}
             </label>
             <input
               id="p-cuisine"

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { domainFocusPrompt, type PlaceDomain } from "@/lib/places/domain";
 import { getProvider } from "./router";
 import { LlmProviderError } from "./types";
 
@@ -79,7 +80,12 @@ export type ExtractionResult = z.infer<typeof ExtractionResultSchema>;
 
 // ============================== Prompt ==============================
 
-const SYSTEM_PROMPT = `你是一个餐厅信息提取助手。从用户输入的中文文本中提取餐厅结构化信息。
+const SYSTEM_PROMPT = `你是一个「去处」信息提取助手。从用户输入的中文文本中提取结构化信息。
+
+【去处 ≠ 只有餐厅】（很重要）
+用户的清单分四类：吃（餐厅）/ 喝（咖啡、酒吧、甜品）/ 玩（展览、徒步、密室、演出、公园）/ 其他。
+帖子可能是探店，也可能是看展、爬山、逛市集。**不要因为「这不是餐厅」就返回空数组** ——
+只要能认出一个具体的、有名字的去处，就正常抽取。
 
 【输入类型】
 - 简短描述："罗兰岗的老北京炸酱面"
@@ -101,20 +107,27 @@ const SYSTEM_PROMPT = `你是一个餐厅信息提取助手。从用户输入的
 - 评论区里别人推荐的店（如 "@A：我推 XXX 也好吃"），信息够（至少 name + cuisine 或 address 信号）也作为独立 places 元素，notes 里写 "评论区 @某用户 推荐"
 
 【每个 places 元素的字段规则】
-- name：餐厅名（必填）
+- name：去处名称（必填）—— 餐厅名 / 店名 / 场馆名 / 步道名都算
 - address：地址（必填，至少给出大致区域，如 "Irvine" 或 "罗兰岗"；原文模糊时给最具体的可推断范围）
-- cuisine：菜系数组（必填，至少 1 个）。常见值：中餐、川菜、粤菜、火锅、面食、日料、寿司、拉面、韩餐、烧烤、咖啡、甜品、烘焙、美式、墨西哥菜、越南菜、泰餐、台菜、上海菜
-- price_range：人均价位
+- cuisine：**类型标签**数组（必填，至少 1 个）。按去处的领域给：
+  · 吃 → 菜系：中餐、川菜、粤菜、火锅、面食、日料、寿司、拉面、韩餐、烧烤、美式、墨西哥菜、越南菜、泰餐、台菜、上海菜
+  · 喝 → 品类：咖啡、手冲、奶茶、果茶、酒吧、清吧、精酿、甜品、烘焙、冰淇淋
+  · 玩 → 类型：展览、美术馆、博物馆、徒步、海滩、公园、密室、剧本杀、livehouse、演出、电影、球场、露营、温泉、市集
+  · 其他 → 购物、书店、健身、生活服务 等
+  实在归不了类就给一个最贴切的中文词，**不要留空**
+- price_range：花费档位（吃喝=人均消费；玩乐=门票或人均花费）
   - "$" = < $15  /  "$$" = $15-30  /  "$$$" = $30-60  /  "$$$$" = > $60
-  仅当文中明确人均数字时填；不明确就**省略**，不要瞎猜
+  仅当文中明确金额时填；免费或不明确就**省略**，不要瞎猜
 - status：默认 "want_to_go"；过去时态时 "visited"
-- occasions：适合场合（"约会"、"聚会"、"招待长辈"、"快餐"、"工作日午餐"）
+- occasions：适合场合（"约会"、"聚会"、"招待长辈"、"快餐"、"工作日午餐"、"周末出片"、"带小孩"、"一个人也行"）
 - recommended_by：推荐来源（"朋友"、"XHS博主"、"@小李"、"自己"）。粘贴小红书帖子默认 "XHS博主"
 - tags：其他显著特征（"排队长"、"有露台"、"环境好"、"可带宠物"、"开车 40 分钟"、"等位 4 小时"）
 - reason：用户的想去 / 评价理由，一句话保留原文味道，不超过 30 字
-- dishes：原文里明确点名推荐的【具体菜】（"麻酱小面"、"烧鸭炒饭"、"芋泥小笼包"）。只收点名的菜，不泛化，没有就空，最多 6 个
+- dishes：原文里明确点名推荐的【具体项目】。只收点名的，不泛化，没有就空，最多 6 个
+  · 吃喝 → 招牌菜 / 招牌饮品（"麻酱小面"、"烧鸭炒饭"、"桂花拿铁"）
+  · 玩乐 → 亮点（"无限镜屋"、"三楼 Basquiat 展厅"、"日落步道"、"二号线密室"）
 - confidence：
-  - "high"：name + address + cuisine 都能直接从原文/段落提取
+  - "high"：name + address + cuisine（类型）都能直接从原文/段落提取
   - "medium"：推断了 1-2 个必填字段
   - "low"：缺关键信息或大量推测
 - notes：**总是写**，作为这家店的"AI 备注"持久保存到数据库，给未来决策 agent 用。1-3 句话综合判断，按重要性排序：
@@ -281,6 +294,7 @@ export type ExtractResult =
 export async function extractPlacesFromImage(
   image: { base64: string; mimeType: string },
   hint?: string,
+  domain?: PlaceDomain,
 ): Promise<ExtractResult> {
   try {
     const provider = await getProvider();
@@ -294,6 +308,7 @@ export async function extractPlacesFromImage(
     const parsed = await provider.extract({
       system:
         SYSTEM_PROMPT +
+        (domain ? domainFocusPrompt(domain) : "") +
         "\n\n【本次输入是一张照片】可能是：菜单（提取店名 + dishes 招牌菜，多为单店）、" +
         "店面/招牌照（提取店名，地址尽量从画面文字推断）、或小红书帖子截图（按帖子正文规则处理）。" +
         "照片里认不出店名时 name 填「（未知）」并把 confidence 设为 low。",
@@ -323,6 +338,8 @@ export async function extractPlacesFromImage(
 
 export async function extractPlacesFromText(
   text: string,
+  /** 已知目标清单领域时传入 —— 让抽取按「吃/喝/玩」各自的口径理解字段 */
+  domain?: PlaceDomain,
 ): Promise<ExtractResult> {
   const trimmed = text.trim();
   if (!trimmed) return { ok: false, error: "请输入要识别的内容" };
@@ -332,7 +349,7 @@ export async function extractPlacesFromText(
   try {
     const provider = await getProvider();
     const parsed = await provider.extract({
-      system: SYSTEM_PROMPT,
+      system: domain ? SYSTEM_PROMPT + domainFocusPrompt(domain) : SYSTEM_PROMPT,
       fewShots: FEW_SHOTS,
       userInput: trimmed,
       schema: ExtractionResultSchema,

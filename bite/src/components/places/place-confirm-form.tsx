@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState, type ReactNode } from "react";
+import { vocabFor, type PlaceDomain } from "@/lib/places/domain";
 import {
   cancelQuickAdd,
   savePlaceFromDraft,
@@ -67,6 +68,8 @@ export type ListOption = {
   id: string;
   name: string;
   isOwner: boolean;
+  /** 清单领域（sql/0016）—— 决定「菜系/品类/类型」这类标签怎么显示 */
+  category?: PlaceDomain;
 };
 
 const LABEL_CLS = "block text-sm font-medium text-[var(--text-default)]";
@@ -202,6 +205,8 @@ export function PlaceConfirmForm({
   const [selectedListId, setSelectedListId] = useState(defaultListId);
   const existingSet = new Set(existingInLists);
   const isDuplicateInList = existingSet.has(selectedListId);
+  // 标签跟着**当前选中的清单**走：把展览加进「玩」清单时，「菜系」应显示为「类型」
+  const vocab = vocabFor(lists.find((l) => l.id === selectedListId)?.category);
   const currentListName =
     lists.find((l) => l.id === selectedListId)?.name ?? "";
 
@@ -243,7 +248,7 @@ export function PlaceConfirmForm({
 
       {source === "place" && (
         <SourceBanner icon={<GlobeIcon size={14} />}>
-          来自 Google Places · 已自动填入店名 / 地址 / 菜系推断
+          来自 Google Places · 已自动填入店名 / 地址 / 类型推断
         </SourceBanner>
       )}
       {source === "text" && initial.source === "xhs" && (
@@ -368,7 +373,7 @@ export function PlaceConfirmForm({
 
       <div>
         <label htmlFor="qf-cuisine" className={LABEL_CLS}>
-          菜系 <span className="text-[var(--primary)]">*</span>
+          {vocab.typeLabel} <span className="text-[var(--primary)]">*</span>
         </label>
         <input
           id="qf-cuisine"
