@@ -3,7 +3,7 @@ import { VisitLogButton } from "@/components/visits/visit-log-button";
 import type { VisitPrefill } from "@/components/visits/visit-log-form";
 import type { OpeningInfo } from "@/lib/places/google";
 import type { XhsSearchHit } from "@/lib/places/xhs-search";
-import { menuSearchUrl, xhsSearchUrl } from "@/lib/places/menu-url";
+import { menuUrl, xhsSearchUrl } from "@/lib/places/menu-url";
 import { XhsImportButton } from "./xhs-import-button";
 
 export type DetailPlace = {
@@ -23,6 +23,7 @@ export type DetailPlace = {
   google_rating: number | null;
   google_rating_count: number | null;
   google_maps_uri: string | null;
+  website_uri: string | null;
   lat: number | null;
   lng: number | null;
 };
@@ -355,7 +356,7 @@ export function PlaceDetailV2({
         {/* 看菜单（最显眼的主行动） */}
         <a
           className="v2-btn"
-          href={menuSearchUrl(place.name, place.address)}
+          href={menuUrl(place.name, place.address, place.website_uri)}
           target="_blank"
           rel="noreferrer"
           style={{ width: "100%", padding: 13, marginTop: 16 }}
@@ -397,7 +398,8 @@ export function PlaceDetailV2({
           )}
         </div>
 
-        {/* 小红书搜这家（深链直达，手机唤起 XHS App） */}
+        {/* 小红书搜这家。走 Google 的 site: 限定搜索 —— 小红书网页版搜索
+            现在要登录，直接深链过去只会看到登录墙且关键词丢失（见 menu-url.ts）。 */}
         <a
           className="v2-btn ghost"
           href={xhsSearchUrl(place.name)}

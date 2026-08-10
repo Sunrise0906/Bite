@@ -44,6 +44,7 @@ export type PlaceDetails = {
   types: string[];
   primaryType: string | null;
   primaryTypeDisplayName: string | null;
+  websiteUri: string | null;
 };
 
 export async function getPlaceDetails(
@@ -51,7 +52,7 @@ export async function getPlaceDetails(
   sessionToken?: string,
 ): Promise<PlaceDetails> {
   const fields =
-    "id,displayName,formattedAddress,location,types,primaryType,primaryTypeDisplayName";
+    "id,displayName,formattedAddress,location,types,primaryType,primaryTypeDisplayName,websiteUri";
 
   const url = new URL(`${PLACES_BASE}/places/${encodeURIComponent(placeId)}`);
   if (sessionToken) url.searchParams.set("sessionToken", sessionToken);
@@ -77,6 +78,7 @@ export async function getPlaceDetails(
     types?: string[];
     primaryType?: string;
     primaryTypeDisplayName?: { text?: string };
+    websiteUri?: string;
   } = await res.json();
 
   return {
@@ -86,6 +88,7 @@ export async function getPlaceDetails(
     lat: data.location?.latitude ?? null,
     lng: data.location?.longitude ?? null,
     types: data.types ?? [],
+    websiteUri: data.websiteUri ?? null,
     primaryType: data.primaryType ?? null,
     primaryTypeDisplayName: data.primaryTypeDisplayName?.text ?? null,
   };
@@ -240,6 +243,8 @@ export type GooglePlaceMatch = {
   lng: number | null;
   address: string;
   mapsUri: string | null;
+  /** 餐厅多为在线点单/菜单页（Toast、Square 等）——「看菜单」直达它 */
+  websiteUri: string | null;
 };
 
 // 按「店名 + 地址」在 Google 上找到对应店铺，拿评分 / 评价数 / 精确坐标 / 规范地址 /
@@ -257,7 +262,7 @@ export async function findPlaceOnGoogle(
         "Content-Type": "application/json",
         "X-Goog-Api-Key": getServerApiKey(),
         "X-Goog-FieldMask":
-          "places.id,places.displayName,places.rating,places.userRatingCount,places.location,places.formattedAddress,places.googleMapsUri",
+          "places.id,places.displayName,places.rating,places.userRatingCount,places.location,places.formattedAddress,places.googleMapsUri,places.websiteUri",
       },
       body: JSON.stringify({
         textQuery: q,
@@ -276,6 +281,7 @@ export async function findPlaceOnGoogle(
         location?: { latitude?: number; longitude?: number };
         formattedAddress?: string;
         googleMapsUri?: string;
+        websiteUri?: string;
       }>;
     } = await res.json();
     const p = data.places?.[0];
@@ -290,6 +296,7 @@ export async function findPlaceOnGoogle(
       lng: p.location?.longitude ?? null,
       address: p.formattedAddress ?? "",
       mapsUri: p.googleMapsUri ?? null,
+      websiteUri: p.websiteUri ?? null,
     };
   } catch {
     return null;

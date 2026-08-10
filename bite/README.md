@@ -78,6 +78,7 @@ sql/0017_invite_privilege_escalation.sql # ★★ 安全：修邀请越权提权
 sql/0018_fix_accept_invite_ambiguity.sql # ★★ 必跑：修 0017 函数的 42702，不跑则「接受邀请」失败
 sql/0019_co_owner_rename_list.sql     # 共享清单的 co_owner 也能改名（纯增量）
 sql/0020_harden_function_exposure.sql # 收紧函数暴露面（安全顾问）；纯加固，无业务变更
+sql/0021_places_website_uri.sql       # places.website_uri（「看菜单」直达点单页）；纯增量
 ```
 
 ## 项目结构

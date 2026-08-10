@@ -70,10 +70,16 @@ console.log("\n[2] 按 owner / 共享 分别给出正确操作");
   const rename = await page.getByRole("button", { name: "重命名" }).count();
   const del = await page.getByRole("button", { name: "删除" }).count();
   const leave = await page.getByRole("button", { name: "离开" }).count();
-  if (rename > 0 && del === rename) ok(`自己的清单 ${rename} 个：重命名 + 删除`);
-  else bad(`重命名(${rename}) 与 删除(${del}) 数量对不上`);
-  if (leave > 0) ok(`共享清单 ${leave} 个：离开（不给删除）`);
+
+  // sql/0019 之后：改名 = owner **或** co_owner；删除仍只有 owner。
+  // 所以 重命名 数应当 = 删除数(自有) + 离开数中的 co_owner 部分，
+  // 至少不小于删除数 —— 断言成「相等」是 0019 之前的旧规则。
+  if (rename >= del && del > 0) ok(`自有清单 ${del} 个可删；共 ${rename} 个可改名`);
+  else bad(`重命名(${rename}) 少于删除(${del}) —— 不该有能删却不能改名的清单`);
+  if (leave > 0) ok(`共享清单 ${leave} 个：只给离开，不给删除`);
   else console.log("    – 没有共享清单可验");
+  if (leave === 0 || rename > del) ok("共享清单也能改名（0019）");
+  else bad("共享清单拿不到重命名 —— sql/0019 没生效？");
 }
 
 console.log("\n[3] 破坏性操作必须先确认");

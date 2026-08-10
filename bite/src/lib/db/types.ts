@@ -59,6 +59,7 @@ export type Place = {
   google_rating: number | null;
   google_rating_count: number | null;
   google_maps_uri: string | null;
+  website_uri: string | null;
   lat: number | null;
   lng: number | null;
   // AI 综合判断 / 评论区交叉信号 / 客观口碑提醒

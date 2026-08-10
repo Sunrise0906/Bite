@@ -30,6 +30,7 @@ function candidate(over: Partial<UpsertCandidate> = {}): UpsertCandidate {
     google_rating: null,
     google_rating_count: null,
     google_maps_uri: null,
+    website_uri: null,
     lat: null,
     lng: null,
     ...over,

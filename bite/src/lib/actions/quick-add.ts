@@ -388,6 +388,7 @@ async function upsertPlaces(
       c.google_rating = m.rating;
       c.google_rating_count = m.ratingCount;
       c.google_maps_uri = m.mapsUri;
+      c.website_uri = m.websiteUri;
       if (c.lat == null && m.lat != null && m.lng != null) {
         c.lat = m.lat;
         c.lng = m.lng;
@@ -484,6 +485,8 @@ export async function savePlaceFromDraft(
         google_rating: null,
         google_rating_count: null,
         google_maps_uri: null,
+        // 置 null：upsertPlaces 的自动丰富会去查 Google 并回填（那里也拿 websiteUri）
+        website_uri: null,
         lat: Number.isFinite(lat) ? lat : null,
         lng: Number.isFinite(lng) ? lng : null,
       },
@@ -583,6 +586,7 @@ export async function savePlacesBatch(
     google_rating: null,
     google_rating_count: null,
     google_maps_uri: null,
+    website_uri: null,
     lat: null,
     lng: null,
   }));

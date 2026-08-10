@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { domainFocusPrompt, type PlaceDomain } from "@/lib/places/domain";
-import { getProvider } from "./router";
-import { LlmProviderError } from "./types";
+import {
+  backoffMs,
+  exhaustedMessage,
+  isTransient,
+  shouldRetrySameProvider,
+} from "./failover";
+import { resolveProviderChain, buildProvider } from "./router";
+import { LlmProviderError, type LlmProvider, type LlmError } from "./types";
 
 // 模型由 provider router 按当前用户 settings 决定（Anthropic / OpenAI / DeepSeek / Qwen）
 
@@ -9,7 +15,9 @@ import { LlmProviderError } from "./types";
 
 const PlaceItemSchema = z.object({
   name: z.string().describe("餐厅名"),
-  address: z.string().describe("地址，至少给出大致区域，如 'Irvine' 或 '罗兰岗'"),
+  address: z
+    .string()
+    .describe("地址，至少给出大致区域，如 'Irvine' 或 '罗兰岗'"),
   cuisine: z.array(z.string()).describe("菜系数组，至少 1 个"),
   price_range: z
     .enum(["$", "$$", "$$$", "$$$$"])
@@ -225,8 +233,7 @@ const FEW_SHOTS: Array<{ user: string; assistant: ExtractionResult }> = [
           dishes: ["烧鸭", "炒饭"],
           tags: ["分量大"],
           confidence: "high",
-          notes:
-            "博主四月探店合集第 1 家。主推炒饭和烧鸭，分量大可打包。",
+          notes: "博主四月探店合集第 1 家。主推炒饭和烧鸭，分量大可打包。",
           photo_indices: [0, 1],
         },
         {
@@ -291,34 +298,82 @@ export type ExtractResult =
  * 走 provider 的 vision（Gemini/GPT/DeepSeek/Qwen 的 OpenAI 兼容层）；
  * Anthropic provider 暂不支持图片抽取（extract 是 compat 专属实现），给友好提示。
  */
+
+const MAX_RETRY_PER_PROVIDER = 2;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * 跑一次 extract：同一个 provider 先退避重试，仍失败就换下一个。
+ *
+ * 起因是用户连着加店撞上 Gemini 免费层的每分钟上限，前端直接甩出
+ * 「限流，请稍后再试」——不重试、不说是谁的限制、也不说等多久。
+ *
+ * 只对 rate_limit / api / parse 转移；auth / missing_key 立刻抛出——
+ * 那是配置错了，换 provider 只会把同一个错误重复 N 遍还掩盖真正原因。
+ */
+async function extractWithFailover<T>(
+  run: (provider: LlmProvider) => Promise<T>,
+): Promise<T> {
+  const chain = await resolveProviderChain();
+  let lastKind: LlmError["type"] = "unknown";
+
+  for (const config of chain) {
+    const provider = buildProvider(config);
+    for (let attempt = 0; attempt <= MAX_RETRY_PER_PROVIDER; attempt++) {
+      try {
+        return await run(provider);
+      } catch (err) {
+        const kind: LlmError["type"] =
+          err instanceof LlmProviderError ? err.kind : "unknown";
+        lastKind = kind;
+
+        if (!isTransient(kind)) throw err; // 配置类错误：立刻暴露，别掩盖
+        if (attempt < MAX_RETRY_PER_PROVIDER && shouldRetrySameProvider(kind)) {
+          await sleep(backoffMs(attempt));
+          continue;
+        }
+        break; // 换下一个 provider
+      }
+    }
+  }
+
+  throw new LlmProviderError(
+    lastKind,
+    exhaustedMessage(lastKind, chain.length),
+  );
+}
+
 export async function extractPlacesFromImage(
   image: { base64: string; mimeType: string },
   hint?: string,
   domain?: PlaceDomain,
 ): Promise<ExtractResult> {
   try {
-    const provider = await getProvider();
-    if (provider.config.id === "anthropic") {
-      return {
-        ok: false,
-        error:
-          "当前 AI 设置（Anthropic）暂不支持拍照识别，去「我的 → AI 设置」切到 Gemini（免费）即可用。",
-      };
-    }
-    const parsed = await provider.extract({
-      system:
-        SYSTEM_PROMPT +
-        (domain ? domainFocusPrompt(domain) : "") +
-        "\n\n【本次输入是一张照片】可能是：菜单（提取店名 + dishes 招牌菜，多为单店）、" +
-        "店面/招牌照（提取店名，地址尽量从画面文字推断）、或小红书帖子截图（按帖子正文规则处理）。" +
-        "照片里认不出店名时 name 填「（未知）」并把 confidence 设为 low。",
-      userInput:
-        (hint?.trim() ? `（用户备注）${hint.trim()}\n\n` : "") +
-        "请识别这张照片里的店铺信息。",
-      image,
-      schema: ExtractionResultSchema,
-      schemaName: "place_extraction",
-      maxTokens: 4096,
+    // 拍照识别 Anthropic 走不通，但故障转移链里可能就有它 ——
+    // 让 extractWithFailover 直接跳过它，而不是整条链在这儿断掉。
+    const parsed = await extractWithFailover((provider) => {
+      if (provider.config.id === "anthropic") {
+        throw new LlmProviderError(
+          "api",
+          "Anthropic 不支持拍照识别（已自动跳过，尝试下一个 AI）",
+        );
+      }
+      return provider.extract({
+        system:
+          SYSTEM_PROMPT +
+          (domain ? domainFocusPrompt(domain) : "") +
+          "\n\n【本次输入是一张照片】可能是：菜单（提取店名 + dishes 招牌菜，多为单店）、" +
+          "店面/招牌照（提取店名，地址尽量从画面文字推断）、或小红书帖子截图（按帖子正文规则处理）。" +
+          "照片里认不出店名时 name 填「（未知）」并把 confidence 设为 low。",
+        userInput:
+          (hint?.trim() ? `（用户备注）${hint.trim()}\n\n` : "") +
+          "请识别这张照片里的店铺信息。",
+        image,
+        schema: ExtractionResultSchema,
+        schemaName: "place_extraction",
+        maxTokens: 4096,
+      });
     });
 
     if (!parsed.places || parsed.places.length === 0) {
@@ -347,15 +402,18 @@ export async function extractPlacesFromText(
     return { ok: false, error: "文本过长，超过 10000 字" };
 
   try {
-    const provider = await getProvider();
-    const parsed = await provider.extract({
-      system: domain ? SYSTEM_PROMPT + domainFocusPrompt(domain) : SYSTEM_PROMPT,
-      fewShots: FEW_SHOTS,
-      userInput: trimmed,
-      schema: ExtractionResultSchema,
-      schemaName: "place_extraction",
-      maxTokens: 4096,
-    });
+    const parsed = await extractWithFailover((provider) =>
+      provider.extract({
+        system: domain
+          ? SYSTEM_PROMPT + domainFocusPrompt(domain)
+          : SYSTEM_PROMPT,
+        fewShots: FEW_SHOTS,
+        userInput: trimmed,
+        schema: ExtractionResultSchema,
+        schemaName: "place_extraction",
+        maxTokens: 4096,
+      }),
+    );
 
     if (!parsed.places || parsed.places.length === 0) {
       return { ok: false, error: "AI 未返回有效结构化结果，请重试或换种描述" };
@@ -376,4 +434,3 @@ export async function extractPlacesFromText(
     };
   }
 }
-

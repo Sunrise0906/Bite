@@ -40,6 +40,8 @@ export type UpsertCandidate = {
   google_rating: number | null;
   google_rating_count: number | null;
   google_maps_uri: string | null;
+  /** Places 的 websiteUri —— 餐厅多为点单/菜单页 */
+  website_uri: string | null;
   lat: number | null;
   lng: number | null;
 };
@@ -78,6 +80,7 @@ export function googleFieldsFor(c: UpsertCandidate): Record<string, unknown> {
       ? { google_rating_count: c.google_rating_count }
       : {}),
     ...(c.google_maps_uri ? { google_maps_uri: c.google_maps_uri } : {}),
+    ...(c.website_uri ? { website_uri: c.website_uri } : {}),
     ...(c.lat != null && c.lng != null ? { lat: c.lat, lng: c.lng } : {}),
   };
 }
@@ -165,6 +168,7 @@ export function buildUpsertPlan(
           google_rating: c.google_rating,
           google_rating_count: c.google_rating_count,
           google_maps_uri: c.google_maps_uri,
+          website_uri: c.website_uri,
           lat: c.lat,
           lng: c.lng,
           created_by: userId,

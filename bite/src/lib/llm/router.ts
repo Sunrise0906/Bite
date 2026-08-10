@@ -12,6 +12,7 @@ import {
   type ProviderId,
   type ResolvedProviderConfig,
 } from "./types";
+import { providerChain } from "./failover";
 
 export type UserLlmSettings = {
   provider: ProviderId;
@@ -87,4 +88,35 @@ export async function getProvider(): Promise<LlmProvider> {
   const settings = await loadUserLlmSettings();
   const config = resolveConfig(settings);
   return buildProvider(config);
+}
+
+/** 某个 provider 有没有配 app 默认 key */
+export function hasAppKey(id: ProviderId): boolean {
+  return Boolean(process.env[PROVIDER_PRESETS[id].apiKeyEnvVar]?.trim());
+}
+
+/**
+ * 故障转移用的 provider 列表：用户选的排第一，后面跟上其他**配了 app key** 的。
+ *
+ * 用户自己填了 key 时只返回他选的那一个 —— 他明确指定了要用谁（而且可能是付费
+ * 额度），不该在他背后偷偷换别家。只有走 app 默认 key 时才做转移。
+ */
+export async function resolveProviderChain(): Promise<ResolvedProviderConfig[]> {
+  const settings = await loadUserLlmSettings();
+  const primary = resolveConfig(settings);
+  if (primary.keySource === "user") return [primary];
+
+  const ids = providerChain(primary.id, hasAppKey);
+  const configs: ResolvedProviderConfig[] = [];
+  for (const id of ids) {
+    try {
+      // 只换 provider，保留用户的 base_url/model 覆盖是不对的（那是给原 provider 的）
+      configs.push(
+        resolveConfig(id === primary.id ? settings : { provider: id, api_key: null, base_url: null, chat_model: null, extract_model: null }),
+      );
+    } catch {
+      // 这家没 key → 跳过（providerChain 已经过滤过，这里是兜底）
+    }
+  }
+  return configs.length > 0 ? configs : [primary];
 }

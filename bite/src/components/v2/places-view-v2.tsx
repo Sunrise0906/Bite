@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Place, PlacePrice, PlaceStatus } from "@/lib/db/types";
 import { relDate } from "@/lib/util/rel-date";
-import { menuSearchUrl } from "@/lib/places/menu-url";
+import { menuUrl } from "@/lib/places/menu-url";
 import type { VisitSignal } from "@/lib/visits/aggregate";
 import { StatusQuickToggle } from "@/components/places/status-quick-toggle";
 import { deletePlace } from "@/lib/actions/places";
@@ -418,7 +418,7 @@ function PlaceCardV2({
       ) : (
       <a
         className="pcard-menu"
-        href={menuSearchUrl(place.name, place.address)}
+        href={menuUrl(place.name, place.address, place.website_uri)}
         target="_blank"
         rel="noreferrer"
         aria-label={`看 ${place.name} 的菜单`}
