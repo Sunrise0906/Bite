@@ -10,8 +10,14 @@
 
 import { tryBuildFromOgMeta } from "./xhs-html";
 
+// 小红书的分享链接域名不止一个，而且**同一个短链服务有 .com 和 .cn 两套**。
+// App 分享出来的口令里实际出现过：
+//   xhslink.com/a/xxxx   xhslink.cn/o/xxxx   xhs.cn/xxxx   www.xiaohongshu.com/explore/xxx
+// 漏掉任何一个，那条链接就不会被当成小红书链接 —— 不会去抓正文，只把用户粘的
+// 那段**被截断的分享口令**（"…从来没..."）丢给 LLM，于是店名抽成「（未知）」。
+// 这种失败很隐蔽：不报错、有结果、只是内容是空的。
 const XHS_URL_RE =
-  /https?:\/\/(?:www\.)?(?:xiaohongshu\.com|xhslink\.com|xhs\.cn)\/[^\s<>"']+/i;
+  /https?:\/\/(?:www\.)?(?:xiaohongshu\.com|xhslink\.(?:com|cn)|xhs\.(?:cn|com))\/[^\s<>"']+/i;
 
 const NOTE_ID_FROM_PATH_RE = /\/(?:item|explore|discovery\/item)\/([a-z0-9]+)/i;
 
