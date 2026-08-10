@@ -211,6 +211,19 @@
 .ui-v2 .v2-pcard .pcard-menu:active { opacity:.6; }
 /* 状态切换 chip：放在 <Link> 之外（交互控件不能嵌在链接里），可编辑时才出现 */
 .ui-v2 .v2-pcard .pcard-status { flex:none; align-self:flex-start; margin-left:10px; }
+/* 管理模式：右侧那一栏从「菜单」换成 编辑 / 删除 */
+.ui-v2 .v2-pcard .pcard-manage { flex:none; align-self:stretch; display:flex; flex-direction:column; justify-content:center; gap:6px; width:62px; margin-left:10px; padding-left:10px; border-left:var(--v2-bw) solid var(--v2-border); }
+.ui-v2 .v2-pcard .pcard-manage a,
+.ui-v2 .v2-pcard .pcard-manage button { display:block; width:100%; text-align:center; border:var(--v2-bw) solid var(--v2-border2); background:var(--v2-surface); border-radius:999px; padding:4px 0; font-size:11.5px; font-weight:700; color:var(--v2-ink2); cursor:pointer; }
+.ui-v2 .v2-pcard .pcard-manage a:hover,
+.ui-v2 .v2-pcard .pcard-manage button:hover { background:var(--v2-surface2); }
+.ui-v2 .v2-pcard .pcard-manage button.danger { color:var(--v2-danger); border-color:var(--v2-danger); }
+.ui-v2 .v2-pcard .pcard-manage button.danger:hover { background:var(--v2-danger-bg); }
+/* 店铺列表上方的管理开关行 */
+.ui-v2 .v2-plist-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.ui-v2 .v2-plist-head .more { background:none; border:0; padding:0; cursor:pointer; font:inherit; font-size:12.5px; font-weight:600; color:var(--v2-link); }
+.ui-v2 .v2-plist-head .more:hover { text-decoration:underline; }
+.ui-v2 .v2-plist-head .more[aria-pressed="true"] { color:var(--v2-ink); }
 .ui-v2 .v2-pcard .cover { width:88px; height:88px; border-radius:var(--v2-r-sm); background-size:cover; background-position:center; background-color:var(--v2-surface2); flex:none; display:grid; place-items:center; color:var(--v2-faint); }
 .ui-v2 .v2-pcard .info { flex:1; min-width:0; display:flex; flex-direction:column; }
 .ui-v2 .v2-pcard .nm { font-weight:700; font-size:15px; display:flex; align-items:center; gap:7px; }

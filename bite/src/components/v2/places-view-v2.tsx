@@ -7,6 +7,7 @@ import { relDate } from "@/lib/util/rel-date";
 import { menuSearchUrl } from "@/lib/places/menu-url";
 import type { VisitSignal } from "@/lib/visits/aggregate";
 import { StatusQuickToggle } from "@/components/places/status-quick-toggle";
+import { deletePlace } from "@/lib/actions/places";
 
 const STATUS_ORDER: PlaceStatus[] = ["want_to_go", "visited", "archived"];
 const PRICE_ORDER: PlacePrice[] = ["$", "$$", "$$$", "$$$$"];
@@ -53,6 +54,7 @@ export function PlacesViewV2({
   const [statusFilter, setStatusFilter] = useState<"all" | PlaceStatus>("all");
   const [cuisineSel, setCuisineSel] = useState<Set<string>>(() => new Set());
   const [priceSel, setPriceSel] = useState<Set<PlacePrice>>(() => new Set());
+  const [manage, setManage] = useState(false);
 
   const { statusCounts, cuisines, prices } = useMemo(() => {
     const sc: Record<PlaceStatus, number> = {
@@ -141,6 +143,22 @@ export function PlacesViewV2({
 
   return (
     <div>
+      {canEdit && (
+        <div className="v2-plist-head">
+          <span className="v2-muted" style={{ fontSize: 12.5 }}>
+            {manage ? "管理中：可编辑或删除店铺" : `${places.length} 家店`}
+          </span>
+          <button
+            type="button"
+            className="more"
+            aria-pressed={manage}
+            onClick={() => setManage((v) => !v)}
+          >
+            {manage ? "完成" : "管理"}
+          </button>
+        </div>
+      )}
+
       <div className="v2-search">
         <svg
           width="16"
@@ -246,6 +264,7 @@ export function PlacesViewV2({
                     place={p}
                     currentUserId={currentUserId}
                     canEdit={canEdit}
+                    manage={manage}
                     visit={visitsByPlace[p.id] ?? null}
                     reasonAuthors={reasonAuthors}
                   />
@@ -264,6 +283,7 @@ function PlaceCardV2({
   place,
   currentUserId,
   canEdit,
+  manage,
   visit,
   reasonAuthors,
 }: {
@@ -271,6 +291,8 @@ function PlaceCardV2({
   place: Place;
   currentUserId: string;
   canEdit: boolean;
+  /** 管理模式：右侧那一栏从「菜单」换成 编辑 / 删除 */
+  manage: boolean;
   visit: VisitSignal | null;
   reasonAuthors: Record<string, string>;
 }) {
@@ -371,6 +393,29 @@ function PlaceCardV2({
           />
         </div>
       )}
+      {manage ? (
+        <div className="pcard-manage">
+          <Link href={`/lists/${listId}/places/${place.id}/edit`}>编辑</Link>
+          <form
+            action={deletePlace}
+            onSubmit={(e) => {
+              if (
+                !window.confirm(
+                  `确认删除「${place.name}」？这家店的造访记录也会一并删除，且无法撤销。`,
+                )
+              ) {
+                e.preventDefault();
+              }
+            }}
+          >
+            <input type="hidden" name="place_id" value={place.id} />
+            <input type="hidden" name="list_id" value={listId} />
+            <button type="submit" className="danger">
+              删除
+            </button>
+          </form>
+        </div>
+      ) : (
       <a
         className="pcard-menu"
         href={menuSearchUrl(place.name, place.address)}
@@ -394,6 +439,7 @@ function PlaceCardV2({
         </svg>
         菜单
       </a>
+      )}
     </div>
   );
 }
