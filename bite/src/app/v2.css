@@ -45,6 +45,10 @@
   --gold:var(--v2-gold); --gold-soft:var(--v2-gold-soft); --gold-text:var(--v2-gold-tx);
   --danger:var(--v2-danger); --danger-bg:var(--v2-danger-bg); --danger-text:var(--v2-danger-tx);
   --shadow-card:var(--v2-shadow-sm); --shadow-card-hover:var(--v2-shadow); --shadow-floating:var(--v2-btn-shadow);
+  /* ⚠️ 必须桥接：globals.css 里 `body { font-family: var(--font-sans) }` 是 body
+     自己的声明，会压过从 <html>(.ui-v2) 继承下来的 font-family。不重映射
+     --font-sans 的话，全站正文会从 Inter 掉回系统字体。 */
+  --font-sans:var(--v2-sans);
 
   font-family:var(--v2-sans);
   background:var(--v2-bg);
@@ -96,8 +100,13 @@
 /* ---------- 共用 V1 class 的换皮（auth 页 / profile 卡片 / 各处按钮） ---------- */
 .ui-v2 .field-input { border-radius:var(--v2-r-md); border:var(--v2-bw) solid var(--v2-border); background:var(--v2-surface); box-shadow:var(--v2-shadow-sm); font-size:13.5px; }
 .ui-v2 .field-input:focus { border-color:var(--v2-primary); box-shadow:0 0 0 3px var(--v2-primary-soft); }
-.ui-v2 .btn-primary { border-radius:var(--v2-r-md); box-shadow:var(--v2-btn-shadow); font-family:var(--v2-sans); }
-.ui-v2 .btn-secondary { border-radius:var(--v2-r-md); border-width:var(--v2-bw); font-family:var(--v2-sans); }
+/* ⚠️ color 必须显式写：globals.css 的 .btn-* 在 @layer components 里，而本文件是
+   无层（unlayered）CSS —— 无层规则无条件压过任何有层规则。于是上面 `.ui-v2 a
+   { color:inherit }` 会吃掉 .btn-primary 的 color，把按钮文字变成正文色。
+   落地页 / 404 / error 页的 CTA 是 <Link className="btn-primary">，正好中招
+   （深色模式下浅奶油字压浅鲑红底，几乎看不见）。 */
+.ui-v2 .btn-primary { border-radius:var(--v2-r-md); box-shadow:var(--v2-btn-shadow); font-family:var(--v2-sans); color:var(--v2-on-primary); }
+.ui-v2 .btn-secondary { border-radius:var(--v2-r-md); border-width:var(--v2-bw); font-family:var(--v2-sans); color:var(--v2-ink); }
 .ui-v2 .card { border-radius:var(--v2-r-lg); border:var(--v2-bw) solid var(--v2-border); background:var(--v2-surface); box-shadow:var(--v2-shadow-sm); }
 .ui-v2 .brand-mark { font-family:var(--v2-serif); color:var(--v2-primary); }
 .ui-v2 .heading-display { font-family:var(--v2-serif); }

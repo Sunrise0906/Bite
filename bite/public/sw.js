@@ -2,7 +2,10 @@
 // 1. 离线兜底：app shell 拉不到时返回缓存（不做激进 cache）
 // 2. Web Push：展示通知 + 点击跳转（payload 见 lib/push/send.ts 的 PushPayload）
 
-const CACHE = "bite-v2";
+// 改这个名字会让浏览器丢弃旧缓存并重新预缓存 OFFLINE_URLS。
+// UI 有明显改动时记得 bump（离线兜底的 /lists 快照否则会一直是旧版页面）。
+// 注：这里的 v3 是缓存代次，跟已经删掉的「V1/V2 皮肤」无关。
+const CACHE = "bite-shell-v3";
 const OFFLINE_URLS = ["/lists", "/manifest.webmanifest", "/icons/icon.svg"];
 
 self.addEventListener("install", (event) => {

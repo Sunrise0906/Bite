@@ -508,29 +508,32 @@ export function PlaceConfirmForm({
         </p>
       )}
 
+      {/* ⚠️ DOM 顺序刻意是「保存在前、取消在后」，视觉顺序靠 flex order 反过来。
+          原因：在文本框里按 Enter 触发的是**表单里 tree order 上第一个 submit
+          按钮**。取消带 formAction={cancelQuickAdd}（clearDraft + redirect，
+          无确认无撤销），要是它排在前面，用户在店名框按个回车就把整份 AI 草稿
+          连同手动修改一起清了。保存在前，Enter 就是保存 —— 符合直觉。
+          （取消必须是 submit：formAction 在 type="button" 上会被忽略，那样按钮
+          是死的。formNoValidate 则是绕开 required 字段校验，否则取消点不动。） */}
       <div className="flex gap-3 pt-2">
-        {/* formAction 只在 type="submit"（或不写 type）时才生效 —— 之前写的是
-            type="button"，React 会警告并忽略 formAction，这个「取消」是个死按钮。
-            formNoValidate 是必需的：否则表单里的 required 字段没填时，浏览器会
-            拦下这次提交，取消就又点不动了。 */}
-        <button
-          type="submit"
-          formAction={cancelQuickAdd}
-          formNoValidate
-          className="v2-btn ghost flex-1 py-3 text-base"
-        >
-          取消
-        </button>
         <button
           type="submit"
           disabled={pending}
-          className="v2-btn flex-1 py-3 text-base"
+          className="v2-btn order-2 flex-1 py-3 text-base"
         >
           {pending
             ? "保存中…"
             : isDuplicateInList
               ? "覆盖更新"
               : "确认添加"}
+        </button>
+        <button
+          type="submit"
+          formAction={cancelQuickAdd}
+          formNoValidate
+          className="v2-btn ghost order-1 flex-1 py-3 text-base"
+        >
+          取消
         </button>
       </div>
     </form>

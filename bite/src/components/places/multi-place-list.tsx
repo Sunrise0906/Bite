@@ -249,19 +249,14 @@ export function MultiPlaceList({
         </p>
       )}
 
+      {/* DOM 顺序「保存在前、取消在后」，视觉顺序靠 flex order 反过来 ——
+          理由同 place-confirm-form.tsx：Enter 触发的是 tree order 上第一个
+          submit 按钮，取消排前面会让一次回车清掉整份草稿。 */}
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          formAction={cancelQuickAdd}
-          formNoValidate
-          className="v2-btn ghost flex-1 py-3 text-base"
-        >
-          取消
-        </button>
-        <button
-          type="submit"
           disabled={pending || selected.size === 0}
-          className="v2-btn flex-1 py-3 text-base"
+          className="v2-btn order-2 flex-1 py-3 text-base"
         >
           {pending
             ? "保存中…"
@@ -270,6 +265,14 @@ export function MultiPlaceList({
               : dupSelectedCount > 0
                 ? `保存 ${selected.size} 家（${dupSelectedCount} 家覆盖更新）`
                 : `保存选中的 ${selected.size} 家`}
+        </button>
+        <button
+          type="submit"
+          formAction={cancelQuickAdd}
+          formNoValidate
+          className="v2-btn ghost order-1 flex-1 py-3 text-base"
+        >
+          取消
         </button>
       </div>
 
