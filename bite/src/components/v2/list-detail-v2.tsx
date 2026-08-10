@@ -64,7 +64,8 @@ export function ListDetailV2({
           所有清单
         </Link>
         <div className="row1">
-          {isOwner ? (
+          {/* 改名：owner 或 co_owner（sql/0019）。viewer 只看标题 */}
+          {canEdit ? (
             <RenameListForm id={list.id} currentName={list.name} />
           ) : (
             <h1>{list.name}</h1>

@@ -73,15 +73,22 @@ async function renderHomeV2(
 
   // 共享成员：list_members + 相关 profiles（含 owner + 当前用户）
   const membersByList = new Map<string, string[]>();
+  // 当前用户在每个共享清单里的角色 —— co_owner 能改名（sql/0019），viewer 不能
+  const myRoleByList = new Map<string, string>();
   if (listIds.length > 0) {
     const { data: members } = await supabase
       .from("list_members")
-      .select("list_id, user_id")
+      .select("list_id, user_id, role")
       .in("list_id", listIds);
-    for (const m of (members ?? []) as Array<{ list_id: string; user_id: string }>) {
+    for (const m of (members ?? []) as Array<{
+      list_id: string;
+      user_id: string;
+      role: string;
+    }>) {
       const arr = membersByList.get(m.list_id) ?? [];
       arr.push(m.user_id);
       membersByList.set(m.list_id, arr);
+      if (m.user_id === userId) myRoleByList.set(m.list_id, m.role);
     }
   }
   const pids = new Set<string>([userId]);
@@ -130,6 +137,9 @@ async function renderHomeV2(
         .slice(0, 3),
       isShared,
       isOwner: l.owner_id === userId,
+      // 能改名的人：owner 或 co_owner（删除仍只有 owner）
+      canEdit:
+        l.owner_id === userId || myRoleByList.get(l.id) === "co_owner",
       faces: faceIds
         .slice(0, 3)
         .map((id) => ({ initial: initialOf(id), sage: id !== userId })),

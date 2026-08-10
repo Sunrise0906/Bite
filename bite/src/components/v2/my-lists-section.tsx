@@ -201,7 +201,10 @@ function ManageRow({
         <>
           <Meta list={l} />
           <div className="v2-lacts">
-            {l.isOwner && (
+            {/* 改名：owner 或 co_owner 都可以（sql/0019 把 lists 的 update
+                放开到 can_write_list，并用触发器锁死 owner_id / category）。
+                删除仍然只有 owner —— 删清单会连带删掉所有店和造访记录。 */}
+            {l.canEdit && (
               <button type="button" onClick={onRename} disabled={pending}>
                 重命名
               </button>

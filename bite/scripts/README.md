@@ -36,6 +36,7 @@ Playwright 的 `tests/e2e/` 也不碰它们。改动对应子系统时请手工�
 | `add-from-list.mjs` | 清单页内智能添加：目标清单经 URL / 草稿两条路径带到确认页并预选，伪造 id 必须回退 | dev server | ❌ |
 | `activity-domain.mjs` | 玩乐领域抽取：看展帖能抽出来、类型不被硬塞成菜系、标签显示「类型」（建临时 activity 清单，跑完删） | dev server | ✅ 自清理 |
 | `place-delete.mjs` | 清单页删店：默认不显示删除、开管理才出现、必须确认、真的从库里删掉（自建一次性测试店） | dev server | ✅ 自清理 |
+| `co-owner-rename.mjs` | sql/0019：co_owner 能改名，但改不了 owner_id/category、删不掉清单（两账号，自清理） | — | ✅ 自清理 |
 
 需要两个测试账号的脚本读 `E2E_TEST_EMAIL(_2)` / `E2E_TEST_PASSWORD(_2)`。
 

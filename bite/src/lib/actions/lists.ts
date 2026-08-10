@@ -99,7 +99,8 @@ export async function renameList(
 
   if (error) return { error: `重命名失败：${error.message}` };
   if (!updated || updated.length === 0) {
-    return { error: "重命名失败：只有清单所有者能改名" };
+    // sql/0019 之后 owner 和 co_owner 都能改名；跑之前 co_owner 会走到这里
+    return { error: "重命名失败：你没有这个清单的编辑权限（或 sql/0019 还没跑）" };
   }
 
   revalidatePath("/lists");

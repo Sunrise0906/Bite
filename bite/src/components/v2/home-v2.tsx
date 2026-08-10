@@ -26,6 +26,8 @@ export type ListVM = {
   isShared: boolean;
   /** 我是不是这个清单的 owner —— 决定管理模式里给「删除」还是「离开」 */
   isOwner: boolean;
+  /** 能不能改名：owner 或 co_owner（共享清单的 co_owner 也可以，见 sql/0019） */
+  canEdit: boolean;
   faces: Array<{ initial: string; sage: boolean }>;
 };
 
