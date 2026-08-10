@@ -219,11 +219,29 @@ body {
   font-feature-settings: "kern", "liga", "calt";
 }
 
-/* 键盘可见焦点环：全局统一（无障碍 checklist） */
+/* 键盘可见焦点环：全局统一（无障碍 checklist）。
+   给按钮 / 链接 / 可聚焦容器用——它们自身没有 focus 设计。 */
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
   border-radius: 6px;
+}
+
+/* ⚠️ 文本输入类控件要排除掉。三个原因：
+   1. 它们**自带** focus 设计：.field-input:focus 是「主色描边 + 3px 柔光」，
+      quick-add 的 textarea 则由外层容器的 focus-within:border/ring 负责。
+      再叠一圈全局 outline 就是双层框。
+   2. 文本框即使用**鼠标点击**也会匹配 :focus-visible（不像按钮只在键盘导航时匹配），
+      所以这圈 outline 在最常见的「点一下开始打字」场景里必然出现。
+   3. 这条规则是 unlayered 的，会压过 Tailwind 的 outline-none 工具类
+      （在 @layer utilities 里），元素自己写了 outline-none 也挡不住；
+      而 6px 圆角跟输入框自身的 14~16px 圆角对不上，看着更歪。
+   checkbox / radio 不在此列——它们没有自定义 focus 样式，仍然需要这圈环。 */
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[contenteditable]:focus-visible {
+  outline: none;
 }
 
 /* 动效尊重系统设置 */

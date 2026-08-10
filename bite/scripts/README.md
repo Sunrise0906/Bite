@@ -31,6 +31,7 @@ Playwright 的 `tests/e2e/` 也不碰它们。改动对应子系统时请手工�
 | `cancel-button.mjs` | quick-add 确认页「取消」真的能取消（formAction 死按钮回归） | dev server | ❌ |
 | `invite-rls.mjs` | **邀请越权修复**（sql/0017+0018）：越权路径全封 + 完整接受流程 | — | ✅ 自清理 |
 | `deploy-guard.mjs` | **上线前必跑**：按钮对比度 / 正文字体 / Enter 不丢草稿 / 换 provider 清旧 key —— 全是 tsc+lint+单测+e2e 都发现不了的级联与隐式提交问题 | dev server | ✅ 自清理 |
+| `focus-ring.mjs` | 每个文本输入框聚焦时都有可见反馈、且没有多余的双层 outline（无障碍 + 观感） | dev server | ❌ |
 
 需要两个测试账号的脚本读 `E2E_TEST_EMAIL(_2)` / `E2E_TEST_PASSWORD(_2)`。
 
