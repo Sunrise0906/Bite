@@ -33,6 +33,7 @@ Playwright 的 `tests/e2e/` 也不碰它们。改动对应子系统时请手工�
 | `deploy-guard.mjs` | **上线前必跑**：按钮对比度 / 正文字体 / Enter 不丢草稿 / 换 provider 清旧 key —— 全是 tsc+lint+单测+e2e 都发现不了的级联与隐式提交问题 | dev server | ✅ 自清理 |
 | `focus-ring.mjs` | 每个文本输入框聚焦时都有可见反馈、且没有多余的双层 outline（无障碍 + 观感） | dev server | ❌ |
 | `list-manage.mjs` | 主页「我的清单 · 管理」：owner/共享 给对操作、删除有确认、行内重命名真写库（改完自动改回） | dev server | ✅ 自清理 |
+| `add-from-list.mjs` | 清单页内智能添加：目标清单经 URL / 草稿两条路径带到确认页并预选，伪造 id 必须回退 | dev server | ❌ |
 
 需要两个测试账号的脚本读 `E2E_TEST_EMAIL(_2)` / `E2E_TEST_PASSWORD(_2)`。
 

@@ -13,6 +13,7 @@ import {
 import { DeleteListButton } from "@/components/lists/delete-list-button";
 import { LeaveListButton } from "@/components/lists/leave-list-button";
 import { PlacesViewV2 } from "./places-view-v2";
+import { QuickAddInput } from "@/components/places/quick-add-input";
 import type { VisitSignal } from "@/lib/visits/aggregate";
 
 export function ListDetailV2({
@@ -86,14 +87,24 @@ export function ListDetailV2({
         </div>
       </div>
 
+      {/* 智能添加：粘小红书链接 / 写几句话 / 拍照 / 搜店名，直接进这个清单。
+          此前它只挂在主页，从清单里加店就只剩 /places/new 那个纯手填表单，
+          想用小红书导入得先回主页、加完再在确认页手动挑回这个清单。
+          defaultListId 会一路带到确认页做预选（确认页仍会校验可写并允许改）。 */}
+      {canEdit && (
+        <div style={{ margin: "8px 0 10px" }}>
+          <QuickAddInput defaultListId={list.id} />
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: 9, margin: "8px 0 18px" }}>
         {canEdit && (
           <Link
             href={`/lists/${list.id}/places/new`}
-            className="v2-btn"
+            className="v2-btn ghost"
             style={{ flex: 1, padding: 13 }}
           >
-            + 新增店铺
+            手动填写
           </Link>
         )}
         {wantCount >= 2 && (
@@ -126,7 +137,9 @@ export function ListDetailV2({
         <div className="v2-empty">
           <div className="t">这个清单还没有店</div>
           <div className="s">
-            {canEdit ? "点上面「+ 新增店铺」加第一家" : "等所有者添加店铺"}
+            {canEdit
+              ? "在上面粘个小红书链接、写几句话，或直接搜店名"
+              : "等所有者添加店铺"}
           </div>
         </div>
       ) : (

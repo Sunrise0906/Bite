@@ -22,6 +22,8 @@ type SearchParams = Promise<{
   placeId?: string;
   sessionToken?: string;
   source?: string;
+  /** 从某个清单页发起的店名搜索会带上它（文本/拍照路径走草稿里的 targetListId） */
+  list?: string;
 }>;
 
 export default async function QuickAddPage({
@@ -29,7 +31,7 @@ export default async function QuickAddPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { placeId, sessionToken } = await searchParams;
+  const { placeId, sessionToken, list: listFromQuery } = await searchParams;
   const user = await requireUser();
   const supabase = await createClient();
 
@@ -59,6 +61,10 @@ export default async function QuickAddPage({
       name: l.name,
       isOwner: l.owner_id === user.id,
     }));
+
+  // 目标清单：URL（店名搜索路径）或草稿（文本/小红书/拍照路径）。
+  // ⚠️ 必须在 writableLists 里验一遍才用 —— 否则等于让 URL 参数指定写入目标。
+  let requestedListId: string | undefined = listFromQuery || undefined;
 
   if (writableLists.length === 0) {
     return (
@@ -109,6 +115,7 @@ export default async function QuickAddPage({
     const draft = await readDraft();
     if (!draft) redirect("/lists");
     if (draft.kind === "multi") redirect("/quick-add/multi");
+    requestedListId = requestedListId ?? draft.targetListId;
     const ex = draft.extracted;
     initial = {
       name: ex.name,
@@ -183,7 +190,10 @@ export default async function QuickAddPage({
         <PlaceConfirmForm
           initial={initial}
           lists={writableLists}
-          defaultListId={writableLists[0].id}
+          defaultListId={
+            writableLists.find((l) => l.id === requestedListId)?.id ??
+            writableLists[0].id
+          }
           source={pageSource}
           confidence={confidence}
           existingInLists={existingInLists}

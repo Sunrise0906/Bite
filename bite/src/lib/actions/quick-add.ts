@@ -72,6 +72,8 @@ export type QuickAddDraft =
       sourceUrl?: string;
       scrapeWarning?: string;
       photoUrls?: string[];
+      /** 从某个清单页发起时的目标清单 —— 确认页据此预选，省得用户再挑一次 */
+      targetListId?: string;
     }
   | {
       kind: "multi";
@@ -81,6 +83,8 @@ export type QuickAddDraft =
       sourceUrl?: string;
       scrapeWarning?: string;
       photoUrls?: string[]; // 合集帖：所有店共享同一篇帖子的图集
+      /** 从某个清单页发起时的目标清单 */
+      targetListId?: string;
     };
 
 export type QuickAddFormState = {
@@ -95,6 +99,8 @@ export async function processTextDraft(
   const user = await requireUser();
   const text = String(formData.get("text") ?? "").trim();
   if (!text) return { error: "请输入要识别的内容" };
+  // 从清单页发起时带着目标清单；确认页会校验它确实可写后再预选
+  const targetListId = String(formData.get("target_list_id") ?? "") || undefined;
 
   const xhsUrl = extractXhsUrl(text);
   let inputForAI = text;
@@ -152,6 +158,7 @@ export async function processTextDraft(
       sourceUrl,
       scrapeWarning,
       photoUrls: scrapedImages.length > 0 ? scrapedImages : undefined,
+      targetListId,
     };
   } else {
     draft = {
@@ -162,6 +169,7 @@ export async function processTextDraft(
       sourceUrl,
       scrapeWarning,
       photoUrls: scrapedImages.length > 0 ? scrapedImages : undefined,
+      targetListId,
     };
   }
 
@@ -199,6 +207,7 @@ export async function processImageDraft(
   });
   if (!validation.ok) return { error: validation.error };
 
+  const targetListId = String(formData.get("target_list_id") ?? "") || undefined;
   const buf = Buffer.from(await file.arrayBuffer());
   const result = await extractPlacesFromImage(
     { base64: buf.toString("base64"), mimeType: file.type },
@@ -228,6 +237,7 @@ export async function processImageDraft(
           extracted: result.places[0],
           source: "ai_extract",
           photoUrls: photoUrl ? [photoUrl] : undefined,
+          targetListId,
         }
       : {
           kind: "multi",
@@ -235,6 +245,7 @@ export async function processImageDraft(
           places: result.places,
           source: "ai_extract",
           photoUrls: photoUrl ? [photoUrl] : undefined,
+          targetListId,
         };
 
   const { error: upsertError } = await supabase

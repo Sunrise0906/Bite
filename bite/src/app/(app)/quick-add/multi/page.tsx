@@ -110,7 +110,11 @@ export default async function QuickAddMultiPage() {
       <MultiPlaceList
         places={draft.places}
         lists={writableLists}
-        defaultListId={writableLists[0].id}
+        // 目标清单来自草稿（从清单页发起时带上的），且必须在可写清单里才采纳
+        defaultListId={
+          writableLists.find((l) => l.id === draft.targetListId)?.id ??
+          writableLists[0].id
+        }
         sourceUrl={draft.sourceUrl}
         existingByList={existingByList}
         // 仅预览用（保存从 draft 读 canonical）；私有桶图换签名 URL

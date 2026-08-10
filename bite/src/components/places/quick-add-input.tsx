@@ -121,7 +121,7 @@ async function fetchSuggestions(
   return items;
 }
 
-export function QuickAddInput() {
+export function QuickAddInput({ defaultListId }: { defaultListId?: string } = {}) {
   const router = useRouter();
   const [text, setText] = useState("");
   const [status, setStatus] = useState<Status>({ phase: "idle" });
@@ -285,14 +285,21 @@ export function QuickAddInput() {
   function pickSuggestion(s: PlaceSuggestion) {
     setText("");
     setStatus({ phase: "idle" });
+    const listQS = defaultListId
+      ? `&list=${encodeURIComponent(defaultListId)}`
+      : "";
     router.push(
-      `/quick-add?placeId=${encodeURIComponent(s.placeId)}&sessionToken=${encodeURIComponent(sessionToken)}`,
+      `/quick-add?placeId=${encodeURIComponent(s.placeId)}&sessionToken=${encodeURIComponent(sessionToken)}${listQS}`,
     );
   }
 
   return (
     <div className="space-y-2">
       <form action={formAction} className="relative space-y-2">
+        {/* 从某个清单页进来时，目标清单跟着走一路到确认页（见 lib/actions/quick-add.ts 的 targetListId） */}
+        {defaultListId && (
+          <input type="hidden" name="target_list_id" value={defaultListId} />
+        )}
         <div className="relative rounded-2xl border border-[var(--border-default)] bg-[var(--surface-elevated)] shadow-[var(--shadow-card)] focus-within:border-[var(--primary)] focus-within:ring-3 focus-within:ring-[var(--primary-soft)] transition-colors">
           <span
             aria-hidden
@@ -378,6 +385,9 @@ export function QuickAddInput() {
 
       {/* 拍照识店：独立 form，选完文件自动提交 */}
       <form ref={imgFormRef} action={imgAction}>
+        {defaultListId && (
+          <input type="hidden" name="target_list_id" value={defaultListId} />
+        )}
         <input
           ref={imgInputRef}
           type="file"
