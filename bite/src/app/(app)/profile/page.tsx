@@ -7,6 +7,7 @@ import { ChevronRightIcon, InboxIcon } from "@/components/ui/icons";
 import { PROVIDER_PRESETS, type ProviderId } from "@/lib/llm/types";
 import type { UserLlmSettings } from "@/lib/llm/router";
 import { getTheme } from "@/lib/theme-server";
+import { dailyQuota } from "@/lib/llm/quota";
 import { ThemePicker } from "@/components/profile/theme-picker";
 import { NotificationToggle } from "@/components/profile/notification-toggle";
 
@@ -49,6 +50,7 @@ export default async function ProfilePage() {
     { data: profile },
     { data: llmSettings },
     { data: usageRows },
+    { data: quotaRow },
     { count: pendingRecCount },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
@@ -63,6 +65,13 @@ export default async function ProfilePage() {
       .select("usage, created_at")
       .eq("role", "assistant")
       .not("usage", "is", null),
+    // 今天用掉的共享 AI 额度（只有走 app 默认 key 的人才会有行）
+    supabase
+      .from("llm_usage")
+      .select("calls")
+      .eq("user_id", user.id)
+      .eq("day", new Date().toISOString().slice(0, 10))
+      .maybeSingle<{ calls: number }>(),
     // 待处理推荐数
     supabase
       .from("recommendations")
@@ -184,6 +193,8 @@ export default async function ProfilePage() {
               : null
           }
           appKeyAvailable={appKeyAvailable}
+          usedToday={quotaRow?.calls ?? 0}
+          quota={dailyQuota()}
         />
       </section>
 
