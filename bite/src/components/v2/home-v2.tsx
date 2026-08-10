@@ -3,6 +3,7 @@ import { QuickAddInput } from "@/components/places/quick-add-input";
 import { RandomPickButton } from "./random-pick-button";
 import { DeckSection } from "./deck-section";
 import { CreateListV2 } from "./create-list-v2";
+import { MyListsSection } from "./my-lists-section";
 
 export type DeckItem = {
   placeId: string;
@@ -23,6 +24,8 @@ export type ListVM = {
   activityLabel: string;
   thumbs: string[];
   isShared: boolean;
+  /** 我是不是这个清单的 owner —— 决定管理模式里给「删除」还是「离开」 */
+  isOwner: boolean;
   faces: Array<{ initial: string; sage: boolean }>;
 };
 
@@ -140,59 +143,8 @@ export function HomeV2({
         )
       )}
 
-      {/* 我的清单 */}
-      <div className="v2-sec">
-        <h3>我的清单</h3>
-        <span className="more">管理</span>
-      </div>
-      {lists.length === 0 ? (
-        <div className="v2-empty" style={{ paddingBottom: 24 }}>
-          <div className="t">还没有清单</div>
-          <div className="s">在下面输入个名字，比如「Irvine 想吃的」</div>
-        </div>
-      ) : (
-        <div className="v2-lgrid">
-        {lists.map((l) => (
-          <Link key={l.id} href={`/lists/${l.id}`} className="v2-lrow">
-            {l.thumbs.length > 0 ? (
-              <div className="v2-lthumbs">
-                {l.thumbs.slice(0, 3).map((t, i) => (
-                  <i key={i} style={{ backgroundImage: `url('${t}')` }} />
-                ))}
-              </div>
-            ) : (
-              <div className="v2-lthumbs">
-                <i />
-              </div>
-            )}
-            <div className="li">
-              <div className="nm">
-                {l.name}
-                {l.isShared && (
-                  <span className="v2-pill v2-pill-visited" style={{ padding: "2px 8px" }}>
-                    共享
-                  </span>
-                )}
-              </div>
-              <div className="mt">
-                {l.isShared && l.faces.length > 0 && (
-                  <span className="v2-faces">
-                    {l.faces.slice(0, 3).map((f, i) => (
-                      <span key={i} className={`v2-ava${f.sage ? " sage" : ""}`}>
-                        {f.initial}
-                      </span>
-                    ))}
-                  </span>
-                )}
-                {l.isShared && <span className="v2-actdot" />}
-                {l.activityLabel}
-              </div>
-            </div>
-            <div className="cnt">{l.count}</div>
-          </Link>
-        ))}
-        </div>
-      )}
+      {/* 我的清单（含「管理」模式，见 my-lists-section.tsx）*/}
+      <MyListsSection lists={lists} />
 
       <CreateListV2 />
     </main>

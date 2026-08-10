@@ -129,6 +129,7 @@ async function renderHomeV2(
         .map((p) => p.photo_urls![0])
         .slice(0, 3),
       isShared,
+      isOwner: l.owner_id === userId,
       faces: faceIds
         .slice(0, 3)
         .map((id) => ({ initial: initialOf(id), sage: id !== userId })),

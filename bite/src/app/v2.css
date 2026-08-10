@@ -166,6 +166,25 @@
 .ui-v2 .v2-actdot { width:6px; height:6px; border-radius:99px; background:var(--v2-sage); flex:none; }
 .ui-v2 .v2-lrow .cnt { font-family:var(--v2-serif); font-weight:600; font-size:22px; color:var(--v2-ink); flex:none; }
 
+/* ---- 主页「我的清单」的管理模式 ---- */
+.ui-v2 .v2-sec .more { background:none; border:0; padding:0; cursor:pointer; font:inherit; font-size:12.5px; color:var(--v2-link); font-weight:600; }
+.ui-v2 .v2-sec .more:hover { text-decoration:underline; }
+.ui-v2 .v2-sec .more[aria-pressed="true"] { color:var(--v2-ink); }
+/* 管理模式的行不是链接：允许换行放错误提示，且强调它此刻可操作 */
+.ui-v2 .v2-lrow-manage { flex-wrap:wrap; border-color:var(--v2-border2); }
+.ui-v2 .v2-lrow-manage.is-pending { opacity:.55; }
+.ui-v2 .v2-lacts { display:flex; gap:6px; flex:none; margin-left:auto; }
+.ui-v2 .v2-lacts button { border:var(--v2-bw) solid var(--v2-border2); background:var(--v2-surface); border-radius:999px; padding:5px 11px; font-size:12px; font-weight:600; color:var(--v2-ink2); cursor:pointer; }
+.ui-v2 .v2-lacts button:hover:not(:disabled) { background:var(--v2-surface2); }
+.ui-v2 .v2-lacts button:disabled { opacity:.5; cursor:default; }
+.ui-v2 .v2-lacts button.danger { color:var(--v2-danger); border-color:var(--v2-danger); }
+.ui-v2 .v2-lacts button.danger:hover:not(:disabled) { background:var(--v2-danger-bg); }
+/* 行内重命名：输入框吃掉剩余宽度，两个按钮跟在后面 */
+.ui-v2 .v2-lrename { display:flex; gap:6px; align-items:center; flex:1; min-width:0; }
+.ui-v2 .v2-lrename .field-input { flex:1; min-width:0; padding:7px 10px; font-size:13.5px; }
+.ui-v2 .v2-lrename .v2-btn { flex:none; padding:7px 12px; font-size:12.5px; }
+.ui-v2 .v2-lerr { flex-basis:100%; margin-top:7px; font-size:12px; color:var(--v2-danger); }
+
 .ui-v2 .v2-empty { text-align:center; padding:56px 20px; }
 .ui-v2 .v2-empty .t { font-family:var(--v2-serif); font-size:18px; font-weight:600; margin-top:14px; }
 .ui-v2 .v2-empty .s { font-size:13.5px; color:var(--v2-muted); margin-top:6px; }
