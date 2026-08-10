@@ -12,7 +12,10 @@
   Qwen。抽象在 `src/lib/llm/types.ts`（接口 + `StreamChunk` 联合）和 `src/lib/llm/router.ts`
   （settings 加载 + provider 工厂）。Anthropic 单独一份实现，其余四家共用 `openai-compat.ts`。
 - **App 默认 LLM key 由开发者出**，朋友 / 女朋友开箱即用；Settings 可填自带 key 覆盖。
-  ⚠️ 目前这个承诺**没有支出上限**——四条入口零限流，见 `docs/decisions/`。
+  各家免费额度是**按 key 算的、不是按用户算的**，所以共用一把 key 的人会互相抢。
+  现在有两道闸：撞限流会自动退避重试并换下一个配了 key 的 provider
+  （`src/lib/llm/failover.ts`），以及**每人每日调用上限**（`src/lib/llm/quota.ts` +
+  `sql/0022`，仅对走 app 默认 key 的用户生效）。/profile 有自建 key 的引导。
 - **登录**：Email/密码 + Magic Link + Google OAuth；任意邮箱（QQ/163/Gmail/Outlook）可注册
 - **Place 跨 list 不去重**：同店在不同 list 是独立记录；仅共享 list 内 reason 字段聚合 `[{user_id, text}]`
 - **小红书**：`src/lib/places/xhs.ts` 会**实际抓取** xiaohongshu.com（伪装 Chrome UA 读

@@ -37,6 +37,37 @@ type Props = {
   appKeyAvailable: Record<ProviderId, boolean>;
 };
 
+/** 各家申请 key 的入口 —— 把「去哪申请」这一步从用户脑子里搬到界面上 */
+const KEY_GUIDE: Partial<
+  Record<ProviderId, { url: string; label: string; step: string }>
+> = {
+  gemini: {
+    url: "https://aistudio.google.com/app/apikey",
+    label: "Google AI Studio",
+    step: "点「Create API key」（免费，不用绑卡）",
+  },
+  deepseek: {
+    url: "https://platform.deepseek.com/api_keys",
+    label: "DeepSeek 开放平台",
+    step: "在「API keys」里新建一个（注册送额度）",
+  },
+  qwen: {
+    url: "https://bailian.console.aliyun.com/?tab=model#/api-key",
+    label: "阿里云百炼",
+    step: "开通后在「API-KEY」里新建（有免费额度）",
+  },
+  openai: {
+    url: "https://platform.openai.com/api-keys",
+    label: "OpenAI Platform",
+    step: "点「Create new secret key」（需要绑卡）",
+  },
+  anthropic: {
+    url: "https://console.anthropic.com/settings/keys",
+    label: "Anthropic Console",
+    step: "点「Create Key」（需要充值）",
+  },
+};
+
 const PROVIDER_ORDER: ProviderId[] = [
   "gemini",
   "anthropic",
@@ -231,7 +262,7 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
             </>
           ) : hasAppDefault ? (
             <>
-              已配置 app 默认 key —— 留空即用我们的额度，填入则走你自己的额度。
+              留空就用我们提供的共享额度（每天有次数上限）；填入则走你自己的额度，不受限。
             </>
           ) : (
             <span className="inline-flex items-center gap-1 text-[var(--gold-text)]">
@@ -240,6 +271,36 @@ export function LlmSettingsForm({ initial, appKeyAvailable }: Props) {
             </span>
           )}
         </p>
+
+        {/* 自建 key 引导。
+            共享的 app key 是按 key 计免费额度的（不是按用户），所以人一多就互相抢。
+            填自己的 key 是唯一能彻底解决的办法，这里把门槛降到「点一下 + 粘贴」。 */}
+        {!hasStoredKey && !clearKey && KEY_GUIDE[provider] && (
+          <div className="mt-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-muted)]/60 px-3.5 py-3">
+            <p className="text-xs font-semibold text-[var(--text-strong)]">
+              想不跟别人抢额度？自己申请一把（免费，约 2 分钟）
+            </p>
+            <ol className="mt-1.5 list-decimal space-y-0.5 pl-4 text-xs text-[var(--text-muted)]">
+              <li>
+                打开{" "}
+                <a
+                  href={KEY_GUIDE[provider]!.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-[var(--primary)] hover:underline"
+                >
+                  {KEY_GUIDE[provider]!.label} ↗
+                </a>
+                ，用你自己的账号登录
+              </li>
+              <li>{KEY_GUIDE[provider]!.step}</li>
+              <li>复制 key，粘到上面的输入框，点「保存设置」</li>
+            </ol>
+            <p className="mt-1.5 text-[11px] text-[var(--text-faint)]">
+              key 加密存储、不会回显给浏览器；之后这个 app 用的都是你自己的额度。
+            </p>
+          </div>
+        )}
       </div>
 
       {/* ---- 进阶设置 ---- */}

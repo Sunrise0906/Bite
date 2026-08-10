@@ -79,6 +79,7 @@ sql/0018_fix_accept_invite_ambiguity.sql # ★★ 必跑：修 0017 函数的 42
 sql/0019_co_owner_rename_list.sql     # 共享清单的 co_owner 也能改名（纯增量）
 sql/0020_harden_function_exposure.sql # 收紧函数暴露面（安全顾问）；纯加固，无业务变更
 sql/0021_places_website_uri.sql       # places.website_uri（「看菜单」直达点单页）；纯增量
+sql/0022_llm_usage_quota.sql          # 按用户每日 AI 配额（只在用 app 默认 key 时计）；纯增量
 ```
 
 ## 项目结构

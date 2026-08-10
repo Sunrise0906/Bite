@@ -7,6 +7,7 @@ import {
   shouldRetrySameProvider,
 } from "./failover";
 import { resolveProviderChain, buildProvider } from "./router";
+import { consumeQuota, quotaExceededMessage } from "./quota";
 import { LlmProviderError, type LlmProvider, type LlmError } from "./types";
 
 // 模型由 provider router 按当前用户 settings 决定（Anthropic / OpenAI / DeepSeek / Qwen）
@@ -316,6 +317,19 @@ async function extractWithFailover<T>(
   run: (provider: LlmProvider) => Promise<T>,
 ): Promise<T> {
   const chain = await resolveProviderChain();
+
+  // 走 app 默认 key 才计配额；用户自带 key 花的是他自己的额度，不限也不记。
+  // 只占一次 —— 内部的重试/换 provider 属于同一次用户操作，不该重复扣。
+  if (chain[0]?.keySource === "app_default") {
+    const q = await consumeQuota();
+    if (!q.allowed) {
+      throw new LlmProviderError(
+        "rate_limit",
+        quotaExceededMessage(q.used, q.quota),
+      );
+    }
+  }
+
   let lastKind: LlmError["type"] = "unknown";
 
   for (const config of chain) {
