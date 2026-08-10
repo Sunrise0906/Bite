@@ -51,7 +51,11 @@ npm run dev
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` · `VAPID_PRIVATE_KEY` · `VAPID_SUBJECT`（`npx web-push generate-vapid-keys` 生成）
 - `SUPABASE_SERVICE_ROLE_KEY` —— **Web Push 必需**。发推送要读*别人的* `push_subscriptions` 行，RLS 挡得死死的，只能走 service role（唯一消费者 `src/lib/push/send.ts`，经 `src/lib/supabase/admin.ts`）。不配则 `createAdminClient()` 返回 `null`，推送**永久静默失效**。它能绕过所有 RLS，绝不能加 `NEXT_PUBLIC_` 前缀。
 
-可选（站内小红书搜索）：`SERPER_API_KEY`（[serper.dev](https://serper.dev) 免费 2500 次/月）。
+~~可选（站内小红书搜索）：`SERPER_API_KEY`~~ —— **别配了，这条路是死的**。
+Serper 查的是 Google 索引，而小红书 robots.txt 对 Googlebot 全站 `Disallow: /`，
+索引里根本没有笔记可搜（2026-08-10 实测 `site:xiaohongshu.com <店名>` 返回
+"did not match any documents"）。小红书内容只能靠**粘贴分享链接导入**（这条一直好用），
+或在小红书 App 里自己搜。
 
 ### 数据库初始化
 

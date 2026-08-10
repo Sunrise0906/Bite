@@ -125,14 +125,10 @@ node scripts/verify/signed-render.mjs   # 照片签名 URL 不变量
 
 ## 7. 待办 / 下一步
 
-**可选配置**（3 分钟，点亮已写好的功能）：
-
-1. [serper.dev](https://serper.dev) 注册免费 key（2500 次/月）
-2. `bite/.env.local` 加 `SERPER_API_KEY=xxx`
-3. Vercel → Settings → Environment Variables 加同一条 → Redeploy
-
-→ 详情页会出现「小红书 · 关于这家店」板块：相关帖子卡片 + 一键导入
-（抓帖 → AI 抽取 → 合并招牌菜/图片/口碑备注进这家店）。
+**~~可选配置：SERPER_API_KEY~~ —— 已确认无效，别配**（2026-08-10 实测）：
+Serper 查的是 Google 索引，而小红书 robots.txt 对 Googlebot 全站 `Disallow: /`，
+Google 索引里根本没有小红书笔记。详见 `bite/src/lib/places/xhs-search.ts` 的注释。
+小红书内容只能靠**粘贴分享链接导入**（这条一直好用），或在 App 里自己搜。
 
 **商定的路线图**：
 

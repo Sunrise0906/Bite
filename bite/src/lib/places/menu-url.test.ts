@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { menuUrl, menuSearchUrl, xhsSearchUrl } from "./menu-url";
+import { menuUrl, menuSearchUrl } from "./menu-url";
 
 describe("menuUrl — 优先直达点单页", () => {
   it("有 websiteUri 就直接用它（餐厅的这一项多半就是菜单本身）", () => {
@@ -58,21 +58,5 @@ describe("menuSearchUrl", () => {
   });
 });
 
-describe("xhsSearchUrl", () => {
-  it("只用店名（小红书帖子几乎不含完整地址）", () => {
-    expect(decodeURIComponent(xhsSearchUrl("凯悦轩"))).toContain("凯悦轩");
-    expect(decodeURIComponent(xhsSearchUrl("凯悦轩"))).not.toContain("Irvine");
-  });
-
-  it("**不能**直接深链 xiaohongshu.com —— 网页版搜索要登录，关键词会被丢掉", () => {
-    const u = xhsSearchUrl("凯悦轩");
-    expect(u).not.toContain("xiaohongshu.com/search_result");
-    expect(u).not.toContain("xiaohongshu.com/web/search");
-  });
-
-  it("走 Google 的 site: 限定搜索（免登录、任何浏览器都能用）", () => {
-    const u = xhsSearchUrl("凯悦轩");
-    expect(u).toContain("google.com/search");
-    expect(decodeURIComponent(u)).toContain("site:xiaohongshu.com");
-  });
-});
+// xhsSearchUrl 已删除 —— 小红书没有可用的网页搜索 URL（robots.txt 对 Googlebot
+// 全站 Disallow，网页版搜索又要登录）。改用 XhsSearchButton：复制店名 + 唤起 App。

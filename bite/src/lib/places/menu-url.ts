@@ -27,23 +27,8 @@ export function menuSearchUrl(name: string, address?: string | null): string {
   return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
 }
 
-/**
- * 小红书搜这家。
- *
- * ⚠️ **不能**直接深链到 xiaohongshu.com 的搜索页。实测（2026-08）：
- *   · /search_result?keyword=X        → 「你访问的页面不见了」
- *   · /web/search/result?keyword=X    → 302 到首页 + 登录墙，**关键词被丢掉**
- * 小红书网页版搜索现在要求登录，未登录点进去只会看到一个登录弹窗，
- * 用户会以为「根本没搜索」——因为确实没有。
- *
- * 改走 Google 的 site: 限定搜索：任何浏览器都能用、不需要登录、结果就是小红书帖子。
- * 这跟服务端 searchXhsPosts()（Serper API）用的是同一个思路，只是那条能把结果
- * 直接渲染在 app 内 —— 配了 SERPER_API_KEY 就会出现「小红书 · 关于这家店」板块，
- * 那才是不用离开 app 的版本。
- *
- * 只用店名——XHS 帖子几乎不含完整地址，带地址反而搜不到。
- */
-export function xhsSearchUrl(name: string): string {
-  const q = `site:xiaohongshu.com ${name}`;
-  return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
-}
+// ⚠️ 这里**故意没有** xhsSearchUrl —— 小红书没有任何可用的网页搜索 URL：
+//   · /search_result?keyword=X     → 「你访问的页面不见了」
+//   · /web/search/result?keyword=X → 302 到首页登录墙，关键词被丢掉
+//   · Google 的 site:xiaohongshu.com → robots.txt 对 Googlebot 全站 Disallow，索引为空
+// 真能搜到东西的只有小红书 App，见 components/v2/xhs-search-button.tsx。

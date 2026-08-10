@@ -3,7 +3,8 @@ import { VisitLogButton } from "@/components/visits/visit-log-button";
 import type { VisitPrefill } from "@/components/visits/visit-log-form";
 import type { OpeningInfo } from "@/lib/places/google";
 import type { XhsSearchHit } from "@/lib/places/xhs-search";
-import { menuUrl, xhsSearchUrl } from "@/lib/places/menu-url";
+import { menuUrl } from "@/lib/places/menu-url";
+import { XhsSearchButton } from "./xhs-search-button";
 import { XhsImportButton } from "./xhs-import-button";
 
 export type DetailPlace = {
@@ -398,35 +399,17 @@ export function PlaceDetailV2({
           )}
         </div>
 
-        {/* 小红书搜这家。走 Google 的 site: 限定搜索 —— 小红书网页版搜索
-            现在要登录，直接深链过去只会看到登录墙且关键词丢失（见 menu-url.ts）。 */}
-        <a
-          className="v2-btn ghost"
-          href={xhsSearchUrl(place.name)}
-          target="_blank"
-          rel="noreferrer"
-          style={{ width: "100%", padding: 12, marginBottom: 16 }}
-        >
-          <svg className="v2-svg" width="16" height="16" viewBox="0 0 24 24">
-            <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5z" />
-            <path d="M8 9h4.5M8 12.5h8M8 16h6" />
-          </svg>
-          小红书搜这家
-        </a>
+        {/* 小红书搜这家。没有任何可用的网页搜索路径（小红书 robots.txt 对
+            Googlebot 全站 Disallow），只能复制店名 + 深链唤起 App。
+            见 xhs-search-button.tsx 的注释。 */}
+        <XhsSearchButton name={place.name} />
 
         {/* 站内小红书板块（配了 SERPER_API_KEY 才有） */}
         {xhsHits && xhsHits.length > 0 && (
           <section style={{ marginBottom: 20 }}>
             <div className="v2-sec" style={{ margin: "0 0 10px" }}>
               <h3>小红书 · 关于这家店</h3>
-              <a
-                className="more"
-                href={xhsSearchUrl(place.name)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                更多 ›
-              </a>
+
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
               {xhsHits.map((hit) => (
