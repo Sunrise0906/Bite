@@ -88,6 +88,7 @@ sql/0023_conversation_scope_list.sql  # 对话限定在某个清单里挑（「�
 sql/0024_co_owner_invite.sql          # co_owner 也能发邀请（3 人以上共享的前提）；改策略
 sql/0025_place_comments.sql           # 清单内评论（人对人对话）；新表 + RLS
 sql/0026_last_seen.sql                # profiles.last_seen_at（「刚刚在线」）；纯增量
+sql/0027_comment_integrity.sql        # 评论的复合外键 + last_seen_at 收成列级权限；改约束/授权
 ```
 
 ## 项目结构

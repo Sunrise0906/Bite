@@ -210,22 +210,144 @@ try {
       } else {
         bad("co_owner 出现了「移除」按钮 —— 管理权限漏了");
       }
+      // ⚠️ 上面那条 RLS 断言只证明「后端允许」。UI 上按不按得到是另一回事 ——
+      // 第一版就是 RLS 放宽了、按钮还挡着 isOwner，脚本只打 PostgREST 所以全绿。
+      if ((await p2.getByRole("button", { name: /邀请/ }).count()) > 0) {
+        ok("co_owner 在页面上真的看得到「邀请」入口");
+      } else {
+        bad("co_owner 看不到邀请按钮 —— 放宽了 RLS 却没人点得到");
+      }
       await ctx2.close();
     }
+  }
+
+  // ---------- 对抗式复审查出来的那几条 ----------
+  console.log("\n[E] 复审查出的回归 / 漏洞");
+  {
+    // E1：历史重复行必须仍然可编辑（无条件查重会让两条互相锁死）
+    // 直接造两条归一化后同名的行（模拟旧 bug 留下的数据）
+    await fetch(`${SUPA}/rest/v1/places`, {
+      method: "POST",
+      headers: me.H,
+      body: JSON.stringify({
+        list_id: list.id,
+        name: "Mori's",
+        address: "旧地址",
+        cuisine: ["咖啡"],
+        created_by: me.userId,
+      }),
+    });
+    const two = await (
+      await fetch(
+        `${SUPA}/rest/v1/places?list_id=eq.${list.id}&select=id,name&order=created_at.asc`,
+        { headers: me.H },
+      )
+    ).json();
+    if (two.length === 2) {
+      ok(`造出历史重复行：${two.map((r) => r.name).join(" / ")}`);
+      // 打开其中一条的编辑页，只改地址、不动店名
+      await page.goto(`${BASE}/lists/${list.id}/places/${two[0].id}/edit`);
+      await page.waitForSelector("input[name=address]", { timeout: 20000 });
+      await page.locator("input[name=address]").fill("只改了地址-验证用");
+      await page.getByRole("button", { name: /保存|更新/ }).first().click();
+      await page.waitForTimeout(2000);
+      const after = await (
+        await fetch(`${SUPA}/rest/v1/places?id=eq.${two[0].id}&select=address`, {
+          headers: me.H,
+        })
+      ).json();
+      if (after?.[0]?.address === "只改了地址-验证用") {
+        ok("没改名时不查重 —— 历史重复行仍然编辑得动");
+      } else {
+        bad(`历史重复行被查重锁死了，地址没保存：${JSON.stringify(after)}`);
+      }
+      // 但真的改成撞车的名字，仍然要拦。
+      // ⚠️ 得先造一家名字完全不同的店 —— two[0] 和 two[1] 归一化后本来就同名，
+      //    把 two[0] 改成 two[1] 的名字等于「没改名」，测不出东西（第一版就错在这）。
+      const [third] = await (
+        await fetch(`${SUPA}/rest/v1/places`, {
+          method: "POST",
+          headers: { ...me.H, Prefer: "return=representation" },
+          body: JSON.stringify({
+            list_id: list.id,
+            name: "完全不同的一家",
+            address: "somewhere",
+            cuisine: ["咖啡"],
+            created_by: me.userId,
+          }),
+        })
+      ).json();
+      await page.goto(`${BASE}/lists/${list.id}/places/${third.id}/edit`);
+      await page.waitForSelector("input[name=name]", { timeout: 20000 });
+      await page.locator("input[name=name]").fill("MOri’s");
+      await page.getByRole("button", { name: /保存|更新/ }).first().click();
+      await page.waitForTimeout(1800);
+      const t = await page.locator("body").innerText();
+      if (/已经有.*了，换个名字/.test(t)) ok("真的改成撞车的名字仍然被拦下");
+      else bad("改名撞车没被拦（查重被我关过头了）");
+    } else {
+      bad(`造历史重复行失败，当前 ${two.length} 行`);
+    }
+
+    // E2：评论不能被搬到别的 place / 别的清单（复合外键 + update 策略）
+    const cs = await (
+      await fetch(`${SUPA}/rest/v1/place_comments?select=id&limit=1`, {
+        headers: me.H,
+      })
+    ).json();
+    // ⚠️ 要拿一家**别的清单**里的店来试，才谈得上「搬走」。
+    //    第一版拿的是本清单里的店，(place_id, list_id) 本来就一致，外键当然放行。
+    const outside = (
+      await (
+        await fetch(
+          `${SUPA}/rest/v1/places?list_id=neq.${list.id}&select=id,list_id&limit=1`,
+          { headers: me.H },
+        )
+      ).json()
+    )[0];
+    if (cs?.[0] && outside) {
+      const bogus = await fetch(
+        `${SUPA}/rest/v1/place_comments?id=eq.${cs[0].id}`,
+        {
+          method: "PATCH",
+          headers: me.H,
+          body: JSON.stringify({ place_id: outside.id }),
+        },
+      );
+      if (!bogus.ok) {
+        ok("评论搬不到别的清单的店上（复合外键生效）");
+      } else {
+        bad("评论被搬到了别的清单的店上 —— 复合外键没生效");
+      }
+    } else {
+      console.log("  – 跳过跨清单注入验证（没有第二个清单的店可用）");
+    }
+
+    // E3：last_seen_at 不再全站可读
+    const leak = await fetch(
+      `${SUPA}/rest/v1/profiles?select=id,last_seen_at&limit=1`,
+      { headers: me.H },
+    );
+    if (!leak.ok) ok("last_seen_at 已从 profiles 的列级读权限撤掉（0027）");
+    else bad(`任意登录用户仍能直接读 last_seen_at：${(await leak.text()).slice(0, 100)}`);
   }
 
   // ---------- D：心跳 ----------
   console.log("\n[D] 活跃心跳");
   {
-    const prof = await (
-      await fetch(
-        `${SUPA}/rest/v1/profiles?id=eq.${me.userId}&select=last_seen_at`,
-        { headers: me.H },
-      )
+    // 只能通过 RPC 读了（0027 撤了列级读权限）—— 顺便验证那个函数确实能用
+    const rows = await (
+      await fetch(`${SUPA}/rest/v1/rpc/list_member_activity`, {
+        method: "POST",
+        headers: me.H,
+        body: JSON.stringify({ p_list_id: list.id }),
+      })
     ).json();
-    const ts = prof?.[0]?.last_seen_at;
+    const ts = Array.isArray(rows)
+      ? rows.find((r) => r.user_id === me.userId)?.last_seen_at
+      : null;
     if (ts && Date.now() - Date.parse(ts) < 10 * 60 * 1000) {
-      ok(`浏览期间打过卡：last_seen_at = ${ts}`);
+      ok(`浏览期间打过卡（经 list_member_activity 读回）：${ts}`);
     } else {
       bad(`last_seen_at 没有被更新：${ts ?? "null"}`);
     }

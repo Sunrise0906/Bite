@@ -70,7 +70,9 @@ export function ListDetailV2({
           ) : (
             <h1>{list.name}</h1>
           )}
-          {isOwner && <InviteButton listId={list.id} />}
+          {/* owner 和 co_owner 都能拉人（sql/0024）—— 这里以前是 isOwner，
+            于是放宽了 RLS 却没人点得到 */}
+        {canEdit && <InviteButton listId={list.id} />}
         </div>
         <div className="stats">
           <span>{places.length} 家店</span>

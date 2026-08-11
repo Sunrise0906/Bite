@@ -7,7 +7,8 @@ import { heartbeat } from "@/lib/actions/presence";
 export function Heartbeat() {
   useEffect(() => {
     const beat = () => {
-      if (document.visibilityState === "visible") void heartbeat();
+      // 断网 / 服务端 500 都会 reject —— 心跳失败不值得污染控制台
+      if (document.visibilityState === "visible") heartbeat().catch(() => {});
     };
     beat();
     const t = setInterval(beat, 30_000);

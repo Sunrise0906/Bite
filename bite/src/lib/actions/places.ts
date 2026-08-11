@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { findSameNamed } from "@/lib/db/place-names";
+import { findSameNamed, fetchPlaceNameRows } from "@/lib/db/place-names";
+import { sameName } from "@/lib/places/name-key";
 import { notifyListMembersNewPlace } from "@/lib/push/notify-list";
 import { redirect } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
@@ -118,12 +119,17 @@ export async function updatePlace(
   const photoRaw = formData.get("photo_urls_text");
   const supabase = await createClient();
 
-  // 改名也可能撞上同清单里的另一条（撞上之后两条永远无法自动合并）
-  const dup = (await findSameNamed(supabase, [listId], name)).find(
-    (p) => p.id !== placeId,
-  );
-  if (dup) {
-    return { error: `这个清单里已经有「${dup.name}」了，换个名字。` };
+  // 改名也可能撞上同清单里的另一条（撞上之后两条永远无法自动合并）。
+  // ⚠️ 只有**真的改了名**才查重：库里本来就可能有两条归一化后同名的历史行
+  // （见 name-key.ts —— 那种行我们刻意不自动合并，交给用户处理）。无条件查重
+  // 会让那两条互相锁死：打开任意一条只想改个地址，都会被「已经有…了」顶回来。
+  const rows = await fetchPlaceNameRows(supabase, [listId]);
+  const self = rows.find((r) => r.id === placeId);
+  if (!self || !sameName(self.name, name)) {
+    const dup = rows.find((r) => r.id !== placeId && sameName(r.name, name));
+    if (dup) {
+      return { error: `这个清单里已经有「${dup.name}」了，换个名字。` };
+    }
   }
 
   const { data: updated, error } = await supabase

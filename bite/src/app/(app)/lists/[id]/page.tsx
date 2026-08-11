@@ -147,15 +147,16 @@ export default async function ListDetailPage({ params }: { params: Params }) {
     supabase,
     memberRows.map((m) => m.user_id),
   );
-  // 谁刚刚还在（心跳节流写入 profiles.last_seen_at，见 sql/0026）
-  const { data: seenRows } = await supabase
-    .from("profiles")
-    .select("id, last_seen_at")
-    .in("id", memberRows.length > 0 ? memberRows.map((m) => m.user_id) : [""]);
+  // 谁刚刚还在。走 RPC 而不是直接 select profiles.last_seen_at ——
+  // profiles 的 select 策略是 using(true)，把活跃时间放在列上等于全站可见，
+  // 所以 0027 撤了那一列的读权限，只留这个「同清单成员」的函数。
+  const { data: seenRows } = await supabase.rpc("list_member_activity", {
+    p_list_id: id,
+  });
   const seenMap = new Map(
-    ((seenRows ?? []) as Array<{ id: string; last_seen_at: string | null }>).map(
-      (r) => [r.id, r.last_seen_at],
-    ),
+    (
+      (seenRows ?? []) as Array<{ user_id: string; last_seen_at: string | null }>
+    ).map((r) => [r.user_id, r.last_seen_at]),
   );
   const members: MemberDisplay[] = memberRows.map((m) => ({
     user_id: m.user_id,
