@@ -25,14 +25,38 @@ export async function generateMetadata(props: {
   return { title: t ? `${t} · 聊天 · Bite` : "聊天 · Bite" };
 }
 
-type SearchParams = { c?: string };
+type SearchParams = { c?: string; list?: string };
 
 export default async function ChatPage(props: {
   searchParams: Promise<SearchParams>;
 }) {
   const user = await requireUser();
   const supabase = await createClient();
-  const { c: activeId } = await props.searchParams;
+  const { c: activeId, list: scopeListId } = await props.searchParams;
+
+  // 从某个清单页进来（/chat?list=<id>）：AI 默认只从这个清单里挑。
+  // 查一次名字，顺便由 RLS 确认当前用户读得到 —— 读不到就当没传。
+  // 作用域优先取**当前会话上存的**（sql/0023）；只有开新对话时才看 URL 的 ?list=
+  // —— 首条消息后 URL 会被 replace 成 /chat?c=<id>，?list= 就没了。
+  let effectiveScopeId = scopeListId;
+  if (activeId) {
+    const { data: convoScope } = await supabase
+      .from("conversations")
+      .select("scope_list_id")
+      .eq("id", activeId)
+      .maybeSingle<{ scope_list_id: string | null }>();
+    effectiveScopeId = convoScope?.scope_list_id ?? undefined;
+  }
+
+  let scopeList: { id: string; name: string } | null = null;
+  if (effectiveScopeId) {
+    const { data } = await supabase
+      .from("lists")
+      .select("id, name")
+      .eq("id", effectiveScopeId)
+      .maybeSingle<{ id: string; name: string }>();
+    scopeList = data ?? null;
+  }
 
   const conversations = await listConversations(supabase, user.id, 30);
 
@@ -310,6 +334,7 @@ export default async function ChatPage(props: {
           headerProviderLabel={headerProviderLabel}
           headerModel={headerModel}
           placeMap={placeMap}
+          scopeList={scopeList}
         />
       </section>
     </div>

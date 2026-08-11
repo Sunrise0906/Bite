@@ -8,7 +8,8 @@
 
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getProvider } from "@/lib/llm/router";
+import { getProvider, resolveProviderChain } from "@/lib/llm/router";
+import { streamWithFailover } from "@/lib/llm/stream-failover";
 import { LlmProviderError } from "@/lib/llm/types";
 import type { LlmContentBlock, LlmMessage } from "@/lib/llm/types";
 import { CHAT_TOOLS, executeChatTool } from "@/lib/llm/chat-tools";
@@ -72,6 +73,8 @@ type RequestBody = {
   message?: string;
   /** true 时不追加新 user 消息，而是删除最后一轮 assistant + tool_result，从已存在的 last user 消息重新生成 */
   regenerate?: boolean;
+  /** 从某个清单页发起提问时的作用域 —— 让 AI 默认只从这个清单里挑 */
+  list_id?: string;
 };
 
 export async function POST(req: NextRequest) {
@@ -112,8 +115,12 @@ export async function POST(req: NextRequest) {
 
   // 1. provider
   let provider;
+  let providerChainConfigs;
   try {
     provider = await getProvider();
+    // 撞限流时按链换下一家。抽取路径早就有，聊天此前完全没有 ——
+    // 这正是用户报的「限流，请稍后再试」在聊天里的版本。
+    providerChainConfigs = await resolveProviderChain();
   } catch (err) {
     if (err instanceof LlmProviderError) {
       return new Response(err.message, { status: 400 });
@@ -124,14 +131,21 @@ export async function POST(req: NextRequest) {
   // 2. conversation
   let conversationId = body.conversation_id;
   let isNew = false;
+  // 作用域**以会话行为准**：首条消息后前端会 router.replace 到 /chat?c=<id>，
+  // ?list= 就没了；存在会话上才能让第二条消息、刷新、翻历史都保持同一个范围。
+  let scopeListId: string | null = null;
   if (conversationId) {
     const convo = await getConversation(supabase, conversationId, user.id);
     if (!convo) return new Response("Conversation not found", { status: 404 });
+    scopeListId =
+      (convo as { scope_list_id?: string | null }).scope_list_id ?? null;
   } else {
+    scopeListId = body.list_id ?? null;
     const result = await createConversation(supabase, {
       userId: user.id,
       provider: provider.config.id,
       model: provider.config.chatModel,
+      scopeListId,
     });
     if ("error" in result) {
       return new Response(`创建会话失败：${result.error}`, { status: 500 });
@@ -213,6 +227,27 @@ export async function POST(req: NextRequest) {
     messages.push({ role: "user", content: userBlock });
   }
 
+  // 4.5 清单作用域：用户从某个清单页发起提问时，默认只从那个清单里挑。
+  // ⚠️ 必须**查库确认这个清单当前用户读得到**才拼进 prompt —— 否则等于让请求体
+  // 指定去读哪个清单，还会把别人的清单名回显给模型。
+  // （工具侧 searchMyList 也会再验一次，双保险。）
+  let scopePrompt = "";
+  if (scopeListId) {
+    const { data: scoped } = await supabase
+      .from("lists")
+      .select("id, name")
+      .eq("id", scopeListId)
+      .maybeSingle<{ id: string; name: string }>();
+    if (scoped) {
+      scopePrompt =
+        `\n\n【本次会话的清单作用域】\n` +
+        `用户是从「${scoped.name}」这个清单页发起提问的。调 search_my_list 时**带上** ` +
+        `list_id="${scoped.id}"，只从这个清单里挑。\n` +
+        `除非用户明确说「所有清单」「别的清单」「换一个清单」，否则不要跨清单找。\n` +
+        `如果这个清单里实在没有合适的，如实说明，并问要不要放宽到其他清单。`;
+    }
+  }
+
   // 5. SSE stream
   const encoder = new TextEncoder();
   // 客户端断开就停掉这次 LLM 调用，省 token / 防止偷偷继续执行工具
@@ -253,12 +288,16 @@ export async function POST(req: NextRequest) {
           let stopReason: string = "end_turn";
           let turnUsage: { input_tokens: number; output_tokens: number } | null = null;
 
-          for await (const chunk of provider.streamChat({
-            system: SYSTEM_PROMPT,
-            messages,
-            tools: CHAT_TOOLS,
-            maxTokens: 4096,
-          })) {
+          for await (const chunk of streamWithFailover(
+            providerChainConfigs,
+            (p) =>
+              p.streamChat({
+                system: SYSTEM_PROMPT + scopePrompt,
+                messages,
+                tools: CHAT_TOOLS,
+                maxTokens: 4096,
+              }),
+          )) {
             if (clientSignal.aborted) break;
             if (chunk.type === "text") {
               currentText += chunk.delta;
@@ -444,7 +483,8 @@ export async function POST(req: NextRequest) {
 
   return new Response(stream, {
     headers: {
-      "Content-Type": "text/event-stream",
+      // 必须带 charset：不写的话浏览器按 latin-1 解，中文错误信息全是乱码
+      "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
     },

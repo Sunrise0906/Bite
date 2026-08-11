@@ -58,6 +58,8 @@ type Props = {
   headerProviderLabel: string;
   headerModel: string;
   placeMap: Record<string, PlaceRef>;
+  /** 从某个清单页进来时的作用域：AI 默认只从这个清单里挑 */
+  scopeList?: { id: string; name: string } | null;
 };
 
 const QUICK_PROMPTS = [
@@ -78,6 +80,7 @@ export function ChatView({
   headerProviderLabel,
   headerModel,
   placeMap,
+  scopeList,
 }: Props) {
   const router = useRouter();
   const [conversationId, setConversationId] = useState<string | null>(
@@ -170,8 +173,16 @@ export function ChatView({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           isRegen
-            ? { conversation_id: conversationId, regenerate: true }
-            : { conversation_id: conversationId, message: text },
+            ? {
+                conversation_id: conversationId,
+                regenerate: true,
+                list_id: scopeList?.id,
+              }
+            : {
+                conversation_id: conversationId,
+                message: text,
+                list_id: scopeList?.id,
+              },
         ),
         signal: ac.signal,
       });
@@ -392,12 +403,15 @@ export function ChatView({
         ref={scrollContainerRef}
         onScroll={onScroll}
         className="flex-1 overflow-y-auto px-4 py-5"
+        /* 稳定的测试钩子：侧栏也是 .overflow-y-auto，靠 class 选会选错 */
+        data-chat-messages
       >
         <div className="mx-auto flex max-w-2xl flex-col gap-4">
           {messages.length === 0 && (
             <EmptyState
               onPick={(prompt) => send({ text: prompt })}
               disabled={sending}
+              scopeList={scopeList}
             />
           )}
           {messages.map((m, i) => {
@@ -550,9 +564,11 @@ function shortModel(m: string): string {
 function EmptyState({
   onPick,
   disabled,
+  scopeList,
 }: {
   onPick: (prompt: string) => void;
   disabled: boolean;
+  scopeList?: { id: string; name: string } | null;
 }) {
   return (
     <div className="card flex flex-col items-center px-6 py-12 text-center">
@@ -560,10 +576,12 @@ function EmptyState({
         <SparklesIcon size={22} />
       </div>
       <p className="heading-display text-xl text-[var(--text-strong)]">
-        和你的餐厅库聊聊
+        {scopeList ? `从「${scopeList.name}」里挑` : "和你的餐厅库聊聊"}
       </p>
       <p className="mt-2 max-w-sm text-sm text-[var(--text-muted)]">
-        告诉我你想吃啥 / 跟谁 / 预算多少，我从你的 list 里挑 2-3 家并给出理由。
+        {scopeList
+          ? "告诉我想吃啥 / 跟谁 / 预算多少，我只在这个清单里挑。想找别的清单直接说就行。"
+          : "告诉我你想吃啥 / 跟谁 / 预算多少，我从你的 list 里挑 2-3 家并给出理由。"}
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-2">
         {QUICK_PROMPTS.map((p) => (

@@ -68,6 +68,12 @@ export const CHAT_TOOLS: LlmTool[] = [
           items: { type: "string" },
           description: "可选标签数组（OR 匹配）",
         },
+        list_id: {
+          type: "string",
+          description:
+            "可选：只在某一个清单里找（uuid）。用户是从某个清单页发起提问时会预设这个值——" +
+            "此时除非用户明确说「所有清单 / 别的清单」，都应该带上它。",
+        },
         limit: {
           type: "number",
           description: "返回数量上限，默认 10，最多 30",
@@ -184,6 +190,8 @@ type SearchInput = {
   price_range?: unknown;
   occasions?: unknown;
   tags?: unknown;
+  /** 只在这一个清单里找（用户从清单页发起提问时预设） */
+  list_id?: string;
   limit?: number;
 };
 
@@ -208,6 +216,18 @@ async function searchMyList(input: unknown, ctx: ToolContext) {
 
   if (listIds.length === 0) {
     return { places: [], note: "用户还没有任何 list" };
+  }
+
+  // 限定到单个清单（用户从清单页发起提问时会带上）。
+  // ⚠️ 必须在**可访问清单**里验一遍才采纳 —— 否则等于让模型指定读哪个清单，
+  // 而模型的输入里可能有用户粘进来的任意文本。
+  const wantList =
+    typeof args.list_id === "string" ? args.list_id.trim() : "";
+  if (wantList) {
+    if (!listIds.includes(wantList)) {
+      return { places: [], count: 0, note: "指定的清单不存在或无权访问" };
+    }
+    listIds = [wantList];
   }
 
   // 清单领域（sql/0016；列不存在时静默降级为全 food）

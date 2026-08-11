@@ -108,6 +108,21 @@ export function ListDetailV2({
             手动填写
           </Link>
         )}
+        {/* 从这个清单里问 AI —— /chat?list=<id> 会把作用域带过去，
+            AI 默认只在这个清单里挑（见 api/chat 的「清单作用域」段）。 */}
+        {places.length > 0 && (
+          <Link
+            href={`/chat?list=${list.id}`}
+            className="v2-btn"
+            style={{ flex: 1, padding: 13 }}
+            title="只从这个清单里帮你选"
+          >
+            <svg className="v2-svg" width="15" height="15" viewBox="0 0 24 24">
+              <path d="M21 12a8 8 0 1 1-4-6.9L21 4l-1 4.5A8 8 0 0 1 21 12z" />
+            </svg>
+            帮我从这挑
+          </Link>
+        )}
         {wantCount >= 2 && (
           <Link
             href={`/lists/${list.id}/pick`}

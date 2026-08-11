@@ -32,6 +32,8 @@ export async function createConversation(
     provider: ProviderId;
     model: string;
     title?: string | null;
+    /** 限定只从某个清单里挑（来自清单页的「帮我从这挑」，sql/0023） */
+    scopeListId?: string | null;
   },
 ): Promise<{ id: string } | { error: string }> {
   const { data, error } = await supabase
@@ -41,6 +43,7 @@ export async function createConversation(
       provider: args.provider,
       model: args.model,
       title: args.title ?? null,
+      scope_list_id: args.scopeListId ?? null,
     })
     .select("id")
     .single();
