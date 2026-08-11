@@ -3,6 +3,7 @@
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { signNestedPhotoUrls } from "@/lib/storage/signed-photos";
 import { sendPushToUsers } from "@/lib/push/send";
+import { votesNeeded } from "@/lib/pick/rules";
 
 // 「一起选」：清单成员各自对想去的店滑卡投票，两人都右滑同一家 → 匹配。
 // 需要 sql/0014（pick_sessions + pick_votes）。
@@ -165,7 +166,26 @@ export type VoteResult =
   | { ok: true; matched: null | { place_id: string; name: string } }
   | { error: string };
 
-/** 投一票；两人（不同 user）都右滑同一家 → 回写匹配并结束 session */
+/** 清单的全部成员（owner + list_members），用于计票门槛和结果通知 */
+async function listMemberIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  listId: string,
+): Promise<string[]> {
+  const [{ data: list }, { data: members }] = await Promise.all([
+    supabase.from("lists").select("owner_id").eq("id", listId).maybeSingle<{
+      owner_id: string;
+    }>(),
+    supabase.from("list_members").select("user_id").eq("list_id", listId),
+  ]);
+  const ids = new Set<string>();
+  if (list?.owner_id) ids.add(list.owner_id);
+  for (const m of (members ?? []) as Array<{ user_id: string }>) {
+    ids.add(m.user_id);
+  }
+  return [...ids];
+}
+
+/** 投一票；够多数的人右滑同一家 → 回写匹配并结束 session */
 export async function castPickVote(
   sessionId: string,
   placeId: string,
@@ -187,7 +207,16 @@ export async function castPickVote(
 
   if (!vote) return { ok: true, matched: null };
 
-  // 匹配判定：本 session 内这家店有 ≥2 个不同用户右滑
+  // 匹配判定：本 session 内这家店右滑的人数够不够多数
+  const { data: session } = await supabase
+    .from("pick_sessions")
+    .select("list_id")
+    .eq("id", sessionId)
+    .maybeSingle<{ list_id: string }>();
+  if (!session) return { error: "找不到这个一起选会话" };
+
+  const memberIds = await listMemberIds(supabase, session.list_id);
+
   const { data: yesVotes } = await supabase
     .from("pick_votes")
     .select("user_id")
@@ -195,7 +224,9 @@ export async function castPickVote(
     .eq("place_id", placeId)
     .eq("vote", true);
   const distinct = new Set((yesVotes ?? []).map((v) => v.user_id));
-  if (distinct.size < 2) return { ok: true, matched: null };
+  if (distinct.size < votesNeeded(memberIds.length)) {
+    return { ok: true, matched: null };
+  }
 
   const { data: place } = await supabase
     .from("places")
@@ -232,10 +263,14 @@ export async function castPickVote(
     return { ok: true, matched: null };
   }
 
-  // 通知双方：就它了！（未配 push 则静默跳过）
-  await sendPushToUsers([...distinct], {
+  // 通知**全体成员**，不只是投中的那几个。session 一结束大家都被强制结束了，
+  // 没投中的人更需要知道结果 —— 以前他们既收不到推送、票也作废，纯纯被无视。
+  await sendPushToUsers(memberIds, {
     title: "就它了！🎉",
-    body: `你们都想吃「${place?.name ?? "这家店"}」`,
+    body:
+      memberIds.length > 2
+        ? `${distinct.size}/${memberIds.length} 个人都想吃「${place?.name ?? "这家店"}」`
+        : `你们都想吃「${place?.name ?? "这家店"}」`,
     url: `/lists/${won[0].list_id}/places/${placeId}`,
   });
 

@@ -2,6 +2,8 @@
 // 每个工具返回一个 JSON 字符串结果给模型读。
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { sameName } from "@/lib/places/name-key";
+import { notifyListMembersNewPlace } from "@/lib/push/notify-list";
 import { fetchOpeningInfo, searchSimilarPlaces } from "@/lib/places/google";
 import type { LlmTool } from "./types";
 import {
@@ -492,13 +494,15 @@ async function addToList(input: unknown, ctx: ToolContext) {
     return { error: "缺少必填字段（list_id / name / address / cuisine）" };
   }
 
-  // 防 dup：同 list 同名已存在 → 不重复插，告诉 AI 让 ta 告知用户
-  const { data: existing } = await ctx.supabase
+  // 防 dup：同 list 同名已存在 → 不重复插，告诉 AI 让 ta 告知用户。
+  // 用归一化比较而不是 .eq("name") —— 模型给的名字和库里的写法常常差个撇号或大小写
+  const { data: siblings } = await ctx.supabase
     .from("places")
     .select("id, name")
-    .eq("list_id", args.list_id)
-    .eq("name", args.name)
-    .maybeSingle<{ id: string; name: string }>();
+    .eq("list_id", args.list_id);
+  const existing = ((siblings ?? []) as { id: string; name: string }[]).find(
+    (p) => sameName(p.name, args.name!),
+  );
   if (existing) {
     return {
       already_exists: true,
@@ -530,5 +534,13 @@ async function addToList(input: unknown, ctx: ToolContext) {
     .single();
 
   if (error) return { error: `添加失败：${error.message}` };
+
+  // 共享清单的其他成员也该知道（AI 加店这条路以前完全不通知）
+  await notifyListMembersNewPlace(
+    ctx.supabase,
+    ctx.userId,
+    args.list_id,
+    `「${data.name}」`,
+  );
   return { ok: true, place_id: data.id, name: data.name };
 }

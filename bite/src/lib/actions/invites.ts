@@ -18,14 +18,25 @@ export async function createListInvite(
 
   const supabase = await createClient();
 
-  // 校验 owner
+  // owner 或 co_owner 都能发邀请（sql/0024 把 RLS 也放宽到 can_write_list）。
+  // 清单一旦超过两个人，「只有 owner 能拉人」就是硬瓶颈。
   const { data: list } = await supabase
     .from("lists")
     .select("id, owner_id, name")
     .eq("id", listId)
     .maybeSingle<{ id: string; owner_id: string; name: string }>();
   if (!list) return { error: "找不到这个 list" };
-  if (list.owner_id !== user.id) return { error: "只有 owner 能发邀请" };
+  if (list.owner_id !== user.id) {
+    const { data: me } = await supabase
+      .from("list_members")
+      .select("role")
+      .eq("list_id", listId)
+      .eq("user_id", user.id)
+      .maybeSingle<{ role: string }>();
+    if (me?.role !== "co_owner") {
+      return { error: "只有所有者和共同所有者能发邀请" };
+    }
+  }
 
   const { data, error } = await supabase
     .from("list_invites")

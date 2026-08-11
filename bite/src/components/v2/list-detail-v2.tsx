@@ -128,7 +128,7 @@ export function ListDetailV2({
             href={`/lists/${list.id}/pick`}
             className="v2-btn sage"
             style={{ flex: 1, padding: 13 }}
-            title="滑卡选店：两个人都右滑同一家，就它了"
+            title="滑卡选店：够多数的人右滑同一家，就它了"
           >
             <svg className="v2-svg" width="15" height="15" viewBox="0 0 24 24">
               <path d="M19.5 5.1a5 5 0 0 0-7.1 0L12 5.5l-.4-.4a5 5 0 1 0-7.1 7.1l7.5 7.5 7.5-7.5a5 5 0 0 0 0-7.1z" />
@@ -138,12 +138,12 @@ export function ListDetailV2({
         )}
       </div>
 
-      {isOwner && members.length > 0 && (
+      {members.length > 0 && (
         <div style={{ marginBottom: 16 }}>
-          <MembersPanel listId={list.id} members={members} />
+          <MembersPanel listId={list.id} members={members} canManage={isOwner} />
         </div>
       )}
-      {isOwner && activeInvites.length > 0 && (
+      {activeInvites.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <ActiveInvitesPanel invites={activeInvites} />
         </div>

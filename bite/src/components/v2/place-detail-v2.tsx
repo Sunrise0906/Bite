@@ -85,6 +85,7 @@ export function PlaceDetailV2({
   visitPrefill,
   opening,
   xhsHits,
+  comments,
 }: {
   place: DetailPlace;
   visits: VisitSummary;
@@ -98,6 +99,8 @@ export function PlaceDetailV2({
   opening?: OpeningInfo | null;
   /** 站内小红书搜索结果（未配 SERPER_API_KEY 时为 null → 不渲染板块） */
   xhsHits?: XhsSearchHit[] | null;
+  /** 评论区（server component 里组装好传进来） */
+  comments?: React.ReactNode;
 }) {
   const st = STATUS[place.status as keyof typeof STATUS] ?? STATUS.want_to_go;
   const hero = place.photo_urls[0] ?? null;
@@ -453,6 +456,8 @@ export function PlaceDetailV2({
             </p>
           </section>
         )}
+
+        {comments}
       </div>
     </main>
   );

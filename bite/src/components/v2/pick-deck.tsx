@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { votesNeeded } from "@/lib/pick/rules";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -12,7 +13,7 @@ import {
   type PickSessionData,
 } from "@/lib/actions/pick";
 
-// 「一起选」滑卡：右滑=想吃♥，左滑=跳过✗。两人都右滑同一家 → 就它了。
+// 「一起选」滑卡：右滑=想吃♥，左滑=跳过✗。够多数的人右滑同一家 → 就它了。
 // 单人清单是快速筛选模式：滑完从右滑里随机挑一家。
 
 type Matched = { place_id: string; name: string } | null;
@@ -36,9 +37,10 @@ export function PickDeck({ initial }: { initial: PickSessionData }) {
 
   const top = cards[0] ?? null;
   const duo = data.member_count > 1;
+  const need = votesNeeded(data.member_count);
   const finished = !top && !matched;
 
-  // 滑完等对方：轮询匹配结果。session 被对方结束（再来一轮）时 place_id 为
+  // 滑完等其他人：轮询匹配结果。session 被别人结束（再来一轮）时 place_id 为
   // null——refresh 重挂进新 session，不要让用户永远卡在等待页
   useEffect(() => {
     if (!finished || !duo || matched) return;
@@ -152,7 +154,7 @@ export function PickDeck({ initial }: { initial: PickSessionData }) {
             <div className="burst">⏳</div>
             <h2 className="v2-disp">你滑完了</h2>
             <p className="sub">
-              右滑了 {likes.length} 家 · 等对方滑完，一旦你们都想吃同一家会立刻揭晓
+              右滑了 {likes.length} 家 · 等其他人滑完，一旦有 {need} 个人想吃同一家会立刻揭晓
             </p>
             <div className="acts">
               <button
@@ -233,7 +235,7 @@ export function PickDeck({ initial }: { initial: PickSessionData }) {
   return (
     <div className="v2-pick">
       <p className="cnt">
-        剩 {cards.length} 家{duo ? " · 两人都右滑就它" : ""}
+        剩 {cards.length} 家{duo ? ` · ${need} 个人右滑就它` : ""}
       </p>
       <div className="stack">
         {/* 下一张垫底 */}

@@ -143,6 +143,8 @@ async function renderHomeV2(
       faces: faceIds
         .slice(0, 3)
         .map((id) => ({ initial: initialOf(id), sage: id !== userId })),
+      // 头像最多画 3 个；第 4 个人以前就这么静默消失了
+      memberTotal: faceIds.length,
     };
   });
 

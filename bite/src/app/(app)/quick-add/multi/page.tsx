@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { namesExistingInLists } from "@/lib/actions/place-lookup";
 import { isPlaceDomain } from "@/lib/places/domain";
 import { redirect } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
@@ -66,24 +67,15 @@ export default async function QuickAddMultiPage() {
     );
   }
 
-  // 查所有候选店在哪些 list 已存在（用于显示"已存在 · 将更新"）
+  // 查所有候选店在哪些 list 已存在（用于显示「已存在 · 将更新」）。
+  // 归一化匹配，与写入同源；分组里放的是**候选自己的名字**，
+  // 这样下游 existingNamesInList.has(p.name) 不必再关心库里那边写法有什么差别。
   const writableIds = writableLists.map((l) => l.id);
   const candidateNames = draft.places.map((p) => p.name);
-  let existingByList: Record<string, string[]> = {};
-  if (writableIds.length > 0 && candidateNames.length > 0) {
-    const { data: dupes } = await supabase
-      .from("places")
-      .select("list_id, name")
-      .in("list_id", writableIds)
-      .in("name", candidateNames);
-    const grouped: Record<string, string[]> = {};
-    for (const row of (dupes ?? []) as Array<{
-      list_id: string;
-      name: string;
-    }>) {
-      (grouped[row.list_id] ??= []).push(row.name);
-    }
-    existingByList = grouped;
+  const hitsByName = await namesExistingInLists(candidateNames, writableIds);
+  const existingByList: Record<string, string[]> = {};
+  for (const [name, listIds] of Object.entries(hitsByName)) {
+    for (const id of listIds) (existingByList[id] ??= []).push(name);
   }
 
   return (

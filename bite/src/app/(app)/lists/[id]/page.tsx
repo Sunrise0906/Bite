@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { fetchDisplayNames, displayNameOf } from "@/lib/db/display-names";
+import { isActive } from "@/lib/presence/active";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import type { List, Place } from "@/lib/db/types";
 import {
@@ -118,46 +120,49 @@ export default async function ListDetailPage({ params }: { params: Params }) {
   // 能编辑 = owner 或 co_owner
   const canEdit = isOwner || memberRole === "co_owner";
 
-  // owner 看自己发的活跃邀请（未用 + 未过期）+ 当前成员列表
-  let activeInvites: ActiveInvite[] = [];
-  let members: MemberDisplay[] = [];
-  if (isOwner) {
-    const [{ data: invitesData }, { data: membersData }] = await Promise.all([
-      supabase
-        .from("list_invites")
-        .select("token, role, expires_at")
-        .eq("list_id", id)
-        .is("used_at", null)
-        .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("list_members")
-        .select("user_id, role")
-        .eq("list_id", id),
-    ]);
-    activeInvites = (invitesData ?? []) as ActiveInvite[];
+  // 成员名单：**所有成员**都看得见（RLS 的 list_members_select 早就允许了，
+  // 是应用层自己用 if (isOwner) 把它藏起来的）。两个人的清单里「还有谁」是显然的，
+  // 三个人起就不是了 —— 而「@某人」「谁加的」「谁在线」全都以这个为前提。
+  // 管理动作（改角色 / 移除）仍然只给 owner。
+  const [{ data: invitesData }, { data: membersData }] = await Promise.all([
+    // 邀请链接现在 co_owner 也能发（sql/0024），所以可写的人都该看到活跃链接
+    canEdit
+      ? supabase
+          .from("list_invites")
+          .select("token, role, expires_at")
+          .eq("list_id", id)
+          .is("used_at", null)
+          .gt("expires_at", new Date().toISOString())
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] as ActiveInvite[] }),
+    supabase.from("list_members").select("user_id, role").eq("list_id", id),
+  ]);
+  const activeInvites = (invitesData ?? []) as ActiveInvite[];
 
-    // 拉 profiles 做名字映射
-    const memberUserIds = (membersData ?? []).map((m) => m.user_id);
-    let profilesMap = new Map<string, { name: string | null; email: string }>();
-    if (memberUserIds.length > 0) {
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("id, name, email")
-        .in("id", memberUserIds);
-      profilesMap = new Map(
-        (profs ?? []).map((p) => [p.id, { name: p.name, email: p.email }]),
-      );
-    }
-    members = (membersData ?? []).map((m) => {
-      const p = profilesMap.get(m.user_id);
-      return {
-        user_id: m.user_id,
-        role: m.role as "co_owner" | "viewer",
-        display_name: p?.name ?? p?.email.split("@")[0] ?? "（未知）",
-      };
-    });
-  }
+  const memberRows = (membersData ?? []) as Array<{
+    user_id: string;
+    role: string;
+  }>;
+  const memberNames = await fetchDisplayNames(
+    supabase,
+    memberRows.map((m) => m.user_id),
+  );
+  // 谁刚刚还在（心跳节流写入 profiles.last_seen_at，见 sql/0026）
+  const { data: seenRows } = await supabase
+    .from("profiles")
+    .select("id, last_seen_at")
+    .in("id", memberRows.length > 0 ? memberRows.map((m) => m.user_id) : [""]);
+  const seenMap = new Map(
+    ((seenRows ?? []) as Array<{ id: string; last_seen_at: string | null }>).map(
+      (r) => [r.id, r.last_seen_at],
+    ),
+  );
+  const members: MemberDisplay[] = memberRows.map((m) => ({
+    user_id: m.user_id,
+    role: m.role as "co_owner" | "viewer",
+    display_name: displayNameOf(memberNames, m.user_id),
+    active: isActive(seenMap.get(m.user_id)),
+  }));
 
   // 单一 UI：清单详情（复用上面已算好的全部数据）
     return (

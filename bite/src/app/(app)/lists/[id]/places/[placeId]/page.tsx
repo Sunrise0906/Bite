@@ -10,6 +10,9 @@ import { signPhotoUrls } from "@/lib/storage/signed-photos";
 import { fetchOpeningInfo } from "@/lib/places/google";
 import { searchXhsPosts } from "@/lib/places/xhs-search";
 import { PlaceDetailV2 } from "@/components/v2/place-detail-v2";
+import { CommentThread } from "@/components/places/comment-thread";
+import { listComments } from "@/lib/actions/comments";
+import { fetchDisplayNames, displayNameOf } from "@/lib/db/display-names";
 
 type Params = Promise<{ id: string; placeId: string }>;
 
@@ -84,6 +87,18 @@ export default async function PlaceDetailPage({ params }: { params: Params }) {
   };
   const lastRel = visits.lastDate ? relDate(visits.lastDate) : null;
 
+  // 评论 + 「谁加的这家店」（created_by 一直写着却从没显示过）
+  const [comments, creatorNames] = await Promise.all([
+    listComments(placeId),
+    fetchDisplayNames(supabase, [place.created_by]),
+  ]);
+  const addedBy =
+    place.created_by && place.created_by !== user.id
+      ? displayNameOf(creatorNames, place.created_by)
+      : place.created_by === user.id
+        ? "你"
+        : null;
+
   // 理由作者（非当前用户）
   const reasons = (place.reasons ?? []) as Array<{
     user_id: string;
@@ -136,6 +151,14 @@ export default async function PlaceDetailPage({ params }: { params: Params }) {
       relDate={lastRel}
       opening={opening}
       xhsHits={xhsHits}
+      comments={
+        <CommentThread
+          placeId={place.id}
+          initial={comments}
+          addedBy={addedBy}
+          addedAt={place.created_at}
+        />
+      }
       visitPrefill={(() => {
         const own = logs.find((l) => l.user_id === user.id);
         return own

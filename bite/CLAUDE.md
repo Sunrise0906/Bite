@@ -18,6 +18,17 @@
   `sql/0022`，仅对走 app 默认 key 的用户生效）。/profile 有自建 key 的引导。
 - **登录**：Email/密码 + Magic Link + Google OAuth；任意邮箱（QQ/163/Gmail/Outlook）可注册
 - **Place 跨 list 不去重**：同店在不同 list 是独立记录；仅共享 list 内 reason 字段聚合 `[{user_id, text}]`
+- **同一个 list 内按「归一化店名」去重**：键是 `normalizeName()`（NFKC + 弯撇号归一 +
+  折叠空白 + lower，见 `src/lib/places/name-key.ts`），四条写入路径必须用同一个键 ——
+  智能添加、手写表单、AI 聊天 add_place、接受推荐。**「已存在」提示也要用它**，
+  否则提示和写入行为会分叉（曾经就是：库里是 `MOri’s`（U+2019），小红书抽出
+  `MOri's`，两边一起漏判，静默新建重复记录）
+- **合并时空值不覆盖**：`address / price_range / recommended_by / source_url` 新值为空就保留旧值；
+  `status` 的 `want_to_go` 是解析失败的兜底值，不能把已标的「已去过」打回去。
+  见 `src/lib/places/upsert-plan.ts`
+- **人对人互动**：`place_comments`（sql/0025）是唯一的对话载体。RLS 用 `can_read_list`
+  而不是 `can_write_list` —— viewer 也该能说话，口径同 `pick_votes`。
+  `conversations`/`messages` 是**纯人机**的（role CHECK 只有 user/assistant），别拿来复用
 - **小红书**：`src/lib/places/xhs.ts` 会**实际抓取** xiaohongshu.com（伪装 Chrome UA 读
   `__INITIAL_STATE__`），并把帖子图片转存进自有 Storage bucket。这与最初「仅纯文本粘贴、
   不爬服务器」的决策相反 —— 见 [`docs/decisions/0001-xhs-scraping-scope.md`](../docs/decisions/0001-xhs-scraping-scope.md)（**未决**）。

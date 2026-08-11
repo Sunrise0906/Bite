@@ -15,50 +15,18 @@ import { pickPhotosByIndices } from "@/lib/places/merge";
 import { isPlaceDomain, type PlaceDomain } from "@/lib/places/domain";
 import {
   buildUpsertPlan,
+  EXISTING_PLACE_COLUMNS,
   type ExistingPlaceRow,
   type UpsertCandidate,
 } from "@/lib/places/upsert-plan";
+import { indexByName, normalizeName } from "@/lib/places/name-key";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { normalizePhotoUrl } from "@/lib/storage/signed-photos";
 import { mirrorPhotosToStorage } from "@/lib/storage/mirror-photos";
-import { sendPushToUsers } from "@/lib/push/send";
+import { notifyListMembersNewPlace } from "@/lib/push/notify-list";
 import { parseTags, parseStatus, parsePrice } from "@/lib/places/parse-form";
 
-// 共享清单加了新店 → 通知其他成员（best-effort，未配 push 静默跳过）
-async function notifyListMembersNewPlace(
-  supabase: SupabaseClient,
-  actorId: string,
-  listId: string,
-  what: string,
-): Promise<void> {
-  const [{ data: list }, { data: members }, { data: actor }] =
-    await Promise.all([
-      supabase
-        .from("lists")
-        .select("name, owner_id")
-        .eq("id", listId)
-        .maybeSingle<{ name: string; owner_id: string }>(),
-      supabase.from("list_members").select("user_id").eq("list_id", listId),
-      supabase
-        .from("profiles")
-        .select("name, email")
-        .eq("id", actorId)
-        .maybeSingle<{ name: string | null; email: string }>(),
-    ]);
-  if (!list) return;
-  const targets = [
-    list.owner_id,
-    ...(members ?? []).map((m) => m.user_id),
-  ].filter((id) => id && id !== actorId);
-  if (targets.length === 0) return;
-  const who = actor?.name ?? actor?.email?.split("@")[0] ?? "有人";
-  await sendPushToUsers(targets, {
-    title: `「${list.name}」有新店`,
-    body: `${who} 加了 ${what}`,
-    url: `/lists/${listId}`,
-  });
-}
-
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 /**
  * 目标清单的领域，用来让抽取按「吃/喝/玩」各自的口径理解字段。
@@ -329,7 +297,6 @@ function parseSource(raw: FormDataEntryValue | null): SourceValue {
 //   - overrideMyReason=true（单店表单，用户编辑过）：替换当前 user 的 reason
 //   - overrideMyReason=false（批量从 AI 抽取，未手编）：仅在用户尚无 reason 时追加
 
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 
 async function upsertPlaces(
@@ -343,24 +310,42 @@ async function upsertPlaces(
   }
 
   const listId = candidates[0].list_id;
-  const names = candidates.map((c) => c.name);
 
-  // 一次查出 list 里同名 place，含所有要合并的字段
-  const { data: existingRows, error: lookupError } = await supabase
+  // ⚠️ 不能用 .in("name", names) —— 那是逐字节相等，而去重键现在是**归一化**后的名字
+  // （「MOri’s」和「MOri's」必须算同一家，见 lib/places/name-key.ts）。
+  // SQL 侧做不了这个匹配，所以先拉这个 list 的 (id, name) 轻量列表在内存里配，
+  // 再只把命中的那几行的完整合并字段查回来。两步都很便宜，且不随清单变大而变重。
+  const { data: nameRows, error: lookupError } = await supabase
     .from("places")
-    .select(
-      "id, name, reasons, notes, photo_urls, cuisine, tags, occasions, dishes",
-    )
+    .select("id, name")
     .eq("list_id", listId)
-    .in("name", names);
+    .order("created_at", { ascending: true }); // 已有重复行时，稳定落在最早那条
 
   if (lookupError) {
     return { inserted: 0, updated: 0, error: lookupError.message };
   }
 
+  const byKey = indexByName((nameRows ?? []) as { id: string; name: string }[]);
+  const hitIds = [
+    ...new Set(
+      candidates
+        .map((c) => byKey.get(normalizeName(c.name))?.id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
   const existingByName = new Map<string, ExistingPlaceRow>();
-  for (const row of (existingRows ?? []) as ExistingPlaceRow[]) {
-    existingByName.set(row.name, row);
+  if (hitIds.length > 0) {
+    const { data: fullRows, error: fullError } = await supabase
+      .from("places")
+      .select(EXISTING_PLACE_COLUMNS)
+      .in("id", hitIds);
+    if (fullError) {
+      return { inserted: 0, updated: 0, error: fullError.message };
+    }
+    for (const row of (fullRows ?? []) as unknown as ExistingPlaceRow[]) {
+      existingByName.set(normalizeName(row.name), row);
+    }
   }
 
   // 加店自动丰富：在 Google 上找一下，拿评分 / 评价数 / 精确坐标 / 地图链接
@@ -405,15 +390,27 @@ async function upsertPlaces(
 
   for (const step of steps) {
     if (step.kind === "update") {
-      const { error } = await supabase
+      // RLS 挡掉写入时 Postgres 不报错、只影响 0 行 —— 必须回读行数，
+      // 否则 UI 会显示「已更新」而库里毫无变化（见 CLAUDE.md）
+      const { data, error } = await supabase
         .from("places")
         .update(step.fields)
-        .eq("id", step.id);
+        .eq("id", step.id)
+        .select("id");
       if (error) return { inserted, updated, error: error.message };
+      if (!data || data.length === 0) {
+        return { inserted, updated, error: "没有权限修改这家店" };
+      }
       updated++;
     } else {
-      const { error } = await supabase.from("places").insert(step.row);
+      const { data, error } = await supabase
+        .from("places")
+        .insert(step.row)
+        .select("id");
       if (error) return { inserted, updated, error: error.message };
+      if (!data || data.length === 0) {
+        return { inserted, updated, error: "没有权限往这个清单加店" };
+      }
       inserted++;
     }
   }
@@ -534,10 +531,17 @@ export async function savePlacesBatch(
 
   const selected = selectedIndices
     .map((i) => draft.places[i])
-    .filter((p): p is ExtractedPlace => Boolean(p));
+    .filter((p): p is ExtractedPlace => Boolean(p))
+    // ⚠️ 抽取的 few-shot 明确教模型：认不出的条目就把名字写成「（未知）」。
+    // 批量这条路以前完全不校验，于是每篇合集帖的垃圾条目都合并进同一行「（未知）」，
+    // 不断往里堆别家的菜品、照片、理由 —— 讽刺的是那反而是全库合并得最积极的一行。
+    .filter((p) => {
+      const n = p.name?.trim();
+      return Boolean(n) && n !== "（未知）" && n !== "(未知)";
+    });
 
   if (selected.length === 0) {
-    return { error: "选择无效，请重试" };
+    return { error: "这些条目没识别出店名，换个帖子或手动填一下" };
   }
 
   // XHS CDN 图会过期，转存到自己的 bucket。只转存"会被用到"的索引
@@ -566,7 +570,9 @@ export async function savePlacesBatch(
 
   const candidates: UpsertCandidate[] = selected.map((p) => ({
     list_id: listId,
-    name: p.name,
+    // 单店那条路一直有 trim，批量这条没有 —— LLM 输出里的首尾空白会原样落库，
+    // 而且那行名字之后再也匹配不上任何东西（别的路径都 trim 过）
+    name: p.name.trim(),
     address: p.address,
     cuisine: p.cuisine,
     price_range: p.price_range ?? null,

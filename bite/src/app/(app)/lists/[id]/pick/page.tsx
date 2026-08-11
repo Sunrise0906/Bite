@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { votesNeeded } from "@/lib/pick/rules";
 import { getOrCreatePickSession } from "@/lib/actions/pick";
 import { PickDeck } from "@/components/v2/pick-deck";
 
@@ -25,7 +26,7 @@ export default async function PickPage({ params }: { params: Params }) {
             <span>
               ·{" "}
               {data.member_count > 1
-                ? "两个人都右滑同一家，就它了"
+                ? `${data.member_count} 个人里有 ${votesNeeded(data.member_count)} 个右滑同一家，就它了`
                 : "右滑收藏，滑完随机挑一家"}
             </span>
           </div>

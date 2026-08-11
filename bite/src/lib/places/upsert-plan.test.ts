@@ -5,6 +5,7 @@ import {
   type UpsertCandidate,
   type ExistingPlaceRow,
 } from "./upsert-plan";
+import { normalizeName } from "./name-key";
 
 const ME = "user-me";
 const FRIEND = "user-friend";
@@ -48,6 +49,11 @@ function existing(over: Partial<ExistingPlaceRow> = {}): ExistingPlaceRow {
     tags: [],
     occasions: [],
     dishes: [],
+    address: "旧地址",
+    price_range: null,
+    status: "want_to_go",
+    recommended_by: null,
+    source_url: null,
     ...over,
   };
 }
@@ -245,5 +251,155 @@ describe("buildUpsertPlan — insert 分支", () => {
     const [step] = buildUpsertPlan([candidate()], NONE, ME, opts);
     if (step.kind !== "insert") throw new Error("应为 insert");
     expect(step.row.reasons).toEqual([]);
+  });
+});
+
+describe("buildUpsertPlan — 归一化去重键", () => {
+  // 真实事故：库里手写的是「MOri’s」（U+2019，iOS 智能标点），
+  // 小红书/LLM 给的是「MOri's」或「Mori's」——以前逐字节比，三种写法各建一条。
+  const MORI = new Map([
+    [normalizeName("MOri’s"), existing({ id: "mori", name: "MOri’s" })],
+  ]);
+
+  it("弯撇号 vs 直撇号 → 合并，不新建", () => {
+    const [step] = buildUpsertPlan(
+      [candidate({ name: "MOri's" })],
+      MORI,
+      ME,
+      opts,
+    );
+    expect(step.kind).toBe("update");
+    if (step.kind === "update") expect(step.id).toBe("mori");
+  });
+
+  it("大小写不同 → 合并", () => {
+    const [step] = buildUpsertPlan(
+      [candidate({ name: "mori's" })],
+      MORI,
+      ME,
+      opts,
+    );
+    expect(step.kind).toBe("update");
+  });
+
+  it("确实是另一家 → 仍然新建", () => {
+    const [step] = buildUpsertPlan(
+      [candidate({ name: "MOri's Bakery" })],
+      MORI,
+      ME,
+      opts,
+    );
+    expect(step.kind).toBe("insert");
+  });
+});
+
+describe("buildUpsertPlan — 合并不许静默删数据", () => {
+  const EXIST = new Map([
+    [
+      "海底捞",
+      existing({
+        address: "23632 El Toro Rd A, Lake Forest CA 92630",
+        price_range: "$$",
+        status: "visited",
+        recommended_by: "同事",
+        source_url: "https://old",
+      }),
+    ],
+  ]);
+
+  it("小红书没提价位 → 手填的 $$ 保住，而不是被 null 抹掉", () => {
+    const [step] = buildUpsertPlan(
+      [candidate({ price_range: null })],
+      EXIST,
+      ME,
+      opts,
+    );
+    if (step.kind !== "update") throw new Error("应为 update");
+    expect(step.fields.price_range).toBe("$$");
+  });
+
+  it("AI 只给了「Irvine」这种大致区域 → 不覆盖手填的精确门牌号", () => {
+    // 抽取 prompt 只要求「至少给出大致区域」，而手写建店强制要求填地址
+    const [step] = buildUpsertPlan([candidate({ address: "" })], EXIST, ME, opts);
+    if (step.kind !== "update") throw new Error("应为 update");
+    expect(step.fields.address).toBe("23632 El Toro Rd A, Lake Forest CA 92630");
+  });
+
+  it("已标「去过」不会被兜底值 want_to_go 打回「想去」", () => {
+    // parseStatus 对缺失/非法一律回落 want_to_go，所以它不能有覆盖权
+    const [step] = buildUpsertPlan(
+      [candidate({ status: "want_to_go" })],
+      EXIST,
+      ME,
+      opts,
+    );
+    if (step.kind !== "update") throw new Error("应为 update");
+    expect(step.fields.status).toBe("visited");
+  });
+
+  it("但明确标成「归档」是真实动作，可以覆盖", () => {
+    const [step] = buildUpsertPlan(
+      [candidate({ status: "archived" })],
+      EXIST,
+      ME,
+      opts,
+    );
+    if (step.kind !== "update") throw new Error("应为 update");
+    expect(step.fields.status).toBe("archived");
+  });
+
+  it("新值非空时照常覆盖（这才是「覆盖更新」的本意）", () => {
+    const [step] = buildUpsertPlan(
+      [candidate({ price_range: "$$$", address: "新地址" })],
+      EXIST,
+      ME,
+      opts,
+    );
+    if (step.kind !== "update") throw new Error("应为 update");
+    expect(step.fields.price_range).toBe("$$$");
+    expect(step.fields.address).toBe("新地址");
+  });
+});
+
+describe("buildUpsertPlan — 批内簿记", () => {
+  it("同一批两条同名 → 只产出一步，不是两条重复记录", () => {
+    const steps = buildUpsertPlan(
+      [
+        candidate({ name: "（未知）", dishes: ["烤鸭"] }),
+        candidate({ name: "（未知）", dishes: ["小笼包"] }),
+      ],
+      NONE,
+      ME,
+      opts,
+    );
+    expect(steps).toHaveLength(1);
+    expect(steps[0].kind).toBe("insert");
+    if (steps[0].kind === "insert")
+      expect(steps[0].row.dishes).toEqual(["烤鸭", "小笼包"]);
+  });
+
+  it("批内同名也走归一化（合集帖里 AI 的大小写常常不一致）", () => {
+    const steps = buildUpsertPlan(
+      [candidate({ name: "Mori's" }), candidate({ name: "MOri’s" })],
+      NONE,
+      ME,
+      opts,
+    );
+    expect(steps).toHaveLength(1);
+  });
+
+  it("命中库里已有行时，同批第二条并进同一个 UPDATE（不发两次）", () => {
+    const steps = buildUpsertPlan(
+      [
+        candidate({ name: "海底捞", tags: ["排队久"] }),
+        candidate({ name: "海底捞", tags: ["有停车"] }),
+      ],
+      new Map([["海底捞", existing()]]),
+      ME,
+      opts,
+    );
+    expect(steps).toHaveLength(1);
+    if (steps[0].kind !== "update") throw new Error("应为 update");
+    expect(steps[0].fields.tags).toEqual(["排队久", "有停车"]);
   });
 });

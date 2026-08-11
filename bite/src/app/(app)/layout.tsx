@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { BottomNav } from "@/components/nav/bottom-nav";
 import { ToastFlash } from "@/components/toast-flash";
+import { Heartbeat } from "@/components/presence/heartbeat";
 import { requireUser } from "@/lib/supabase/server";
 
 export default async function AppLayout({
@@ -15,6 +16,8 @@ export default async function AppLayout({
       <Suspense fallback={null}>
         <ToastFlash />
       </Suspense>
+      {/* 30 秒一次的活跃心跳，供成员名单显示「刚刚在线」（sql/0026） */}
+      <Heartbeat />
       {/* v2-shell：桌面端(≥1024px)导航变左侧栏时由 CSS 调整 padding */}
       <div className="v2-shell flex flex-1 flex-col pb-16">{children}</div>
       <BottomNav />

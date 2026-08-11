@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { listsWithSameName } from "@/lib/actions/place-lookup";
 import { isPlaceDomain } from "@/lib/places/domain";
 import { redirect } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
@@ -142,21 +143,11 @@ export default async function QuickAddPage({
     rawInputForRetry = draft.rawInput;
   }
 
-  // 查同名已存在的 list（用于"已存在 → 覆盖更新"提示）
-  let existingInLists: string[] = [];
-  if (initial) {
-    const writableIds = writableLists.map((l) => l.id);
-    if (writableIds.length > 0) {
-      const { data: dupes } = await supabase
-        .from("places")
-        .select("list_id")
-        .eq("name", initial.name)
-        .in("list_id", writableIds);
-      existingInLists = ((dupes ?? []) as Array<{ list_id: string }>).map(
-        (d) => d.list_id,
-      );
-    }
-  }
+  // 查同名已存在的 list（用于「已存在 → 覆盖更新」提示）。
+  // 走和写入同一套归一化匹配，否则提示和后端行为会分叉，见 lib/actions/place-lookup.ts
+  const existingInLists = initial
+    ? await listsWithSameName(initial.name, writableLists.map((l) => l.id))
+    : [];
 
   return (
     <main className="v2-page">

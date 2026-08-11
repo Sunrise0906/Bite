@@ -85,6 +85,9 @@ sql/0020_harden_function_exposure.sql # 收紧函数暴露面（安全顾问）�
 sql/0021_places_website_uri.sql       # places.website_uri（「看菜单」直达点单页）；纯增量
 sql/0022_llm_usage_quota.sql          # 按用户每日 AI 配额（只在用 app 默认 key 时计）；纯增量
 sql/0023_conversation_scope_list.sql  # 对话限定在某个清单里挑（「帮我从这挑」）；纯增量
+sql/0024_co_owner_invite.sql          # co_owner 也能发邀请（3 人以上共享的前提）；改策略
+sql/0025_place_comments.sql           # 清单内评论（人对人对话）；新表 + RLS
+sql/0026_last_seen.sql                # profiles.last_seen_at（「刚刚在线」）；纯增量
 ```
 
 ## 项目结构

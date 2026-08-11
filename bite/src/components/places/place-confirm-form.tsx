@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useState, type ReactNode } from "react";
 import { vocabFor, type PlaceDomain } from "@/lib/places/domain";
 import {
   cancelQuickAdd,
   savePlaceFromDraft,
 } from "@/lib/actions/quick-add";
+import { listsWithSameName } from "@/lib/actions/place-lookup";
 import type { PlacePrice, PlaceStatus } from "@/lib/db/types";
 import { PhotoCarousel } from "./photo-carousel";
 import {
@@ -203,7 +204,43 @@ export function PlaceConfirmForm({
     error: null,
   });
   const [selectedListId, setSelectedListId] = useState(defaultListId);
-  const existingSet = new Set(existingInLists);
+
+  // 店名受控 + 防抖重查：以前 name 是 uncontrolled，「已存在」只按初始名字算过一次，
+  // 于是两个方向都会骗人 —— 最坏的是把名字改成库里那个之后，按钮还写「确认添加」，
+  // 后端却直接覆盖了老记录。现在提示跟着你正在输入的名字走。
+  const [name, setName] = useState(initial.name);
+  const [fetched, setFetched] = useState<{
+    name: string;
+    lists: string[];
+  } | null>(null);
+  const listIdsKey = lists.map((l) => l.id).join(",");
+
+  const trimmedName = name.trim();
+  const isInitialName = trimmedName === initial.name.trim();
+  // 派生而不是往 state 里塞：名字没改就用服务端算好的那份，改了就用查回来的那份，
+  // 还没查回来是 null（= 检查中）。这样 effect 里不需要任何同步 setState。
+  const dupLists = isInitialName
+    ? existingInLists
+    : fetched?.name === trimmedName
+      ? fetched.lists
+      : null;
+  const checking = dupLists === null;
+
+  useEffect(() => {
+    if (isInitialName || fetched?.name === trimmedName) return;
+    let alive = true;
+    const t = setTimeout(() => {
+      listsWithSameName(trimmedName, listIdsKey.split(","))
+        .then((r) => alive && setFetched({ name: trimmedName, lists: r }))
+        .catch(() => alive && setFetched({ name: trimmedName, lists: [] }));
+    }, 400);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [trimmedName, isInitialName, fetched?.name, listIdsKey]);
+
+  const existingSet = new Set(dupLists ?? []);
   const isDuplicateInList = existingSet.has(selectedListId);
   // 标签跟着**当前选中的清单**走：把展览加进「玩」清单时，「菜系」应显示为「类型」
   const vocab = vocabFor(lists.find((l) => l.id === selectedListId)?.category);
@@ -306,7 +343,7 @@ export function PlaceConfirmForm({
             <p className="flex items-start gap-1.5">
               <AlertIcon size={14} className="mt-0.5 shrink-0" />
               <span>
-                <strong>“{initial.name}”</strong> 已在
+                <strong>“{name.trim()}”</strong> 已在
                 <strong>“{currentListName}”</strong> 里。提交会按以下规则合并：
               </span>
             </p>
@@ -314,8 +351,9 @@ export function PlaceConfirmForm({
               <li className="flex items-start gap-1.5">
                 <LockIcon size={12} className="mt-0.5 shrink-0" />
                 <span>
-                  <strong>想去理由</strong> 和 <strong>AI 备注</strong>{" "}
-                  ——保留你的修改（不被新 AI 输出覆盖）
+                  <strong>想去理由</strong> ——你这次写的会替换你自己那条，
+                  朋友写的原样保留；<strong>AI 备注</strong>{" "}
+                  ——库里已有备注就保留它（你在本页对备注的编辑不会生效）
                 </span>
               </li>
               <li className="flex items-start gap-1.5">
@@ -328,8 +366,10 @@ export function PlaceConfirmForm({
               <li className="flex items-start gap-1.5">
                 <RefreshIcon size={12} className="mt-0.5 shrink-0" />
                 <span>
-                  <strong>地址 / 价位 / 状态 / 推荐来源</strong>{" "}
-                  ——用新的覆盖
+                  <strong>地址 / 价位 / 推荐来源</strong>{" "}
+                  ——这次填了才覆盖，留空就保留原值；
+                  <strong>状态</strong> ——标成「已去过 / 归档」会覆盖，
+                  「想去」不会把已去过打回来
                 </span>
               </li>
             </ul>
@@ -352,7 +392,8 @@ export function PlaceConfirmForm({
           name="name"
           required
           maxLength={120}
-          defaultValue={initial.name}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           className="field-input mt-1.5"
         />
       </div>
@@ -521,16 +562,19 @@ export function PlaceConfirmForm({
           （取消必须是 submit：formAction 在 type="button" 上会被忽略，那样按钮
           是死的。formNoValidate 则是绕开 required 字段校验，否则取消点不动。） */}
       <div className="flex gap-3 pt-2">
+        {/* 查重没回来之前不许提交：否则按钮写着「确认添加」、后端却做了覆盖 */}
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || checking}
           className="v2-btn order-2 flex-1 py-3 text-base"
         >
           {pending
             ? "保存中…"
-            : isDuplicateInList
-              ? "覆盖更新"
-              : "确认添加"}
+            : checking
+              ? "检查是否已存在…"
+              : isDuplicateInList
+                ? "覆盖更新"
+                : "确认添加"}
         </button>
         <button
           type="submit"

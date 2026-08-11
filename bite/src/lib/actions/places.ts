@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { sameName } from "@/lib/places/name-key";
+import { notifyListMembersNewPlace } from "@/lib/push/notify-list";
 import { redirect } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { normalizePhotoUrl } from "@/lib/storage/signed-photos";
@@ -54,6 +56,21 @@ export async function createPlace(
     .map((s) => normalizePhotoUrl(s));
 
   const supabase = await createClient();
+
+  // 手写建店以前是裸 INSERT，一次查重都不做 —— 去重只覆盖了「智能添加」那一半入口，
+  // 所以反过来的顺序（先从小红书抓过、后手写补一家）100% 产生重复记录且毫无提示。
+  // 这里只**拦下并告诉用户**，不静默合并：表单提交却改了另一条已有记录会更吓人。
+  const { data: sameList } = await supabase
+    .from("places")
+    .select("name")
+    .eq("list_id", listId);
+  const dup = (sameList ?? []).find((p) => sameName(p.name, name));
+  if (dup) {
+    return {
+      error: `这个清单里已经有「${dup.name}」了。想补充信息就去那家店里编辑，不用再建一条。`,
+    };
+  }
+
   const { error } = await supabase
     .from("places")
     .insert({
@@ -74,6 +91,10 @@ export async function createPlace(
     });
 
   if (error) return { error: `保存失败：${error.message}` };
+
+  // 共享清单里加了店，别人应该知道。以前只有「智能添加」那两条路径会通知，
+  // 手写表单静悄悄 —— 同一个用户行为，两条代码路径行为不一致。
+  await notifyListMembersNewPlace(supabase, user.id, listId, `「${name}」`);
 
   revalidatePath(`/lists/${listId}`);
   redirect(`/lists/${listId}?toast=place_added`);
@@ -100,6 +121,18 @@ export async function updatePlace(
   const notesRaw = formData.get("notes");
   const photoRaw = formData.get("photo_urls_text");
   const supabase = await createClient();
+
+  // 改名也可能撞上同清单里的另一条（撞上之后两条永远无法自动合并）
+  const { data: siblings } = await supabase
+    .from("places")
+    .select("id, name")
+    .eq("list_id", listId)
+    .neq("id", placeId);
+  const dup = (siblings ?? []).find((p) => sameName(p.name, name));
+  if (dup) {
+    return { error: `这个清单里已经有「${dup.name}」了，换个名字。` };
+  }
+
   const { data: updated, error } = await supabase
     .from("places")
     .update({

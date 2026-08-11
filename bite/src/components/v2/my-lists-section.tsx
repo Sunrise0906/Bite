@@ -102,6 +102,9 @@ function Meta({ list: l }: { list: ListVM }) {
                 {f.initial}
               </span>
             ))}
+            {l.memberTotal > 3 && (
+              <span className="v2-ava more">+{l.memberTotal - 3}</span>
+            )}
           </span>
         )}
         {l.isShared && <span className="v2-actdot" />}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { appendReasonDedup, unionStrings } from "@/lib/places/merge";
+import { sameName } from "@/lib/places/name-key";
 import { escapeLikePattern } from "@/lib/sql/escape-like";
 import { notifyRecommendation } from "@/lib/email/send";
 import { sendPushToUsers } from "@/lib/push/send";
@@ -203,23 +204,25 @@ export async function acceptRecommendation(args: {
     ? { user_id: user.id, text: `朋友推荐：${snap.message}` }
     : null;
 
-  // 防 dup：目标 list 里已有同名 place → 合并 reason / union 数组字段，不重复插
-  const { data: existing } = await supabase
+  // 防 dup：目标 list 里已有同名 place → 合并 reason / union 数组字段，不重复插。
+  // 归一化比较（撇号/大小写/空白），与其它三条写入路径同源，见 lib/places/name-key.ts
+  const { data: siblings } = await supabase
     .from("places")
-    .select(
-      "id, reasons, tags, cuisine, occasions, photo_urls, notes",
-    )
+    .select("id, name, reasons, tags, cuisine, occasions, photo_urls, notes")
     .eq("list_id", args.target_list_id)
-    .eq("name", snap.name)
-    .maybeSingle<{
+    .order("created_at", { ascending: true });
+  const existing = (
+    (siblings ?? []) as Array<{
       id: string;
+      name: string;
       reasons: Array<{ user_id: string; text: string }> | null;
       tags: string[] | null;
       cuisine: string[] | null;
       occasions: string[] | null;
       photo_urls: string[] | null;
       notes: string | null;
-    }>();
+    }>
+  ).find((p) => sameName(p.name, snap.name));
 
   let placeId: string;
   let merged = false;

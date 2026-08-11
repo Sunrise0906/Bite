@@ -96,6 +96,8 @@
 .ui-v2 .v2-faint { color:var(--v2-faint); }
 .ui-v2 .v2-ava { border-radius:999px; background:linear-gradient(135deg,var(--v2-primary),var(--v2-primary-deep)); color:var(--v2-on-primary); display:grid; place-items:center; font-weight:700; flex:none; }
 .ui-v2 .v2-ava.sage { background:linear-gradient(135deg,var(--v2-sage),var(--v2-sage-tx)); }
+/* 「还有 N 个人」——头像最多画 3 个，第 4 个人以前是静默消失的 */
+.ui-v2 .v2-ava.more { background:var(--v2-surface2); color:var(--v2-muted); font-weight:700; }
 
 /* ---------- 共用 V1 class 的换皮（auth 页 / profile 卡片 / 各处按钮） ---------- */
 .ui-v2 .field-input { border-radius:var(--v2-r-md); border:var(--v2-bw) solid var(--v2-border); background:var(--v2-surface); box-shadow:var(--v2-shadow-sm); font-size:13.5px; }
@@ -365,6 +367,26 @@
 .ui-v2 .v2-nearby-row .mt .dist { color:var(--v2-primary-soft-tx); background:var(--v2-primary-soft); padding:1px 7px; border-radius:999px; font-weight:700; }
 .ui-v2 .v2-nearby-row .mt .star { color:var(--v2-gold-tx); }
 .ui-v2 .v2-nearby-row .menu { flex:none; font-size:12px; font-weight:600; color:var(--v2-ink2); border:var(--v2-bw) solid var(--v2-border2); border-radius:999px; padding:5px 11px; text-decoration:none; }
+
+/* ---------- 店铺评论（全 app 唯一的人对人对话） ---------- */
+.ui-v2 .v2-comments { margin-top: 22px; }
+.ui-v2 .v2-cmt { background:var(--v2-surface); border:var(--v2-bw) solid var(--v2-border); border-radius:var(--v2-r-md); padding:10px 13px; margin-bottom:8px; }
+/* 「@某某 加了这家店」——系统那条，弱化成底纹，不跟真人留言抢注意力 */
+.ui-v2 .v2-cmt.sys { background:transparent; border-style:dashed; color:var(--v2-muted); font-size:12.5px; }
+.ui-v2 .v2-cmt .head { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.ui-v2 .v2-cmt .who { font-size:12.5px; font-weight:700; color:var(--v2-sage-tx); }
+.ui-v2 .v2-cmt .when { font-size:11px; color:var(--v2-faint); }
+.ui-v2 .v2-cmt .del { margin-left:auto; font-size:11px; color:var(--v2-muted); background:none; border:0; cursor:pointer; padding:2px 4px; }
+.ui-v2 .v2-cmt .del:hover { color:var(--v2-danger); }
+.ui-v2 .v2-cmt .body { font-size:13.5px; line-height:1.55; color:var(--v2-ink2); white-space:pre-wrap; word-break:break-word; }
+.ui-v2 .v2-cmt-compose { display:flex; gap:8px; align-items:flex-end; margin-top:10px; }
+.ui-v2 .v2-cmt-compose textarea { flex:1; padding:9px 12px; resize:vertical; line-height:1.5; }
+.ui-v2 .v2-cmt-compose .v2-btn { flex:none; padding:10px 16px; }
+.ui-v2 .v2-cmt-err { font-size:12px; color:var(--v2-danger); margin-top:8px; }
+
+/* ---------- 成员活跃状态（廉价版「谁在线」） ---------- */
+.ui-v2 .v2-live { display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--v2-sage-tx); }
+.ui-v2 .v2-live::before { content:""; width:6px; height:6px; border-radius:999px; background:var(--v2-sage); }
 
 /* ============================================================================
    主题选择器（/profile 外观区）

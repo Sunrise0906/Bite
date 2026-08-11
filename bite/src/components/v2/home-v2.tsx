@@ -29,6 +29,8 @@ export type ListVM = {
   /** 能不能改名：owner 或 co_owner（共享清单的 co_owner 也可以，见 sql/0019） */
   canEdit: boolean;
   faces: Array<{ initial: string; sage: boolean }>;
+  /** 清单总人数（含 owner）—— 头像只画 3 个，多的用 +N 显示 */
+  memberTotal: number;
 };
 
 type Props = {
