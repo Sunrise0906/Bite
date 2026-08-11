@@ -1,5 +1,5 @@
 // 「一起选」的判定规则。纯函数：客户端组件、页面文案和 server action 都要用，
-// 而 actions/pick.ts 是 "use server" 文件（只能导出 async 函数），放不下它。
+// 而 actions/pick.ts 是 server-action 文件（顶部指令那种，只能导出 async 函数），放不下它。
 
 /**
  * 达成一致需要多少人右滑同一家 —— **简单多数**。

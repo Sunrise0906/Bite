@@ -20,6 +20,7 @@ import {
   type UpsertCandidate,
 } from "@/lib/places/upsert-plan";
 import { indexByName, normalizeName } from "@/lib/places/name-key";
+import { fetchPlaceNameRows } from "@/lib/db/place-names";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { normalizePhotoUrl } from "@/lib/storage/signed-photos";
 import { mirrorPhotosToStorage } from "@/lib/storage/mirror-photos";
@@ -315,17 +316,18 @@ async function upsertPlaces(
   // （「MOri’s」和「MOri's」必须算同一家，见 lib/places/name-key.ts）。
   // SQL 侧做不了这个匹配，所以先拉这个 list 的 (id, name) 轻量列表在内存里配，
   // 再只把命中的那几行的完整合并字段查回来。两步都很便宜，且不随清单变大而变重。
-  const { data: nameRows, error: lookupError } = await supabase
-    .from("places")
-    .select("id, name")
-    .eq("list_id", listId)
-    .order("created_at", { ascending: true }); // 已有重复行时，稳定落在最早那条
-
-  if (lookupError) {
-    return { inserted: 0, updated: 0, error: lookupError.message };
+  let nameRows: Awaited<ReturnType<typeof fetchPlaceNameRows>>;
+  try {
+    nameRows = await fetchPlaceNameRows(supabase, [listId]);
+  } catch (err) {
+    return {
+      inserted: 0,
+      updated: 0,
+      error: err instanceof Error ? err.message : "查询失败",
+    };
   }
 
-  const byKey = indexByName((nameRows ?? []) as { id: string; name: string }[]);
+  const byKey = indexByName(nameRows);
   const hitIds = [
     ...new Set(
       candidates

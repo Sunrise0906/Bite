@@ -2,7 +2,7 @@
 // 每个工具返回一个 JSON 字符串结果给模型读。
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { sameName } from "@/lib/places/name-key";
+import { findSameNamed } from "@/lib/db/place-names";
 import { notifyListMembersNewPlace } from "@/lib/push/notify-list";
 import { fetchOpeningInfo, searchSimilarPlaces } from "@/lib/places/google";
 import type { LlmTool } from "./types";
@@ -496,13 +496,9 @@ async function addToList(input: unknown, ctx: ToolContext) {
 
   // 防 dup：同 list 同名已存在 → 不重复插，告诉 AI 让 ta 告知用户。
   // 用归一化比较而不是 .eq("name") —— 模型给的名字和库里的写法常常差个撇号或大小写
-  const { data: siblings } = await ctx.supabase
-    .from("places")
-    .select("id, name")
-    .eq("list_id", args.list_id);
-  const existing = ((siblings ?? []) as { id: string; name: string }[]).find(
-    (p) => sameName(p.name, args.name!),
-  );
+  const existing = (
+    await findSameNamed(ctx.supabase, [args.list_id], args.name)
+  )[0];
   if (existing) {
     return {
       already_exists: true,
