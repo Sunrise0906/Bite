@@ -19,7 +19,11 @@ export function EnrichButton({ count }: { count: number }) {
         return;
       }
       if (r.enriched > 0) {
-        setMsg(`已从 Google 拿到 ${r.enriched} 家店的评分 + 坐标`);
+        setMsg(
+          `已从 Google 拿到 ${r.enriched} 家店的评分 + 坐标` +
+            // 顺手修好的错坐标要说出来 —— 用户会看到地图突然变了样
+            (r.healed > 0 ? `，并修正了 ${r.healed} 家标错位置的店` : ""),
+        );
         router.refresh();
       } else {
         setMsg(

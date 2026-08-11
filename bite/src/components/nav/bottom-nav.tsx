@@ -19,7 +19,7 @@ const ITEMS: Item[] = [
   },
   {
     href: "/map",
-    label: "地图",
+    label: "附近",
     icon: <MapIcon />,
     match: (p) => p === "/map" || p.startsWith("/map/"),
   },

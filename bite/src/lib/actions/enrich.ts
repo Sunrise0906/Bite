@@ -3,9 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { findPlaceOnGoogle } from "@/lib/places/google";
+import { distanceMiles, medianCenter } from "@/lib/places/distance";
+
+// 坐标和它自己的 Google 匹配结果差出这么多 → 判定为脏数据，用 Google 的覆盖掉。
+// 定得很宽：同城不同分店、用户手工微调都远够不着，只有「匹配到了别的地方」才会触发。
+const COORD_CONFLICT_MILES = 200;
+// 离「用户所有店的中位数中心」这么远的，拉进本轮丰富重新核对一次。
+const COORD_OUTLIER_MILES = 300;
 
 export type EnrichResult =
-  | { ok: true; enriched: number; tried: number }
+  | { ok: true; enriched: number; tried: number; healed: number }
   | { error: string };
 
 /**
@@ -25,7 +32,8 @@ export async function enrichPlacesFromGoogle(): Promise<EnrichResult> {
     ...(ownerLists ?? []).map((l) => l.id),
     ...(memberLists ?? []).map((m) => m.list_id),
   ];
-  if (listIds.length === 0) return { ok: true, enriched: 0, tried: 0 };
+  if (listIds.length === 0)
+    return { ok: true, enriched: 0, tried: 0, healed: 0 };
 
   const { data: places, error } = await supabase
     .from("places")
@@ -37,15 +45,40 @@ export async function enrichPlacesFromGoogle(): Promise<EnrichResult> {
     .limit(25);
   if (error) return { error: `查询失败：${error.message}` };
 
-  const rows = (places ?? []) as Array<{
+  type Row = {
     id: string;
     name: string;
     address: string | null;
     lat: number | null;
     lng: number | null;
-  }>;
+  };
+  const rows = (places ?? []) as Row[];
+
+  // 坐标离群的店也拉进来重核一次。它们通常**评分和菜单链接都全**，
+  // 上面那个 .or 过滤永远选不到 —— 于是一个错到别的国家的坐标会一直烂在库里。
+  const { data: coordRows } = await supabase
+    .from("places")
+    .select("id, name, address, lat, lng")
+    .in("list_id", listIds)
+    .not("lat", "is", null)
+    .not("lng", "is", null);
+  const withCoords = (coordRows ?? []) as Row[];
+  const center = medianCenter(
+    withCoords.map((p) => ({ lat: p.lat!, lng: p.lng! })),
+  );
+  if (center) {
+    const have = new Set(rows.map((r) => r.id));
+    for (const p of withCoords) {
+      if (rows.length >= 25) break;
+      if (have.has(p.id)) continue;
+      if (distanceMiles(center, { lat: p.lat!, lng: p.lng! }) > COORD_OUTLIER_MILES) {
+        rows.push(p);
+      }
+    }
+  }
 
   let enriched = 0;
+  let healed = 0;
   for (const p of rows) {
     const query = [p.name, p.address].filter(Boolean).join(" ");
     const match = await findPlaceOnGoogle(query);
@@ -59,10 +92,24 @@ export async function enrichPlacesFromGoogle(): Promise<EnrichResult> {
     if (match.mapsUri) update.google_maps_uri = match.mapsUri;
     if (match.websiteUri) update.website_uri = match.websiteUri;
     if (Object.keys(update).length === 1) continue; // 只有 place_id，没啥可写
-    // 没坐标的用 Google 精确坐标补上（已有坐标的不覆盖）
-    if (p.lat == null && match.lat != null && match.lng != null) {
-      update.lat = match.lat;
-      update.lng = match.lng;
+    // 没坐标的用 Google 精确坐标补上。
+    //
+    // 已有坐标的原则上不覆盖（用户可能手工调过），但有一个例外：坐标和它自己的
+    // Google 匹配结果**差出几百英里**时，那不是「用户的偏好」，是脏数据。
+    // 真实案例：New Duong Son BBQ 的 place_id 和评分都是 Westminster CA 那家，
+    // 坐标却落在越南 —— 只要这条不覆盖的规则还在，它就永远是错的，
+    // 而地图 fitBounds 会因为这一家把视野撑成整张世界地图。
+    if (match.lat != null && match.lng != null) {
+      const contradicts =
+        p.lat != null &&
+        p.lng != null &&
+        distanceMiles({ lat: p.lat, lng: p.lng }, { lat: match.lat, lng: match.lng }) >
+          COORD_CONFLICT_MILES;
+      if (p.lat == null || contradicts) {
+        update.lat = match.lat;
+        update.lng = match.lng;
+        if (contradicts) healed++;
+      }
     }
     const { error: upErr } = await supabase
       .from("places")
@@ -72,5 +119,5 @@ export async function enrichPlacesFromGoogle(): Promise<EnrichResult> {
   }
 
   revalidatePath("/map");
-  return { ok: true, enriched, tried: rows.length };
+  return { ok: true, enriched, tried: rows.length, healed };
 }

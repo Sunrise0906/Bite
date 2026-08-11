@@ -1,19 +1,10 @@
 import { createClient, requireUser } from "@/lib/supabase/server";
-import { PlacesMap } from "@/components/map/places-map";
+import { NearbyView, type NearbyPlace } from "@/components/map/nearby-view";
 import { AlertIcon } from "@/components/ui/icons";
 import { EnrichButton } from "@/components/v2/enrich-button";
 
 export const metadata = {
-  title: "地图 · Bite",
-};
-
-type MapPlaceRow = {
-  id: string;
-  list_id: string;
-  name: string;
-  lat: number;
-  lng: number;
-  status: "want_to_go" | "visited" | "archived";
+  title: "附近去哪 · Bite",
 };
 
 export default async function MapPage() {
@@ -34,24 +25,28 @@ export default async function MapPage() {
     ...(memberLists ?? []).map((m) => m.list_id),
   ];
 
-  let places: MapPlaceRow[] = [];
-  let missingCoords = 0;
+  let places: NearbyPlace[] = [];
+  let needEnrich = 0;
   if (listIds.length > 0) {
     const { data } = await supabase
       .from("places")
-      .select("id, list_id, name, lat, lng, status")
+      .select(
+        "id, list_id, name, address, lat, lng, status, cuisine, price_range, google_rating, website_uri",
+      )
       .in("list_id", listIds)
       .not("lat", "is", null)
       .not("lng", "is", null);
-    places = (data ?? []) as MapPlaceRow[];
+    places = (data ?? []) as NearbyPlace[];
 
-    // 还没在 Google 拉过口碑的店数量（一键丰富 = 拿评分 + 精确坐标上图）
+    // 待丰富的店数量。这里的过滤条件必须和 enrichPlacesFromGoogle 里的一致，
+    // 否则按钮上写「1 家」、点下去却处理了 5 家（之前就是这样：这里只数缺评分的，
+    // 而那边缺评分**或**缺菜单链接都算）
     const { count } = await supabase
       .from("places")
       .select("id", { count: "exact", head: true })
       .in("list_id", listIds)
-      .is("google_rating", null);
-    missingCoords = count ?? 0;
+      .or("google_rating.is.null,website_uri.is.null");
+    needEnrich = count ?? 0;
   }
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
@@ -59,10 +54,10 @@ export default async function MapPage() {
   return (
     <main className="v2-page">
       <div className="v2-lhead" style={{ paddingBottom: 14 }}>
-        <h1>地图</h1>
+        <h1>附近去哪</h1>
         <div className="stats">
           {places.length > 0
-            ? `${places.length} 家有坐标 · 点圆点看详情`
+            ? `${places.length} 家有坐标 · 按离你的距离排`
             : "还没有带坐标的店"}
         </div>
       </div>
@@ -74,20 +69,20 @@ export default async function MapPage() {
         </div>
       ) : places.length === 0 ? (
         <div className="v2-empty">
-          <div className="t">地图还是空的</div>
+          <div className="t">还没有能上地图的店</div>
           <div className="s" style={{ marginBottom: 16 }}>
-            {missingCoords > 0
-              ? "在 Google 上找到你的店，就能拿到评分并标到地图。"
+            {needEnrich > 0
+              ? "在 Google 上找到你的店，就能拿到坐标和评分，按距离排给你。"
               : "加店时用 Google 搜索会自动带坐标。"}
           </div>
-          {missingCoords > 0 && <EnrichButton count={missingCoords} />}
+          {needEnrich > 0 && <EnrichButton count={needEnrich} />}
         </div>
       ) : (
         <>
-          <PlacesMap places={places} apiKey={apiKey} />
-          {missingCoords > 0 && (
+          <NearbyView places={places} apiKey={apiKey} />
+          {needEnrich > 0 && (
             <div style={{ marginTop: 14 }}>
-              <EnrichButton count={missingCoords} />
+              <EnrichButton count={needEnrich} />
             </div>
           )}
         </>

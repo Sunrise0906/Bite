@@ -348,6 +348,24 @@
 .ui-v2 .v2-pick-result .sub { font-size:13.5px; color:var(--v2-muted); margin-top:10px; line-height:1.5; }
 .ui-v2 .v2-pick-result .acts { display:flex; gap:10px; justify-content:center; margin-top:22px; flex-wrap:wrap; }
 
+/* ---------- 附近去哪（地图 + 距离列表） ---------- */
+.ui-v2 .v2-nearby-geo { font-size:12.5px; color:var(--v2-muted); margin-bottom:10px; min-height:17px; }
+.ui-v2 .v2-nearby-geo .warn { color:var(--v2-gold-tx); background:var(--v2-gold-soft); padding:3px 9px; border-radius:999px; }
+.ui-v2 .v2-nearby-map { height:280px; border-radius:var(--v2-r-lg); overflow:hidden; border:var(--v2-bw) solid var(--v2-border); background:var(--v2-surface2); }
+.ui-v2 .v2-nearby-list { list-style:none; margin:14px 0 0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.ui-v2 .v2-nearby-row { display:flex; align-items:center; gap:11px; background:var(--v2-surface); border:var(--v2-bw) solid var(--v2-border); border-radius:var(--v2-r-md); padding:10px 12px; }
+.ui-v2 .v2-nearby-row.on { border-color:var(--v2-primary); box-shadow:var(--v2-shadow-sm); }
+.ui-v2 .v2-nearby-row .pin { flex:none; width:34px; display:flex; flex-direction:column; align-items:center; gap:1px; background:none; border:0; padding:0; cursor:pointer; line-height:1; }
+.ui-v2 .v2-nearby-row .pin span { font-size:12px; }
+.ui-v2 .v2-nearby-row .pin b { font-size:11px; color:var(--v2-muted); font-weight:700; }
+.ui-v2 .v2-nearby-row .body { flex:1; min-width:0; color:inherit; text-decoration:none; }
+.ui-v2 .v2-nearby-row .nm { font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ui-v2 .v2-nearby-row .mt { font-size:12px; color:var(--v2-muted); margin-top:3px; display:flex; gap:4px; flex-wrap:wrap; }
+/* 距离是这一屏的主角 —— 给它 primary 色，别和菜系价位混在一起 */
+.ui-v2 .v2-nearby-row .mt .dist { color:var(--v2-primary-soft-tx); background:var(--v2-primary-soft); padding:1px 7px; border-radius:999px; font-weight:700; }
+.ui-v2 .v2-nearby-row .mt .star { color:var(--v2-gold-tx); }
+.ui-v2 .v2-nearby-row .menu { flex:none; font-size:12px; font-weight:600; color:var(--v2-ink2); border:var(--v2-bw) solid var(--v2-border2); border-radius:999px; padding:5px 11px; text-decoration:none; }
+
 /* ============================================================================
    主题选择器（/profile 外观区）
    ============================================================================ */
