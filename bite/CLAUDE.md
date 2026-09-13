@@ -27,8 +27,16 @@
   `status` 的 `want_to_go` 是解析失败的兜底值，不能把已标的「已去过」打回去。
   见 `src/lib/places/upsert-plan.ts`
 - **人对人互动**：`place_comments`（sql/0025）是唯一的对话载体。RLS 用 `can_read_list`
-  而不是 `can_write_list` —— viewer 也该能说话，口径同 `pick_votes`。
+  而不是 `can_write_list` —— viewer 也该能说话，口径同 `pick_votes` 和 `place_ratings`。
   `conversations`/`messages` 是**纯人机**的（role CHECK 只有 user/assistant），别拿来复用
+- **三套评价，各管一件事，别互相替代**：
+  `visit_logs.sentiment`（会再来/还行/不会再来，必填）是「这一次去完还来不来」，AI 推荐的强信号；
+  `visit_logs.star_rating`（**5 最好**）是这一次几星；
+  `place_ratings.tier`（sql/0028，**1 最好**）是「这家店几档」——夯 > 顶级 > 人上人 > NPC > 拉完了，
+  挂在整家店上、每人一条、一键即评（不需要先记造访，否则每点一次评价都会给
+  「去过 N 次」和 /stats 灌一条假造访）。
+  ⚠️ **两个 1-5 标度方向相反**：`star_rating` 5 最好、`tier` 1 最好。所有比较都走
+  `src/lib/places/tier.ts` 的 `isBetterTier` / `bestTier`，别直接比数字（`tier.test.ts` 钉住了这个方向）
 - **小红书**：`src/lib/places/xhs.ts` 会**实际抓取** xiaohongshu.com（伪装 Chrome UA 读
   `__INITIAL_STATE__`），并把帖子图片转存进自有 Storage bucket。这与最初「仅纯文本粘贴、
   不爬服务器」的决策相反 —— 见 [`docs/decisions/0001-xhs-scraping-scope.md`](../docs/decisions/0001-xhs-scraping-scope.md)（**未决**）。

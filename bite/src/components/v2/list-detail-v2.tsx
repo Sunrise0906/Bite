@@ -15,6 +15,7 @@ import { LeaveListButton } from "@/components/lists/leave-list-button";
 import { PlacesViewV2 } from "./places-view-v2";
 import { QuickAddInput } from "@/components/places/quick-add-input";
 import type { VisitSignal } from "@/lib/visits/aggregate";
+import type { TierRow } from "@/lib/places/tier";
 
 export function ListDetailV2({
   list,
@@ -27,6 +28,7 @@ export function ListDetailV2({
   members,
   activeInvites,
   visitsByPlace,
+  tiersByPlace,
   reasonAuthors,
 }: {
   list: { id: string; name: string };
@@ -39,6 +41,8 @@ export function ListDetailV2({
   members: MemberDisplay[];
   activeInvites: ActiveInvite[];
   visitsByPlace: Record<string, VisitSignal>;
+  /** 快捷评价档位（sql/0028），place_id → 全部人的评价行 */
+  tiersByPlace?: Record<string, TierRow[]>;
   /** user_id → 显示名，用来给共享清单里别人写的理由标作者 */
   reasonAuthors?: Record<string, string>;
 }) {
@@ -167,6 +171,7 @@ export function ListDetailV2({
           currentUserId={currentUserId}
           canEdit={canEdit}
           visitsByPlace={visitsByPlace}
+          tiersByPlace={tiersByPlace}
           reasonAuthors={reasonAuthors}
         />
       )}

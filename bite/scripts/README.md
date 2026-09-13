@@ -38,6 +38,7 @@ Playwright 的 `tests/e2e/` 也不碰它们。改动对应子系统时请手工�
 | `chat-list-scope.mjs` | 「帮我从这挑」：AI 真的只在该清单里挑 + 作用域持久化到会话（建临时清单，自清理） | dev server | ✅ 自清理 |
 | `place-delete.mjs` | 清单页删店：默认不显示删除、开管理才出现、必须确认、真的从库里删掉（自建一次性测试店） | dev server | ✅ 自清理 |
 | `co-owner-rename.mjs` | sql/0019：co_owner 能改名，但改不了 owner_id/category、删不掉清单（两账号，自清理） | — | ✅ 自清理 |
+| `tier-rating.mjs` | sql/0028 快捷评价：**viewer 也能评** + 评不了别人那条 + 越界档位/跨清单注入被约束拦下 + 删店级联（两账号，自清理） | — | ✅ 自清理 |
 
 需要两个测试账号的脚本读 `E2E_TEST_EMAIL(_2)` / `E2E_TEST_PASSWORD(_2)`。
 

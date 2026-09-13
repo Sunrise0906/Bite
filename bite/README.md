@@ -89,6 +89,7 @@ sql/0024_co_owner_invite.sql          # co_owner 也能发邀请（3 人以上�
 sql/0025_place_comments.sql           # 清单内评论（人对人对话）；新表 + RLS
 sql/0026_last_seen.sql                # profiles.last_seen_at（「刚刚在线」）；纯增量
 sql/0027_comment_integrity.sql        # 评论的复合外键 + last_seen_at 收成列级权限；改约束/授权
+sql/0028_place_ratings.sql            # 快捷评价档位（夯/顶级/人上人/NPC/拉完了）；新表 + RLS（⚠️ 依赖 0027 的复合唯一约束）
 ```
 
 ## 项目结构

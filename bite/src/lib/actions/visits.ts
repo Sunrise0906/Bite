@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { normalizePhotoUrl } from "@/lib/storage/signed-photos";
+import { deleteTier, upsertTier } from "@/lib/db/ratings";
+import { parseTier } from "@/lib/places/tier";
 import {
   normalize,
   parseSentiment,
@@ -27,6 +29,38 @@ function parsePhotosText(raw: FormDataEntryValue | null): string[] {
     .map((s) => s.trim())
     .filter((s) => /^https?:\/\//i.test(s))
     .map((s) => normalizePhotoUrl(s));
+}
+
+/**
+ * 顺手更新档位（sql/0028）—— 造访表单里那一栏「这家几档」。
+ *
+ * 三态，与本文件 photos_text 的口径一致：
+ *   - 表单里**没有** tier 字段  → 什么都不做（编辑老记录的表单就是这种）
+ *   - tier 是合法档位          → upsert
+ *   - tier 是空串              → 用户刚刚清空了 → 删掉自己那条
+ *
+ * ⚠️ 「字段不在」和「字段为空」必须分开：混为一谈的话，任何一个不带 tier 的
+ * 调用方都会把用户已有的档位静默删掉。
+ *
+ * ⚠️ best-effort：失败只留痕不阻断 —— 造访本身已经写成功了，为了一个附带字段
+ * 把整次记录退回去更糟（同本文件 status 翻转失败的处理）。用户在清单卡片 /
+ * 详情页点评价时会拿到明确报错，那两条路是有回显的。
+ */
+async function applyTierFromForm(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  formData: FormData,
+  args: { placeId: string; listId: string; userId: string },
+): Promise<void> {
+  if (!formData.has("tier")) return;
+  const tier = parseTier(formData.get("tier"));
+  const r = tier
+    ? await upsertTier(supabase, { ...args, tier })
+    : await deleteTier(supabase, { placeId: args.placeId, userId: args.userId });
+  if ("error" in r) {
+    console.error(
+      `visits: 造访已记录但档位没写进去（place=${args.placeId}）：${r.error}`,
+    );
+  }
 }
 
 // ---- 创建 visit log ------------------------------------------------------
@@ -80,6 +114,12 @@ export async function logVisit(
   });
   if (insErr) return { error: `记录失败：${insErr.message}` };
 
+  await applyTierFromForm(supabase, formData, {
+    placeId,
+    listId: place.list_id,
+    userId: user.id,
+  });
+
   // 首次 / 仍处于 want_to_go：自动 flip 到 visited。
   // 失败不阻断（visit 本身已记录成功），但留痕便于排查状态不同步
   if (place.status === "want_to_go") {
@@ -93,6 +133,7 @@ export async function logVisit(
   }
 
   revalidatePath(`/lists/${place.list_id}`);
+  revalidatePath(`/lists/${place.list_id}/places/${placeId}`);
   revalidatePath(`/lists/${place.list_id}/places/${placeId}/edit`);
   return { error: null, ok: true, version: (prev.version ?? 0) + 1 };
 }
@@ -155,6 +196,13 @@ export async function updateVisit(
   }
 
   if (log?.places?.list_id) {
+    // 编辑表单默认**不带** tier 字段（调用方不知道当前档位），所以这里通常是 no-op。
+    // 见 applyTierFromForm 的三态说明。
+    await applyTierFromForm(supabase, formData, {
+      placeId: log.place_id,
+      listId: log.places.list_id,
+      userId: user.id,
+    });
     revalidatePath(`/lists/${log.places.list_id}`);
     revalidatePath(
       `/lists/${log.places.list_id}/places/${log.place_id}/edit`,

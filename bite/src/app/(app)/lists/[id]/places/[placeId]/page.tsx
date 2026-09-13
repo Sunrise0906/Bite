@@ -13,6 +13,8 @@ import { PlaceDetailV2 } from "@/components/v2/place-detail-v2";
 import { CommentThread } from "@/components/places/comment-thread";
 import { listComments } from "@/lib/actions/comments";
 import { fetchDisplayNames, displayNameOf } from "@/lib/db/display-names";
+import { fetchTiersForPlace } from "@/lib/db/ratings";
+import { summarizeTiers } from "@/lib/places/tier";
 
 type Params = Promise<{ id: string; placeId: string }>;
 
@@ -87,11 +89,23 @@ export default async function PlaceDetailPage({ params }: { params: Params }) {
   };
   const lastRel = visits.lastDate ? relDate(visits.lastDate) : null;
 
+  // 快捷评价（sql/0028）。表还没建时 fetchTiersForPlace 返回 []，页面照常渲染，
+  // 用户一点评价会看到「还没跑 sql/0028」的明确提示。
+  const tierRows = await fetchTiersForPlace(supabase, placeId);
+  const tiers = summarizeTiers(tierRows, user.id);
+
   // 评论 + 「谁加的这家店」（created_by 一直写着却从没显示过）
-  const [comments, creatorNames] = await Promise.all([
+  const [comments, creatorNames, tierNames] = await Promise.all([
     listComments(placeId),
     fetchDisplayNames(supabase, [place.created_by]),
+    fetchDisplayNames(
+      supabase,
+      tiers.others.map((o) => o.user_id),
+    ),
   ]);
+  const tierAuthors = Object.fromEntries(
+    tiers.others.map((o) => [o.user_id, displayNameOf(tierNames, o.user_id)]),
+  );
   const addedBy =
     place.created_by && place.created_by !== user.id
       ? displayNameOf(creatorNames, place.created_by)
@@ -151,6 +165,8 @@ export default async function PlaceDetailPage({ params }: { params: Params }) {
       relDate={lastRel}
       opening={opening}
       xhsHits={xhsHits}
+      tiers={tiers}
+      tierAuthors={tierAuthors}
       comments={
         <CommentThread
           placeId={place.id}
@@ -161,13 +177,19 @@ export default async function PlaceDetailPage({ params }: { params: Params }) {
       }
       visitPrefill={(() => {
         const own = logs.find((l) => l.user_id === user.id);
-        return own
-          ? {
-              sentiment: own.sentiment,
-              star_rating: own.star_rating,
-              companions: own.companions,
-            }
-          : undefined;
+        return {
+          ...(own
+            ? {
+                sentiment: own.sentiment,
+                star_rating: own.star_rating,
+                companions: own.companions,
+              }
+            : {}),
+          // ⚠️ 即使没去过也要传：档位挂在整家店上（不是某次造访），
+          // 传 null 表示「已知，且还没评过」——表单据此渲染档位选择器。
+          // 省略的话表单会当成「未知」而整栏不显示（见 VisitPrefill.tier）。
+          tier: tiers.mine,
+        };
       })()}
     />
   );

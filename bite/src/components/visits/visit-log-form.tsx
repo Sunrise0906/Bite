@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { logVisit, updateVisit } from "@/lib/actions/visits";
 import type { VisitLog, VisitSentiment } from "@/lib/db/types";
+import { TIERS, type PlaceTier } from "@/lib/places/tier";
 import { PhotoUpload } from "@/components/places/photo-upload";
 import {
   FlameIcon,
@@ -27,6 +28,12 @@ export type VisitPrefill = {
   sentiment?: VisitSentiment;
   star_rating?: number | null;
   companions?: string | null;
+  /**
+   * 我当前给这家店的档位（sql/0028）。
+   * ⚠️ 这个**不是**「上次造访的」——档位是挂在整家店上的、每人一条。
+   * 表单里必须预填成当前值，否则提交时会被当成「用户清空了」而删掉。
+   */
+  tier?: PlaceTier | null;
 };
 
 type Mode =
@@ -74,6 +81,13 @@ export function VisitLogForm({ mode, open, onClose, photoDisplayMap }: Props) {
       ? mode.log.star_rating
       : (mode.prefill?.star_rating ?? null);
   const [star, setStar] = useState<number | null>(initialStar);
+
+  // 档位（sql/0028）。undefined = 调用方没告诉我们当前值 → **整个字段不渲染**，
+  // 于是提交时 formData 里没有 tier，server action 也就不会去动 place_ratings。
+  // 少了这一层，编辑一条老造访记录会把用户当前的档位静默删掉。
+  const knownTier = mode.kind === "create" ? mode.prefill?.tier : undefined;
+  const tierKnown = knownTier !== undefined;
+  const [tier, setTier] = useState<PlaceTier | null>(knownTier ?? null);
 
   // photoUrls 存 canonical（hidden input 落库用）；img 预览查 displayMap 换 signed
   const initialPhotos = mode.kind === "edit" ? (mode.log.photos ?? []) : [];
@@ -151,6 +165,43 @@ export function VisitLogForm({ mode, open, onClose, photoDisplayMap }: Props) {
             })}
           </div>
         </div>
+
+        {/* 档位：对整家店，不只这一次。见 sql/0028 的「为什么另起一张表」 */}
+        {tierKnown && (
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              这家几档（可选）
+            </label>
+            <input
+              type="hidden"
+              name="tier"
+              value={tier === null ? "" : String(tier)}
+            />
+            <div className="mt-1.5 grid grid-cols-5 gap-1.5">
+              {TIERS.map((t) => {
+                const active = tier === t.tier;
+                return (
+                  <button
+                    key={t.tier}
+                    type="button"
+                    title={t.blurb}
+                    onClick={() => setTier(active ? null : t.tier)}
+                    className={`rounded-xl border px-1 py-2 text-xs font-semibold transition ${
+                      active
+                        ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary-soft-text)]"
+                        : "border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-muted)] hover:border-[var(--primary)]/40 hover:text-[var(--text-default)]"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--text-faint)]">
+              评的是这家店本身（换你以后再看还是这一档）；上面的「体验」记的是这一次。
+            </p>
+          </div>
+        )}
 
         {/* star rating */}
         <div>

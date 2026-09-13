@@ -12,6 +12,8 @@ import {
   type VisitSignal,
 } from "@/lib/visits/aggregate";
 import { normalizeFilterValues } from "./filter-shape";
+import { fetchTiersForPlace, fetchTiersForPlaces } from "@/lib/db/ratings";
+import { summarizeTiers, tierLabel } from "@/lib/places/tier";
 
 export const CHAT_TOOLS: LlmTool[] = [
   {
@@ -21,7 +23,9 @@ export const CHAT_TOOLS: LlmTool[] = [
       "可按领域 / 状态 / 菜系 / 价位 / 关键词过滤。" +
       "返回每家店的：name, address, category（所属清单领域）, cuisine, price_range, status, tags, reason, notes（AI 备注）、" +
       "visit_count（去过几次）、last_visit（最近一次日期）、last_sentiment（最近一次评价：will_return/okay/wont_return）、" +
-      "dishes（招牌 / 网友推荐的具体菜名）。" +
+      "dishes（招牌 / 网友推荐的具体菜名）、" +
+      "my_tier（用户自己打的快捷档位）、others_tiers（同清单其他人打的档位）——" +
+      "档位从好到差是：夯 > 顶级 > 人上人 > NPC > 拉完了。" +
       "用于给用户推荐时找候选——优先推 will_return 的，避免 wont_return 的；有 dishes 可以顺带说『去点 XX』。" +
       "跨领域规划（如『吃完去哪玩』）就分别按 category=food 和 category=activity 各查一次再综合。",
     inputSchema: {
@@ -87,7 +91,8 @@ export const CHAT_TOOLS: LlmTool[] = [
   {
     name: "check_place_details",
     description:
-      "拿到某家店的完整信息：基础字段 + 最近 10 条 visit logs（date / sentiment / star / note / companions）。" +
+      "拿到某家店的完整信息：基础字段 + 快捷档位（my_tier / others_tiers）+ " +
+      "最近 10 条 visit logs（date / sentiment / star / note / companions）。" +
       "有 Google 关联的店还会带 open_now（现在营业吗）和 today_hours（今天营业时间）——" +
       "推荐『今晚去』时先看这个，别推已打烊的店。" +
       "在 search_my_list 拿到候选后，想深入了解用户最近去得怎么样、点了啥、跟谁去时用。",
@@ -299,12 +304,18 @@ async function searchMyList(input: unknown, ctx: ToolContext) {
   if (error) return { error: `查询失败：${error.message}` };
 
   const rows = data ?? [];
-  // 一次拿所有候选店的 visit signals（last sentiment + visit count），减少回数
+  // 一次拿所有候选店的 visit signals（last sentiment + visit count）+ 快捷档位，减少回数
   const placeIds = rows.map((p) => p.id);
-  const visitsByPlace = await summarizeVisits(ctx, placeIds);
+  const [visitsByPlace, tiersByPlace] = await Promise.all([
+    summarizeVisits(ctx, placeIds),
+    fetchTiersForPlaces(ctx.supabase, placeIds),
+  ]);
 
   const places = rows.map((p) => {
     const v = visitsByPlace.get(p.id);
+    // 给模型的是**标签**不是数字：数字有极性陷阱（1 最好），
+    // 说给模型听只会让它自己去猜大小关系。
+    const t = summarizeTiers(tiersByPlace.get(p.id) ?? [], ctx.userId);
     return {
       id: p.id,
       list_id: p.list_id,
@@ -323,6 +334,8 @@ async function searchMyList(input: unknown, ctx: ToolContext) {
       visit_count: v?.count ?? 0,
       last_visit: v?.last_visit ?? null,
       last_sentiment: v?.last_sentiment ?? null,
+      my_tier: t.mine ? tierLabel(t.mine) : null,
+      others_tiers: t.others.map((o) => tierLabel(o.tier)),
     };
   });
 
@@ -366,9 +379,11 @@ async function checkPlaceDetails(input: unknown, ctx: ToolContext) {
   if (!data) return { error: "找不到这家店" };
 
   // 实时营业状态（best-effort，3.5s 超时，失败就不带这个字段）
-  const opening = data.google_place_id
-    ? await fetchOpeningInfo(data.google_place_id)
-    : null;
+  const [opening, tierRows] = await Promise.all([
+    data.google_place_id ? fetchOpeningInfo(data.google_place_id) : null,
+    fetchTiersForPlace(ctx.supabase, args.place_id),
+  ]);
+  const t = summarizeTiers(tierRows, ctx.userId);
 
   return {
     ...(opening
@@ -389,6 +404,8 @@ async function checkPlaceDetails(input: unknown, ctx: ToolContext) {
     dishes: data.dishes ?? [],
     source: data.source,
     source_url: data.source_url,
+    my_tier: t.mine ? tierLabel(t.mine) : null,
+    others_tiers: t.others.map((o) => tierLabel(o.tier)),
     lat: data.lat,
     lng: data.lng,
     photo_count: (data.photo_urls ?? []).length,

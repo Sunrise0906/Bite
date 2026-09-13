@@ -7,6 +7,8 @@ import { relDate } from "@/lib/util/rel-date";
 import { menuUrl } from "@/lib/places/menu-url";
 import type { VisitSignal } from "@/lib/visits/aggregate";
 import { StatusQuickToggle } from "@/components/places/status-quick-toggle";
+import { TierQuickPick } from "@/components/places/tier-quick-pick";
+import { summarizeTiers, type TierRow } from "@/lib/places/tier";
 import { deletePlace } from "@/lib/actions/places";
 
 const STATUS_ORDER: PlaceStatus[] = ["want_to_go", "visited", "archived"];
@@ -39,6 +41,7 @@ export function PlacesViewV2({
   currentUserId,
   canEdit = true,
   visitsByPlace = {},
+  tiersByPlace = {},
   reasonAuthors = {},
 }: {
   listId: string;
@@ -47,6 +50,8 @@ export function PlacesViewV2({
   /** viewer 看到的是静态状态 chip，没有切换控件（DB 侧 RLS 也会拒） */
   canEdit?: boolean;
   visitsByPlace?: Record<string, VisitSignal>;
+  /** 快捷评价档位（sql/0028）。⚠️ 不受 canEdit 约束 —— viewer 也能评 */
+  tiersByPlace?: Record<string, TierRow[]>;
   /** user_id → 显示名。共享清单里别人写的理由要标出是谁写的 */
   reasonAuthors?: Record<string, string>;
 }) {
@@ -266,6 +271,7 @@ export function PlacesViewV2({
                     canEdit={canEdit}
                     manage={manage}
                     visit={visitsByPlace[p.id] ?? null}
+                    tiers={tiersByPlace[p.id]}
                     reasonAuthors={reasonAuthors}
                   />
                 ))}
@@ -285,6 +291,7 @@ function PlaceCardV2({
   canEdit,
   manage,
   visit,
+  tiers,
   reasonAuthors,
 }: {
   listId: string;
@@ -294,6 +301,7 @@ function PlaceCardV2({
   /** 管理模式：右侧那一栏从「菜单」换成 编辑 / 删除 */
   manage: boolean;
   visit: VisitSignal | null;
+  tiers?: TierRow[];
   reasonAuthors: Record<string, string>;
 }) {
   const photo = place.photo_urls?.[0] ?? null;
@@ -310,6 +318,8 @@ function PlaceCardV2({
   const meta = [place.cuisine[0], place.price_range, place.address]
     .filter(Boolean)
     .join(" · ");
+  // 卡片上只显示「我的档位」——空间就这么点，别人怎么评在详情页看
+  const tierSummary = summarizeTiers(tiers ?? [], currentUserId);
 
   return (
     <div className="v2-pcard">
@@ -383,16 +393,19 @@ function PlaceCardV2({
         )}
       </div>
       </Link>
-      {canEdit && (
-        <div className="pcard-status">
+      {/* 右栏：状态切换（要写权限）+ 快捷评价（读得到就能评，含 viewer）。
+          两个都必须在 <Link> 外面 —— 交互控件嵌在链接里，点一下会顺带跳走。 */}
+      <div className="pcard-status">
+        {canEdit && (
           <StatusQuickToggle
             placeId={place.id}
             listId={listId}
             currentStatus={place.status}
             chipClass={`v2-pill ${STATUS_PILL[place.status]}`}
           />
-        </div>
-      )}
+        )}
+        <TierQuickPick placeId={place.id} summary={tierSummary} />
+      </div>
       {manage ? (
         <div className="pcard-manage">
           <Link href={`/lists/${listId}/places/${place.id}/edit`}>编辑</Link>

@@ -11,6 +11,8 @@ import {
 import type { ActiveInvite } from "@/components/invites/active-invites";
 import type { MemberDisplay } from "@/components/lists/members-panel";
 import { signNestedPhotoUrls } from "@/lib/storage/signed-photos";
+import { fetchTiersForPlaces } from "@/lib/db/ratings";
+import type { TierRow } from "@/lib/places/tier";
 import { ListDetailV2 } from "@/components/v2/list-detail-v2";
 
 type Params = Promise<{ id: string }>;
@@ -95,14 +97,21 @@ export default async function ListDetailPage({ params }: { params: Params }) {
   // 拉这些 places 的 visit_logs 摘要：count + last sentiment + last date + avg star
   // 聚合逻辑抽到 aggregateVisitSignals（纯函数，有单测；chat-tools 也共用同一份）
   let visitsByPlace = new Map<string, VisitSignal>();
+  // 快捷评价（sql/0028）：一次拉整个清单，卡片上各自算自己的摘要。
+  // 表还没建时 fetchTiersForPlaces 返回空 Map（不抛），清单页照常渲染。
+  let tiersByPlace = new Map<string, TierRow[]>();
   if (places.length > 0) {
     const placeIds = places.map((p) => p.id);
-    const { data: visitRows } = await supabase
-      .from("visit_logs")
-      .select("place_id, visited_at, sentiment, star_rating")
-      .in("place_id", placeIds)
-      .order("visited_at", { ascending: false });
+    const [{ data: visitRows }, tiers] = await Promise.all([
+      supabase
+        .from("visit_logs")
+        .select("place_id, visited_at, sentiment, star_rating")
+        .in("place_id", placeIds)
+        .order("visited_at", { ascending: false }),
+      fetchTiersForPlaces(supabase, placeIds),
+    ]);
     visitsByPlace = aggregateVisitSignals((visitRows ?? []) as VisitLogRow[]);
+    tiersByPlace = tiers;
   }
   const isOwner = list.owner_id === user.id;
 
@@ -178,6 +187,7 @@ export default async function ListDetailPage({ params }: { params: Params }) {
         members={members}
         activeInvites={activeInvites}
         visitsByPlace={Object.fromEntries(visitsByPlace)}
+        tiersByPlace={Object.fromEntries(tiersByPlace)}
         reasonAuthors={Object.fromEntries(reasonAuthors)}
       />
     );

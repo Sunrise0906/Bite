@@ -6,6 +6,8 @@ import type { XhsSearchHit } from "@/lib/places/xhs-search";
 import { menuUrl } from "@/lib/places/menu-url";
 import { XhsSearchButton } from "./xhs-search-button";
 import { XhsImportButton } from "./xhs-import-button";
+import { TierQuickPick } from "@/components/places/tier-quick-pick";
+import { EMPTY_TIER_SUMMARY, type TierSummary } from "@/lib/places/tier";
 
 export type DetailPlace = {
   id: string;
@@ -86,6 +88,8 @@ export function PlaceDetailV2({
   opening,
   xhsHits,
   comments,
+  tiers = EMPTY_TIER_SUMMARY,
+  tierAuthors = {},
 }: {
   place: DetailPlace;
   visits: VisitSummary;
@@ -93,6 +97,10 @@ export function PlaceDetailV2({
   currentUserId: string;
   canEdit: boolean;
   relDate: string | null;
+  /** 快捷评价摘要（sql/0028）。⚠️ 不受 canEdit 约束 —— viewer 也能评 */
+  tiers?: TierSummary;
+  /** 评过的人的显示名（user_id → 名字） */
+  tierAuthors?: Record<string, string>;
   /** 重访预填（自己上次造访的 sentiment/星级/同伴） */
   visitPrefill?: VisitPrefill;
   /** 实时营业状态（Google，best-effort，null = 不显示） */
@@ -232,6 +240,18 @@ export function PlaceDetailV2({
             </a>
           </div>
         )}
+
+        {/* 快捷评价：一键定档，不需要先记造访。
+            **不看 canEdit** —— viewer 也能表态，口径同留言 / 一起选投票（sql/0028）。 */}
+        <div className="v2-tierbox">
+          <div className="t">这家几档？</div>
+          <TierQuickPick
+            placeId={place.id}
+            summary={tiers}
+            showOthers
+            authors={tierAuthors}
+          />
+        </div>
 
         {/* 回忆卡（去过才有） */}
         {visits.count > 0 && (

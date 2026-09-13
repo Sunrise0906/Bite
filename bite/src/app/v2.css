@@ -86,6 +86,42 @@
 .ui-v2 .v2-pill-want { background:var(--v2-gold-soft); color:var(--v2-gold-tx); }
 .ui-v2 .v2-pill-visited { background:var(--v2-sage-soft); color:var(--v2-sage-tx); }
 .ui-v2 .v2-pill-mute { background:var(--v2-sunken); color:var(--v2-muted); }
+
+/* ---------- 快捷评价档位（夯 / 顶级 / 人上人 / NPC / 拉完了，见 lib/places/tier.ts） ----------
+   五档全部复用已有主题 token，所以 4 套皮肤 + 明暗都自动跟随，不需要各写一遍。
+   配色从「最强调」走到「最不强调」再到危险色，读者不认识这些梗也能看出好坏方向。
+
+   ⚠️ 最高档「夯」是**实心填充**，其余四档都是浅底。这不是为了好看：
+   `--v2-primary` 和 `--v2-danger` 在陶土 / 鲜果软糖两套主题里都是暖红系，
+   两头都用浅底的话，**最好和最差在列表里一眼看上去是同一个 chip**（实测过）。
+   换个色又会撞上「想去/去过」两个状态 pill 的金色和绿色。改成靠**填充轻重**
+   区分：整屏只有夯是实心的，扫一眼就知道哪家封神。 */
+.ui-v2 .v2-tier { display:inline-flex; align-items:center; gap:4px; border:0; cursor:pointer; font:inherit; border-radius:999px; padding:4px 10px; font-size:11.5px; font-weight:700; line-height:1; white-space:nowrap; transition:filter .15s, opacity .15s; }
+.ui-v2 .v2-tier:hover { filter:brightness(.96); }
+.ui-v2 .v2-tier:disabled { opacity:.5; cursor:default; }
+.ui-v2 .v2-tier-1 { background:var(--v2-primary); color:var(--v2-on-primary); }
+.ui-v2 .v2-tier-2 { background:var(--v2-gold-soft); color:var(--v2-gold-tx); }
+.ui-v2 .v2-tier-3 { background:var(--v2-sage-soft); color:var(--v2-sage-tx); }
+.ui-v2 .v2-tier-4 { background:var(--v2-sunken); color:var(--v2-muted); }
+.ui-v2 .v2-tier-5 { background:var(--v2-danger-bg); color:var(--v2-danger-tx); }
+/* 还没评过：虚线空位，明确「这里可以点」而不是「这里没东西」 */
+.ui-v2 .v2-tier.empty { background:transparent; color:var(--v2-faint); border:var(--v2-bw) dashed var(--v2-border2); }
+.ui-v2 .v2-tier.empty:hover { color:var(--v2-muted); border-color:var(--v2-muted); }
+
+/* 档位选择弹层 */
+.ui-v2 .v2-tier-pop { position:absolute; right:0; top:100%; z-index:40; margin-top:6px; min-width:172px; overflow:hidden; border:var(--v2-bw) solid var(--v2-border2); border-radius:var(--v2-r-md); background:var(--v2-surface); box-shadow:var(--v2-shadow); padding:5px; }
+.ui-v2 .v2-tier-pop button { display:flex; width:100%; align-items:center; gap:9px; border:0; background:none; cursor:pointer; font:inherit; text-align:left; padding:6px 7px; border-radius:var(--v2-r-xs); color:var(--v2-ink); }
+.ui-v2 .v2-tier-pop button:hover { background:var(--v2-surface2); }
+.ui-v2 .v2-tier-pop button .bl { font-size:11px; color:var(--v2-muted); font-weight:500; }
+.ui-v2 .v2-tier-pop button.on .bl { color:var(--v2-ink2); }
+.ui-v2 .v2-tier-pop button.on { background:var(--v2-surface2); }
+.ui-v2 .v2-tier-pop .clr { justify-content:center; font-size:11.5px; color:var(--v2-muted); font-weight:600; margin-top:3px; border-top:var(--v2-bw) solid var(--v2-border); border-radius:0; padding-top:8px; }
+/* 别人的档位：一行小字，共享清单才出现 */
+.ui-v2 .v2-tier-others { display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:11px; color:var(--v2-muted); }
+/* 详情页的评价块 */
+.ui-v2 .v2-tierbox { margin-top:15px; padding:12px 13px; border:var(--v2-bw) solid var(--v2-border); border-radius:var(--v2-r-md); background:var(--v2-surface); }
+.ui-v2 .v2-tierbox .t { font-size:12px; font-weight:700; color:var(--v2-muted); margin-bottom:8px; }
+
 .ui-v2 .v2-tag { display:inline-flex; border-radius:var(--v2-r-xs); padding:3px 9px; font-size:11.5px; font-weight:600; background:var(--v2-primary-soft); color:var(--v2-primary-soft-tx); }
 .ui-v2 .v2-tag.n { background:var(--v2-surface2); color:var(--v2-ink2); }
 .ui-v2 .v2-btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; border:0; cursor:pointer; font-family:var(--v2-sans); font-weight:600; border-radius:var(--v2-r-md); font-size:14px; background:var(--v2-primary); color:var(--v2-on-primary); box-shadow:var(--v2-btn-shadow); transition:transform .06s, filter .15s; }
@@ -212,7 +248,8 @@
 .ui-v2 .v2-pcard .pcard-menu { flex:none; align-self:stretch; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; width:52px; margin-left:10px; padding-left:10px; border-left:var(--v2-bw) solid var(--v2-border); color:var(--v2-primary); font-size:11px; font-weight:700; }
 .ui-v2 .v2-pcard .pcard-menu:active { opacity:.6; }
 /* 状态切换 chip：放在 <Link> 之外（交互控件不能嵌在链接里），可编辑时才出现 */
-.ui-v2 .v2-pcard .pcard-status { flex:none; align-self:flex-start; margin-left:10px; }
+/* 状态 chip + 快捷评价 chip 竖排。viewer 没有状态 chip，只剩评价那一个 */
+.ui-v2 .v2-pcard .pcard-status { flex:none; align-self:flex-start; margin-left:10px; display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
 /* 管理模式：右侧那一栏从「菜单」换成 编辑 / 删除 */
 .ui-v2 .v2-pcard .pcard-manage { flex:none; align-self:stretch; display:flex; flex-direction:column; justify-content:center; gap:6px; width:62px; margin-left:10px; padding-left:10px; border-left:var(--v2-bw) solid var(--v2-border); }
 .ui-v2 .v2-pcard .pcard-manage a,
