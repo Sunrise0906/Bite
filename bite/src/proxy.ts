@@ -2,7 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // 公开路径：登录前可访问
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/auth"];
+// /api/mobile 与 /api/chat 由 route handler 自己鉴权（iOS 用 Bearer token，没有 cookie），
+// 这里放行，否则 App 的请求会被 302 到 /login 拿到一坨 HTML。
+// /.well-known 是 Apple 的 universal links 配置文件（apple-app-site-association），必须匿名可读。
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/auth", "/api/mobile", "/api/chat", "/.well-known"];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some(

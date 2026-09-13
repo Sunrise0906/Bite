@@ -12,7 +12,8 @@
 - **地图**：Google Maps + Places API (New)
 - **邮件**：两套并存 —— 登录邮件（注册验证 / Magic Link）走 Supabase Auth 内置服务；
   产品通知邮件（朋友推荐提醒）走 Resend（`src/lib/email/send.ts`，未配 `RESEND_API_KEY` 则静默跳过）
-- **通知**：Web Push（VAPID + `web-push`），四个触发点：推荐 / 邀请 / 共享清单加新店 / 一起选匹配
+- **通知**：Web Push（VAPID + `web-push`）+ iOS APNs（`src/lib/push/apns.ts`，零依赖 HTTP/2），同一批触发点：推荐 / 邀请 / 共享清单加新店 / 一起选匹配 / 留言
+- **iOS App**：`../ios`（SwiftUI，直连同一个 Supabase；见下文「iOS App」）
 
 ## 本地开发
 
@@ -90,7 +91,33 @@ sql/0025_place_comments.sql           # 清单内评论（人对人对话）；�
 sql/0026_last_seen.sql                # profiles.last_seen_at（「刚刚在线」）；纯增量
 sql/0027_comment_integrity.sql        # 评论的复合外键 + last_seen_at 收成列级权限；改约束/授权
 sql/0028_place_ratings.sql            # 快捷评价档位（夯/顶级/人上人/NPC/拉完了）；新表 + RLS（⚠️ 依赖 0027 的复合唯一约束）
+sql/0029_device_tokens.sql            # iOS APNs 设备 token（原生推送）；新表 + SECURITY DEFINER 登记函数；纯增量，不做 iOS 可不跑
 ```
+
+## iOS App
+
+原生 SwiftUI 客户端在仓库根的 [`../ios`](../ios/README.md)，**同一个 Supabase 项目**。它直连 Supabase 做读写（RLS），
+只有需要服务端密钥 / 副作用的操作打这台服务器：
+
+| 路径 | 作用 |
+| --- | --- |
+| `POST /api/chat`（Bearer） | 和网页同一个 SSE 聊天端点，`Authorization: Bearer <supabase access_token>` 即可 |
+| `POST /api/mobile/quick-add/extract` · `/save` | 智能添加：抓小红书 / AI 抽取 → 合并写库（`lib/places/quick-add-core.ts`，网页 action 同源） |
+| `POST /api/mobile/places` | 手动建店（查重 + 通知，`lib/places/create-place.ts`） |
+| `GET /api/mobile/places/autocomplete` · `/details` · `/opening` | Google Places（服务端 key，App 包里不放 Google key） |
+| `POST /api/mobile/places/enrich` · `/xhs-enrich` | 复用 `enrichPlacesFromGoogle` / `enrichPlaceFromXhsPost` |
+| `POST /api/mobile/comments` · `/recommendations` · `/recommendations/accept` · `/invites/accept` · `/pick/*` | 复用对应 server action（要推送 / 邮件 / 合并逻辑） |
+| `GET/POST/DELETE /api/mobile/llm-settings` · `/test` | AI 设置（key 服务端加密） |
+| `POST/DELETE /api/mobile/push` | APNs 设备 token（`sql/0029`） |
+| `GET /.well-known/apple-app-site-association` | Universal Links（配了 `APPLE_TEAM_ID` 才有内容） |
+
+鉴权在 `src/lib/supabase/mobile-auth.ts`：用 token 换出 user + 以该用户身份的 Supabase client，塞进
+`src/lib/supabase/server.ts` 的请求作用域（AsyncLocalStorage），于是 `createClient()` / `requireUser()` /
+LLM router / 配额 / 推送 这些现有代码**一行不改**就能给 App 用。`proxy.ts` 对 `/api/mobile`、`/api/chat`、
+`/.well-known` 放行（route handler 自己鉴权）。
+
+可选 env：`APNS_TEAM_ID` / `APNS_KEY_ID` / `APNS_PRIVATE_KEY` / `APNS_BUNDLE_ID`（iOS 推送）、
+`APPLE_TEAM_ID` / `IOS_BUNDLE_ID`（Universal Links）—— 见 `.env.example` 末尾。
 
 ## 项目结构
 
@@ -103,7 +130,8 @@ bite/
 │   │   │                   #   / map / stats / profile / quick-add{,/multi}
 │   │   │                   #   / recommendations / invite/[token]
 │   │   ├── (auth)/         # login / signup
-│   │   ├── api/chat/       # SSE 流式聊天 + tool calling
+│   │   ├── api/chat/       # SSE 流式聊天 + tool calling（cookie 或 Bearer）
+│   │   ├── api/mobile/     # iOS App 的接口（Bearer 鉴权，复用 lib/ 与 server action）
 │   │   ├── auth/callback/  # Supabase OAuth 回调
 │   │   ├── globals.css     # Tailwind 4 入口 + 基础 token
 │   │   └── v2.css          # 设计语言 token + 4 套主题（.ui-v2 作用域）

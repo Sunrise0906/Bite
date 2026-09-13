@@ -393,3 +393,76 @@ export function inferCuisineFromTypes(
   if (out.size === 0 && all.includes("restaurant")) out.add("餐厅");
   return Array.from(out);
 }
+
+// ---- Autocomplete（服务端版，给 iOS 用） ------------------------------------
+// 网页端的实时补全在浏览器里直接打 Google（components/places/quick-add-input.tsx，
+// 用带 referrer 限制的 NEXT_PUBLIC key）。iOS 没有 referrer 可限，把 key 打进
+// App 包里等于公开，所以 App 走这里，用服务端那把 key 代查。参数口径与网页一致：
+// origin → 返回 distanceMeters；locationBias 50km 圆 → 近的排前面但仍能搜到外地。
+
+const AUTOCOMPLETE_FOOD_TYPES = [
+  "restaurant",
+  "cafe",
+  "bar",
+  "bakery",
+  "meal_takeaway",
+];
+
+export async function autocompletePlaces(
+  input: string,
+  origin: { lat: number; lng: number } | null,
+  sessionToken?: string,
+): Promise<PlaceSuggestion[]> {
+  const q = input.trim();
+  if (q.length < 2) return [];
+  // 浏览器定位失败时的兜底中心（尔湾市中心），与 lib/places/distance.ts 一致
+  const center = origin ?? { lat: 33.6846, lng: -117.8265 };
+  const apiPoint = { latitude: center.lat, longitude: center.lng };
+  const res = await fetch(`${PLACES_BASE}/places:autocomplete`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": getServerApiKey(),
+    },
+    body: JSON.stringify({
+      input: q,
+      ...(sessionToken ? { sessionToken } : {}),
+      languageCode: "zh-CN",
+      includedPrimaryTypes: AUTOCOMPLETE_FOOD_TYPES,
+      origin: apiPoint,
+      locationBias: { circle: { center: apiPoint, radius: 50000 } },
+    }),
+    signal: AbortSignal.timeout(6000),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Places autocomplete ${res.status}: ${text.slice(0, 120)}`);
+  }
+  const data: {
+    suggestions?: Array<{
+      placePrediction?: {
+        placeId: string;
+        distanceMeters?: number;
+        structuredFormat?: {
+          mainText?: { text?: string };
+          secondaryText?: { text?: string };
+        };
+      };
+    }>;
+  } = await res.json();
+  const items = (data.suggestions ?? [])
+    .map((s) => s.placePrediction)
+    .filter((p): p is NonNullable<typeof p> => Boolean(p))
+    .map((p) => ({
+      placeId: p.placeId,
+      mainText: p.structuredFormat?.mainText?.text ?? "",
+      secondaryText: p.structuredFormat?.secondaryText?.text ?? "",
+      distanceMeters: p.distanceMeters,
+    }));
+  items.sort((a, b) => {
+    if (a.distanceMeters === undefined) return 1;
+    if (b.distanceMeters === undefined) return -1;
+    return a.distanceMeters - b.distanceMeters;
+  });
+  return items;
+}

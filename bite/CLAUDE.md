@@ -40,6 +40,18 @@
 - **小红书**：`src/lib/places/xhs.ts` 会**实际抓取** xiaohongshu.com（伪装 Chrome UA 读
   `__INITIAL_STATE__`），并把帖子图片转存进自有 Storage bucket。这与最初「仅纯文本粘贴、
   不爬服务器」的决策相反 —— 见 [`docs/decisions/0001-xhs-scraping-scope.md`](../docs/decisions/0001-xhs-scraping-scope.md)（**未决**）。
+- **iOS App 与请求作用域**：`../ios` 是 SwiftUI 原生客户端，直连同一个 Supabase（RLS 管权限）。
+  只有需要**服务端密钥或副作用**（LLM / 小红书抓取 / Google key / 推送 / 邮件 / 加密的 LLM 设置）的操作
+  才走 `src/app/api/mobile/*` 和 `/api/chat`，用 `Authorization: Bearer <access_token>`。
+  `lib/supabase/mobile-auth.ts` 把 user + 该用户身份的 client 塞进 `lib/supabase/server.ts` 的
+  AsyncLocalStorage 请求作用域，之后 `createClient()` / `requireUser()` 拿到的就是它 —— 所以
+  route handler 里可以**直接 import 并调用 server action 函数**（如 `addComment`、`castPickVote`）复用逻辑。
+  两条规矩：① route handler 里不写业务逻辑，核心抽到 `lib/`（例：`lib/places/quick-add-core.ts`、
+  `lib/places/create-place.ts`）让网页 action 和 App 同源；② 带 `redirect()` 的 action 不能从 route
+  里调（会抛 NEXT_REDIRECT），要抽核心。「写入面只在 lib/actions」的不变量对网页仍成立；
+  App 的写入要么直连 Supabase 要么经这些 route 走同一份 lib。
+- **推送两条通道同一批触发点**：Web Push（`push_subscriptions`）+ APNs（`device_tokens`，sql/0029，
+  `lib/push/apns.ts`），都由 `sendPushToUsers` 触发。加新的通知触发点只改调用 `sendPushToUsers` 的那一处。
 
 ## Next.js 16 关键变化
 

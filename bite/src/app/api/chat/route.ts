@@ -7,7 +7,8 @@
 //   5. 每轮结束把 assistant 消息写库
 
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, runWithRequestScope } from "@/lib/supabase/server";
+import { authenticateBearer } from "@/lib/supabase/mobile-auth";
 import { getProvider, resolveProviderChain } from "@/lib/llm/router";
 import { streamWithFailover } from "@/lib/llm/stream-failover";
 import { LlmProviderError } from "@/lib/llm/types";
@@ -85,7 +86,7 @@ type RequestBody = {
   list_id?: string;
 };
 
-export async function POST(req: NextRequest) {
+async function handleChat(req: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -497,4 +498,15 @@ export async function POST(req: NextRequest) {
       Connection: "keep-alive",
     },
   });
+}
+
+/**
+ * 入口。网页走 cookie；iOS App 带 `Authorization: Bearer <access_token>`。
+ * Bearer 命中时把 user + client 放进请求作用域，下面 handleChat 里的
+ * createClient() / getProvider() / consumeQuota() 全部自动以该用户身份跑。
+ */
+export async function POST(req: NextRequest) {
+  const scope = await authenticateBearer(req);
+  if (scope) return runWithRequestScope(scope, () => handleChat(req));
+  return handleChat(req);
 }
