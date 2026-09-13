@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { findSameNamed, fetchPlaceNameRows } from "@/lib/db/place-names";
+import { fetchPlaceNameRows } from "@/lib/db/place-names";
+import { createPlaceCore } from "@/lib/places/create-place";
 import { sameName } from "@/lib/places/name-key";
-import { notifyListMembersNewPlace } from "@/lib/push/notify-list";
 import { redirect } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { normalizePhotoUrl } from "@/lib/storage/signed-photos";
@@ -21,6 +21,8 @@ export type PlaceFormState = {
 
 
 // ---- 新建 place ---------------------------------------------------------
+// 核心（校验 / 查重 / 插入 / 通知）在 lib/places/create-place.ts，iOS 的
+// POST /api/mobile/places 也用同一份；这里只是表单解析 + 网页跳转。
 export async function createPlace(
   _prev: PlaceFormState,
   formData: FormData,
@@ -29,69 +31,27 @@ export async function createPlace(
   const listId = String(formData.get("list_id") ?? "");
   if (!listId) return { error: "缺少 list id" };
 
-  const name = String(formData.get("name") ?? "").trim();
-  const address = String(formData.get("address") ?? "").trim();
-  const cuisine = parseTags(formData.get("cuisine"));
-
-  if (!name) return { error: "请填写店名" };
-  if (!address) return { error: "请填写地址" };
-  if (cuisine.length === 0) return { error: "请填写至少一个类型标签（吃=菜系 / 喝=品类 / 玩=类型）" };
-
-  const status = parseStatus(formData.get("status"));
-  const priceRange = parsePrice(formData.get("price_range"));
-  const occasions = parseTags(formData.get("occasions"));
-  const tags = parseTags(formData.get("tags"));
-  const recommendedBy =
-    String(formData.get("recommended_by") ?? "").trim() || null;
-  const reasonText = String(formData.get("reason") ?? "").trim();
-
-  const reasons = reasonText
-    ? [{ user_id: user.id, text: reasonText }]
-    : [];
-  const notes = String(formData.get("notes") ?? "").trim() || null;
-  const photoUrls = String(formData.get("photo_urls_text") ?? "")
-    .split(/\r?\n/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    // 用户从页面复制到的自家图是 7 天 signed URL，落库前转回 canonical
-    .map((s) => normalizePhotoUrl(s));
-
   const supabase = await createClient();
-
-  // 手写建店以前是裸 INSERT，一次查重都不做 —— 去重只覆盖了「智能添加」那一半入口，
-  // 所以反过来的顺序（先从小红书抓过、后手写补一家）100% 产生重复记录且毫无提示。
-  // 这里只**拦下并告诉用户**，不静默合并：表单提交却改了另一条已有记录会更吓人。
-  const dup = (await findSameNamed(supabase, [listId], name))[0];
-  if (dup) {
-    return {
-      error: `这个清单里已经有「${dup.name}」了。想补充信息就去那家店里编辑，不用再建一条。`,
-    };
-  }
-
-  const { error } = await supabase
-    .from("places")
-    .insert({
-      list_id: listId,
-      name,
-      address,
-      cuisine,
-      price_range: priceRange,
-      status,
-      occasions,
-      recommended_by: recommendedBy,
-      tags,
-      reasons,
-      notes,
-      photo_urls: photoUrls,
-      source: "manual",
-      created_by: user.id,
-    });
-
-  if (error) return { error: `保存失败：${error.message}` };
-
-  // 共享清单里加了店，别人应该知道。以前只有「智能添加」那两条路径会通知，
-  // 手写表单静悄悄 —— 同一个用户行为，两条代码路径行为不一致。
-  await notifyListMembersNewPlace(supabase, user.id, listId, `「${name}」`);
+  const result = await createPlaceCore(supabase, user.id, {
+    listId,
+    name: String(formData.get("name") ?? ""),
+    address: String(formData.get("address") ?? ""),
+    cuisine: parseTags(formData.get("cuisine")),
+    priceRange: parsePrice(formData.get("price_range")),
+    status: parseStatus(formData.get("status")),
+    occasions: parseTags(formData.get("occasions")),
+    tags: parseTags(formData.get("tags")),
+    recommendedBy: String(formData.get("recommended_by") ?? "").trim() || null,
+    reason: String(formData.get("reason") ?? "").trim() || null,
+    notes: String(formData.get("notes") ?? "").trim() || null,
+    photoUrls: String(formData.get("photo_urls_text") ?? "")
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      // 用户从页面复制到的自家图是 7 天 signed URL，落库前转回 canonical
+      .map((s) => normalizePhotoUrl(s)),
+  });
+  if (!result.ok) return { error: result.error };
 
   revalidatePath(`/lists/${listId}`);
   redirect(`/lists/${listId}?toast=place_added`);

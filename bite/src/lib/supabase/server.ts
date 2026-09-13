@@ -6,9 +6,7 @@ import { createServerClient } from "@supabase/ssr";
 // 都不做列名/类型校验。原先有一份手写的 src/lib/supabase/types.ts，但它从未被传进来，
 // 只是让人误以为有类型安全，且已比 schema 落后 8 张表，故删除。
 // 真要类型安全应该用 `supabase gen types typescript` 生成再传泛型（会一次性影响 26 处消费方）。
-export async function createClient() {
-  const cookieStore = await cookies();
-
+function cookieClient(cookieStore: Awaited<ReturnType<typeof cookies>>) {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -30,6 +28,14 @@ export async function createClient() {
       },
     },
   );
+}
+
+/** 服务端 Supabase client 的类型。 */
+export type ServerSupabaseClient = ReturnType<typeof cookieClient>;
+
+export async function createClient(): Promise<ServerSupabaseClient> {
+  const cookieStore = await cookies();
+  return cookieClient(cookieStore);
 }
 
 export async function getUser() {
