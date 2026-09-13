@@ -125,7 +125,10 @@ final class ChatModel {
             guard let self else { return }
             var blocks: [LlmContentBlock] = []
             var currentText = ""
-            func flush() {
+            // ⚠️ 必须显式 @MainActor：嵌套函数**不继承**外层闭包的 actor 隔离
+            // （闭包继承，局部 func 不继承）。少了它，这里碰 self.messages 会报
+            // 「main actor-isolated property can not be referenced from a nonisolated context」。
+            @MainActor func flush() {
                 var final = blocks
                 if !currentText.isEmpty { final.append(.text(currentText)) }
                 if let i = self.messages.indices.last { self.messages[i].content = final }
