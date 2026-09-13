@@ -4,6 +4,7 @@
 下次纠结「今晚吃什么」时让 AI 从你自己攒的库里挑。
 
 **Next.js 应用在 [`./bite`](./bite)** —— Vercel 的 Root Directory 设为 `bite`。
+**iOS App 在 [`./ios`](./ios)**（SwiftUI，直连同一个 Supabase；需要 Xcode，见 `ios/README.md`）。
 
 ```bash
 cd bite && npm install && npm run dev
@@ -20,6 +21,7 @@ cd bite && npm install && npm run dev
 | [`docs/Bite_设计文档.md`](./docs/Bite_设计文档.md) | 原始产品设计 |
 | [`docs/decisions/`](./docs/decisions) | 架构决策记录（ADR），含未决分叉 |
 | [`docs/history/`](./docs/history) | 已冻结的历史开发日志 |
+| [`ios/README.md`](./ios/README.md) | iOS App：配置、与网页的对应关系、推送 / Universal Links / 分享扩展 |
 
 ## 仓库布局
 
@@ -30,5 +32,6 @@ Bite/
 │   ├── sql/       # Postgres migration（手工在 Supabase SQL Editor 跑）
 │   ├── scripts/   # 验证脚本 + 截图脚本
 │   └── tests/e2e/ # Playwright
+├── ios/           # SwiftUI 原生 App（XcodeGen 工程 + BiteCore 纯逻辑包 + 分享扩展）
 └── docs/          # 产品设计、决策记录、历史归档
 ```

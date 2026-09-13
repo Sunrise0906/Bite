@@ -1,0 +1,18 @@
+# XcodeGen 生成物（改 project.yml，别手改工程）
+Bite.xcodeproj/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+DerivedData/
+build/
+
+# 本机密钥 / 地址
+Config/Local.xcconfig
+
+# SwiftPM
+.build/
+.swiftpm/
+Packages/BiteCore/.build/
+Package.resolved
+
+# macOS
+.DS_Store

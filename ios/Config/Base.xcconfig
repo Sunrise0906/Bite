@@ -1,0 +1,18 @@
+// 所有构建共用的默认值。真正的密钥 / 地址在 Local.xcconfig（已 gitignore，见 Local.xcconfig.example）。
+// ⚠️ xcconfig 里 `//` 是注释起始，URL 必须写成 https:/$()/host 这种形式。
+
+#include? "Local.xcconfig"
+
+BITE_BUNDLE_ID = com.sunrise.bite
+BITE_APP_GROUP = group.$(BITE_BUNDLE_ID)
+BITE_WEB_HOST = bite-sand.vercel.app
+BITE_TEAM_ID =
+
+// 默认打线上 Vercel；本地联调改 Local.xcconfig 里的 BITE_API_BASE_URL
+BITE_API_BASE_URL = https:/$()/$(BITE_WEB_HOST)
+
+SWIFT_VERSION = 5.0
+IPHONEOS_DEPLOYMENT_TARGET = 17.0
+TARGETED_DEVICE_FAMILY = 1
+SWIFT_STRICT_CONCURRENCY = minimal
+ENABLE_USER_SCRIPT_SANDBOXING = YES

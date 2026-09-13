@@ -1,0 +1,16 @@
+// 复制成 Config/Local.xcconfig（已 gitignore）后填值，然后 `xcodegen generate`。
+// ⚠️ xcconfig 里 `//` 是注释起始，所以 URL 要拆成 https:/$()/host —— 别删掉那个 $()。
+
+// Supabase Dashboard → Project Settings → API（anon key 是公开的，和网页端 NEXT_PUBLIC_ 同一把）
+SUPABASE_URL = https:/$()/YOUR-PROJECT.supabase.co
+SUPABASE_ANON_KEY = 填 NEXT_PUBLIC_SUPABASE_ANON_KEY 的值
+
+// Next.js 服务端（/api/mobile/* 和 /api/chat 在这上面）。线上就是 Vercel 域名；
+// 本地联调用模拟器可填 http:/$()/localhost:3000，真机要填 Mac 的局域网 IP。
+BITE_API_BASE_URL = https:/$()/bite-sand.vercel.app
+
+// Apple Developer 的 Team ID（Xcode → Settings → Accounts 里能看到）。留空则在 Xcode 的 Signing 里手动选。
+BITE_TEAM_ID =
+
+// 想换 bundle id 就改这里（App Group / 分享扩展会跟着变；服务端 APNS_BUNDLE_ID / IOS_BUNDLE_ID 要一致）
+BITE_BUNDLE_ID = com.sunrise.bite

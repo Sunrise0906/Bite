@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 分享扩展 ↔ 主 App 的交接盒 -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>$(BITE_APP_GROUP)</string>
+	</array>
+	<!--
+	付费开发者账号才能加的两项（免费个人账号加上会签不了名），需要时在 Xcode → Signing & Capabilities 里勾：
+	  · Push Notifications  →  <key>aps-environment</key><string>development</string>
+	  · Associated Domains  →  <key>com.apple.developer.associated-domains</key><array><string>applinks:$(BITE_WEB_HOST)</string></array>
+	详见 ios/README.md「推送」「Universal Links」两节。
+	-->
+</dict>
+</plist>

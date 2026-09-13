@@ -137,8 +137,8 @@ Google 索引里根本没有小红书笔记。详见 `bite/src/lib/places/xhs-se
 2. **activity 抽取适配** — 玩乐店该抽 类型/时长/门票/适合人群，而不是菜系/人均
 3. **约会行程规划师** — 跨领域组合卡："午餐 A → 咖啡 B → 日落步道 C"，
    可保存可分享（多领域地基已打好，这是"从吃到玩"的门面功能）
-4. **iOS App** — web 功能稳定后用 Capacitor 之类的壳打包，解决"分享到 Bite"
-   （iOS PWA 不支持 Share Target，所以 web 端不做这个）
+4. **iOS App** — ~~用 Capacitor 之类的壳打包~~ 已改为原生 SwiftUI（2026-09-12，`ios/`），
+   带分享扩展解决"分享到 Bite"；还差装 Xcode 真机跑通，见 `ios/README.md`
 
 **未验证项**：Web Push 的真机收信（需真手机开通知后互发一条推荐验证）。
 注意 Web Push 依赖 `SUPABASE_SERVICE_ROLE_KEY`——不配则整个推送静默失效。
