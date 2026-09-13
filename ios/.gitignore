@@ -1,5 +1,8 @@
 # XcodeGen 生成物（改 project.yml，别手改工程）
 Bite.xcodeproj/
+# Info.plist 由 project.yml 的 info.properties 生成，改那里而不是改 plist
+Bite/Info.plist
+BiteShare/Info.plist
 *.xcworkspace/xcuserdata/
 xcuserdata/
 DerivedData/
