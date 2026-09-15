@@ -209,6 +209,14 @@ enum ErrorText {
         if m.contains("rate limit") || m.contains("for security purposes") { return "请求过于频繁，请稍后再试" }
         if m.contains("network") || m.contains("offline") || m.contains("internet") { return "网络不可用，稍后再试" }
         if m.contains("jwt") || m.contains("session") && m.contains("missing") { return "登录已过期，请重新登录" }
+        // 登录链接类错误必须在这里截住：supabase-swift 的原文是
+        // "Not a valid PKCE flow URL: bite://auth/callback#access_token=…"
+        // —— 既是英文（违反全中文约定），又会把整个回调 URL 连 access_token
+        // 一起显示到屏幕上。所以这一条**不能**把 raw 拼进返回值。
+        // 触发场景：点了过期 / 已用过的魔法链接，或链接不是本机这次登录发起的。
+        if m.contains("pkce") || m.contains("implicit grant") || m.contains("flow state") {
+            return "登录链接无效或已过期，请重新获取"
+        }
         return raw
     }
 }
