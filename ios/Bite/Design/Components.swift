@@ -353,24 +353,29 @@ struct RemoteImage: View {
     var contentMode: ContentMode = .fill
 
     var body: some View {
-        ZStack {
-            t.surface2
-            if let url, let u = URL(string: url) {
-                AsyncImage(url: u) { phase in
-                    switch phase {
-                    case .success(let img):
-                        img.resizable().aspectRatio(contentMode: contentMode)
-                    case .failure:
-                        placeholder
-                    default:
-                        Color.clear
+        // 底色是一块「接受外层 frame 尺寸」的色块，图放进 overlay 再 clip，
+        // 于是 .fill 的图被裁在调用方给的框里。
+        // ⚠️ 别改回 ZStack { 底色; 图 }.clipped()：ZStack 会长到 .fill 后图的完整尺寸，
+        // clipped 裁的是那个放大后的边界（等于没裁），调用方的 .frame 又只定布局不裁 ——
+        // 结果首页「想去」卡片的封面图盖住了下面的店名、菜系和推荐语。
+        t.surface2
+            .overlay {
+                if let url, let u = URL(string: url) {
+                    AsyncImage(url: u) { phase in
+                        switch phase {
+                        case .success(let img):
+                            img.resizable().aspectRatio(contentMode: contentMode)
+                        case .failure:
+                            placeholder
+                        default:
+                            Color.clear
+                        }
                     }
+                } else {
+                    placeholder
                 }
-            } else {
-                placeholder
             }
-        }
-        .clipped()
+            .clipped()
     }
 
     private var placeholder: some View {
